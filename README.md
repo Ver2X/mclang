@@ -1,1 +1,5 @@
 # chibicc
+
+
+TODO: 
+add free()
