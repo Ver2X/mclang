@@ -31,19 +31,21 @@ Token * token;
 char *user_input;
 
 // error report
-void error_at(char * loc, char * fmt, ...)
+void error_at(char * loc, char * fmt, ...) 
 {
 	va_list ap;
 	va_start(ap, fmt);
 
 	int pos = loc - user_input;
 	fprintf(stderr, "%s\n", user_input);
-	fprintf(stderr, "%*s", pos, " ");
+	//fprintf(stderr, "%*s", pos, ""); // print pos spaces.
 	fprintf(stderr, "^ ");
+	
 	vfprintf(stderr, fmt, ap);
 	fprintf(stderr, "\n");
 	exit(1);
 }
+
 
 bool consume(char op)
 {
@@ -86,9 +88,10 @@ Token * new_token(TokenKind kind, Token * cur, char * str)
 }
 
 
-// generate tokens by input
-Token * tokenize(char *p)
+// generate tokens by user_input
+Token * tokenize()
 {
+	char *p = user_input;
 	Token head;
 	head.next = NULL;
 	Token * cur = &head;
@@ -132,7 +135,8 @@ int main(int argc, char ** argv)
 
 
 	// get first token
-	token = tokenize(argv[1]);
+	user_input = argv[1];
+	token = tokenize();
 
 	printf(".intel_syntax noprefix\n");
 	printf(".globl main\n");
