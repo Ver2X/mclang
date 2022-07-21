@@ -8,4 +8,4 @@ test: 9cc
 clean:
 		rm -f 9cc *.o *~ tmp*
 
-.PHONU test clean
+.PHONU: test clean
