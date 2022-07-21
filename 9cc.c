@@ -38,7 +38,7 @@ void error_at(char * loc, char * fmt, ...)
 
 	int pos = loc - user_input;
 	fprintf(stderr, "%s\n", user_input);
-	//fprintf(stderr, "%*s", pos, ""); // print pos spaces.
+	fprintf(stderr, "%*s", pos, ""); // print pos spaces.
 	fprintf(stderr, "^ ");
 	
 	vfprintf(stderr, fmt, ap);
