@@ -4,41 +4,37 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 // kinds of token
 typedef enum
 {
-	TK_RESERVED, // Keywords or punctuators
+	TK_IDENT,
 	TK_NUM,
 	TK_EOF,
+	TK_PUNCT,
 }TokenKind;
 
 typedef struct Token Token;
 
 struct Token
 {
-	TokenKind kind;
-	Token * next;
-	int val;
-	char * str;
-	int len; // for string (a op b)
+	TokenKind 	kind;
+	Token * 	next;
+	int 		val;
+	char * 		loc;		// token location
+	int 		len; 		// token len
 };
 
-// current token
-extern Token * token;
 
-// inputs
-extern char *user_input;
+void error(char *fmt, ...);
+void error_at(char *loc, char *fmt, ...);
+void error_tok(Token *tok, char *fmt, ...);
+bool equal(Token *tok, char *op);
+Token *skip(Token *tok, char *op);
+Token *tokenize(char *input);
 
 
-void error_at(char * loc, char * fmt, ...) ;
-bool consume(char *op);
-void expect(char *op);
-int expect_number();
-static bool at_eof();
-static Token * new_token(TokenKind kind, Token * cur, char * str, int len);
-static bool startswith(char *p, char *q);
-Token * tokenize();
 
 
 
@@ -46,15 +42,19 @@ Token * tokenize();
 // Node type of AST
 typedef enum
 {
-	ND_ADD,  // +
-	ND_SUB,  // -
-	ND_MUL,  // *
-	ND_DIV,  // /
-	ND_EQ, 	 // ==
-	ND_NE,   // !=
-	ND_LT,   // <
-	ND_LE,   // <=
-	ND_NUM,  // integer
+	ND_ADD,  		// +
+	ND_SUB,  		// -
+	ND_MUL,  		// *
+	ND_DIV,  		// /
+	ND_EQ, 	 		// ==
+	ND_NE,   		// !=
+	ND_LT,   		// <
+	ND_LE,   		// <=
+	ND_ASSIGN, 		// =
+	ND_NEG,         // - , unary
+	ND_NUM,  		// integer
+	ND_VAR, 		// local variable
+	ND_EXPR_STMT,	// statement
 }NodeKind;
 
 typedef struct Node Node;
@@ -65,21 +65,15 @@ struct Node
 	NodeKind kind;
 	Node * lhs;
 	Node * rhs;
-	int val; // when kind == ND_NUM
+	int val; 		// when kind == ND_NUM
+	char name; 		// when kind == ND_VAR
+	Node * next;
 };
 
-
-
-
-Node * expr();
-static Node * equality();
-static Node * relational();
-static Node * add();
-static Node * mul();
-static Node * primary();
-static Node * unary();
+Node *parse(Token *tok);
 
 
 
 
-void gen(Node *node);
+
+void codegen(Node *node);
