@@ -89,6 +89,7 @@ struct Node
 	Node * lhs;
 	Node * rhs;
 	Node * next;
+	Token * tok; 	// representative token
 
 	// "if" or "for" statement
 	Node * cond;
