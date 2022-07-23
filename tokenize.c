@@ -60,6 +60,18 @@ static bool startswith(char *p, char *q) {
   return strncmp(p, q, strlen(q)) == 0;
 }
 
+// judge char c could be used as first char of idenitiy
+static bool is_ident_first(char c)
+{
+	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+}
+
+// judge char c could be used as rest char of idenitiy
+static bool is_ident_rest(char c)
+{
+	return is_ident_first(c) || ('0' <= c && c <= '9');
+}
+
 // Read a punctuator token from p and returns its length.
 static int read_punct(char *p) {
   if (startswith(p, "==") || startswith(p, "!=") ||
@@ -92,10 +104,15 @@ Token *tokenize(char *p) {
     }
 
     // Identifier
-    if ('a' <= *p && *p <= 'z') {
-      cur = cur->next = new_token(TK_IDENT, p, p + 1);
-      p++;
-      continue;
+    if(is_ident_first(*p))
+    {
+    	char * start = p;
+    	do
+    	{
+    		p++;
+    	}while(is_ident_rest(*p));
+    	cur = cur->next = new_token(TK_IDENT, start, p);
+    	continue;
     }
 
     // Punctuators

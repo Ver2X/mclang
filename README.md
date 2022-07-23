@@ -16,3 +16,9 @@ then travel again to generate IR code
 
 
 add printAST function
+
+
+
+
+
+change locals to a nest symbol, to support multi function

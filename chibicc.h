@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L // https://xy2401.com/local-docs/gnu/manual.zh/libc/Feature-Test-Macros.html
 #include <ctype.h> 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -5,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+typedef struct Node Node;
 
 // kinds of token
 typedef enum
@@ -35,9 +38,23 @@ Token *skip(Token *tok, char *op);
 Token *tokenize(char *input);
 
 
+// for local variable
+typedef struct Obj Obj;
+struct Obj
+{
+	Obj * next;
+	char * name;
+	int offset; // from rbp
+};
 
-
-
+// function
+typedef struct Function Function;
+struct Function
+{
+	Node * body;
+	Obj * locals;
+	int stack_size;
+};
 
 // Node type of AST
 typedef enum
@@ -57,7 +74,7 @@ typedef enum
 	ND_EXPR_STMT,	// statement
 }NodeKind;
 
-typedef struct Node Node;
+
 
 // Node of AST
 struct Node
@@ -66,14 +83,14 @@ struct Node
 	Node * lhs;
 	Node * rhs;
 	int val; 		// when kind == ND_NUM
-	char name; 		// when kind == ND_VAR
+	Obj *var; 		// when kind == ND_VAR
 	Node * next;
 };
 
-Node *parse(Token *tok);
+Function *parse(Token *tok);
 
 
 
 
 
-void codegen(Node *node);
+void codegen(Function *prog);

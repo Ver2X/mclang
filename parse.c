@@ -13,6 +13,41 @@ static Node *add(Token **rest, Token *tok);
 static Node *mul(Token **rest, Token *tok);
 static Node *unary(Token **rest, Token *tok);
 static Node *primary(Token **rest, Token *tok);
+static Node *new_node(NodeKind kind);
+
+// All locals variable, head insert method 
+Obj * locals;
+
+static Obj * find_var(Token * tok)
+{
+	for(Obj * var = locals; var; var = var->next)
+	{
+		if(strlen(var->name) == tok->len	&& !strncmp(tok->loc, var->name, tok->len))
+			return var;		
+	}
+	return NULL;
+}
+
+// create a variable
+static Node * new_var_node(Obj * var)
+{
+	Node *node = new_node(ND_VAR);
+	node->var = var;
+	return node;
+}
+
+
+// head insert
+static Obj * new_lvar(char * name)
+{
+	Obj * var = calloc(1, sizeof(Obj));
+	var->name = name;
+	var->next = locals;
+	locals = var;
+	return var;
+}
+
+
 
 // create a new node by special kind
 static Node *new_node(NodeKind kind) {
@@ -44,13 +79,7 @@ static Node * new_num(int val)
 	return node;
 }
 
-// create a number
-static Node * new_var_node(char name)
-{
-	Node *node = new_node(ND_VAR);
-	node->name = name;
-	return node;
-}
+
 
 
 // stmt = expr_stmt
@@ -227,9 +256,11 @@ static Node *primary(Token ** rest, Token * tok)
 	
 	if(tok->kind == TK_IDENT)
 	{
-		Node * node = new_var_node(*tok->loc);
+		Obj * var = find_var(tok);
+		if(!var)
+			var = new_lvar(strndup(tok->loc, tok->len));
 		*rest = tok->next;
-		return node;
+		return new_var_node(var);
 	}
 
 	if(tok->kind == TK_NUM)
@@ -244,11 +275,16 @@ static Node *primary(Token ** rest, Token * tok)
 
 
 // program = stmt*
-Node * parse(Token * tok)
+Function * parse(Token * tok)
 {
 	Node head = {};
 	Node * cur	= &head;
+
 	while(tok->kind != TK_EOF)
 		cur = cur->next = stmt(&tok, tok);
-	return head.next;
+
+	Function * prog = calloc(1, sizeof(Function));
+	prog->body = head.next;
+	prog->locals = locals;
+	return prog;
 }

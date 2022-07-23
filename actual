@@ -1,1 +1,1 @@
-a=b=3; a+b; =
+foo123=3; bar=5; foo123+bar; =
