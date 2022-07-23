@@ -116,9 +116,15 @@ static Node * compound_stmt(Token ** rest, Token * tok)
 }
 
 
-// expr_stmt       = expr ";"
+// expr_stmt       = expr? ";"
 static Node * expr_stmt(Token ** rest, Token * tok)
 {
+	if(equal(tok, ";"))
+		{
+			*rest = tok->next;
+			return new_node(ND_BLOCK);
+		}
+
 	// expr(&tok, tok)), beacuse in parse() :  cur = cur->next = stmt(&tok, tok);
 	Node * node = new_unary(ND_EXPR_STMT, expr(&tok, tok));
 	*rest = skip(tok, ";"); 
