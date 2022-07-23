@@ -69,7 +69,9 @@ typedef enum
 	ND_LT,   		// <
 	ND_LE,   		// <=
 	ND_ASSIGN, 		// =
-	ND_NEG,         // - , unary
+	ND_NEG,         // -, unary
+	ND_ADDR,		// &, unary
+	ND_DEREF,		// *, unary
 	ND_NUM,  		// integer
 	ND_VAR, 		// local variable
 	ND_EXPR_STMT,	// statement

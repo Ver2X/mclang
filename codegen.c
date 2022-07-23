@@ -1,5 +1,6 @@
 #include "chibicc.h"
 
+static void gen_expr(Node *node);
 
 static int depth;
 
@@ -32,10 +33,14 @@ static int align_to(int n, int align)
 
 static void gen_addr(Node *node)
 {
-	if(node->kind == ND_VAR)
+	switch(node->kind)
 	{
-		printf("  lea %d(%%rbp), %%rax\n", node->var->offset);
-		return;
+		case ND_VAR:
+			printf("  lea %d(%%rbp), %%rax\n", node->var->offset);
+			return;
+		case ND_DEREF:
+			gen_expr(node->lhs);
+			return;
 	}
 
 	error("not an lvalue");
@@ -59,6 +64,13 @@ static void gen_expr(Node *node)
 			gen_addr(node);
 			printf("  mov (%%rax), %%rax\n");
 			return ;
+		case ND_DEREF:
+			gen_expr(node->lhs);
+			printf("  mov (%%rax), %%rax\n");
+			return;
+		case ND_ADDR:
+			gen_addr(node->lhs);
+			return;
 		case ND_ASSIGN:
 			gen_addr(node->lhs);
 			push();
