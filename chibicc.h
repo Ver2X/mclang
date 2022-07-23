@@ -8,6 +8,7 @@
 #include <assert.h>
 
 typedef struct Node Node;
+typedef struct Type Type;
 
 // kinds of token
 typedef enum
@@ -91,6 +92,7 @@ struct Node
 	Node * lhs;
 	Node * rhs;
 	Node * next;
+	Type * ty;		// Type of AST varible node
 	Token * tok; 	// representative token
 
 	// "if" or "for" statement
@@ -108,6 +110,25 @@ struct Node
 };
 
 Function *parse(Token *tok);
+
+
+
+typedef enum
+{
+	TY_INT,
+	TY_PTR,
+}TypeKind;
+
+struct Type
+{
+	TypeKind kind;
+	Type * base;
+};
+
+extern Type * ty_int;
+
+bool is_integer(Type * ty);
+void add_type(Node *node);
 
 
 
