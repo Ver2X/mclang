@@ -81,6 +81,16 @@ static int read_punct(char *p) {
   return ispunct(*p) ? 1 : 0;
 }
 
+// travel again , convert idents to keywords
+static void convert_keywords(Token *tok)
+{
+	for(Token * t = tok; t->kind != TK_EOF; t = t->next)
+	{
+		if(equal(t, "return"))
+			t->kind = TK_KEYWORD;
+	}
+}
+
 // Tokenize `current_input` and returns new tokens.
 Token *tokenize(char *p) {
   current_input = p;
@@ -103,7 +113,7 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    // Identifier
+    // Identifier or keyword
     if(is_ident_first(*p))
     {
     	char * start = p;
@@ -127,5 +137,8 @@ Token *tokenize(char *p) {
   }
 
   cur = cur->next = new_token(TK_EOF, p, p);
+
+  // convert identify to keyword
+  convert_keywords(head.next);
   return head.next;
 }

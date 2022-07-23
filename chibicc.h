@@ -16,6 +16,7 @@ typedef enum
 	TK_NUM,
 	TK_EOF,
 	TK_PUNCT,
+	TK_KEYWORD,
 }TokenKind;
 
 typedef struct Token Token;
@@ -72,6 +73,7 @@ typedef enum
 	ND_NUM,  		// integer
 	ND_VAR, 		// local variable
 	ND_EXPR_STMT,	// statement
+	ND_RETURN,		// "return"
 }NodeKind;
 
 
