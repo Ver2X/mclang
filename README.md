@@ -1,7 +1,8 @@
 # chibicc
 
+This is the reference implementation of https://www.sigbus.info/compilerbook.
+TODO LIST:
 
-TODO: 
 add free()
 
 
@@ -22,3 +23,6 @@ add printAST function
 
 
 change locals to a nest symbol, to support multi function
+
+
+may use the dic tree to boost string compare 

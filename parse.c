@@ -84,6 +84,9 @@ static Node * new_num(int val)
 
 
 // stmt = "return" expr ";"
+//			| "if" "(" expr ")" stmt ("else" stmt)?
+//      | "for" "(" expr-stmt expr? ";" expr? ")" stmt
+//      | "while" "(" expr ")" stmt
 //      | "{" compound-stmt
 //			| expr_stmt
 static Node * stmt(Token ** rest, Token * tok)
@@ -92,6 +95,50 @@ static Node * stmt(Token ** rest, Token * tok)
 	{
 		Node * node = new_unary(ND_RETURN, expr(&tok, tok->next));
 		*rest = skip(tok, ";");
+		return node;
+	}
+
+	if(equal(tok, "if"))
+	{
+		Node * node = new_node(ND_IF);
+		tok = skip(tok->next, "(");
+		node->cond = expr(&tok, tok);
+		tok = skip(tok, ")");
+		node->then = stmt(&tok, tok);
+		if(equal(tok, "else"))
+			node->els = stmt(&tok, tok->next);
+		*rest = tok;
+		return node;
+	}
+
+	if(equal(tok, "for"))
+	{
+		Node * node = new_node(ND_FOR);
+		tok = skip(tok->next, "(");
+
+		node->init = expr_stmt(&tok, tok);	
+
+		// here use !equal to judge whether cond is null, e.x. for(init; ; inc)
+		if(!equal(tok, ";"))
+			node->cond = expr(&tok, tok);
+		tok = skip(tok, ";");
+
+		if(!equal(tok, ")"))
+			node->inc = expr(&tok, tok);
+		tok = skip(tok, ")");
+
+		node->then = stmt(rest, tok);
+
+		return node;
+	}
+
+	if(equal(tok, "while"))
+	{
+		Node * node = new_node(ND_FOR);
+		tok = skip(tok->next, "(");
+		node->cond = expr(&tok, tok);
+		tok = skip(tok, ")");
+		node->then = stmt(rest, tok);
 		return node;
 	}
 
@@ -115,7 +162,7 @@ static Node * compound_stmt(Token ** rest, Token * tok)
 	return node;
 }
 
-
+// must expr_stmt could be NULL, for support for init , e.x. for(; ; ;)
 // expr_stmt       = expr? ";"
 static Node * expr_stmt(Token ** rest, Token * tok)
 {

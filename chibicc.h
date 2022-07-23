@@ -74,6 +74,8 @@ typedef enum
 	ND_VAR, 		// local variable
 	ND_EXPR_STMT,	// statement
 	ND_RETURN,		// "return"
+	ND_IF,			// "if"
+	ND_FOR, 		// "for" or "while"
 	ND_BLOCK,		// { }
 }NodeKind;
 
@@ -87,6 +89,13 @@ struct Node
 	Node * lhs;
 	Node * rhs;
 	Node * next;
+
+	// "if" or "for" statement
+	Node * cond;
+	Node * then;
+	Node * els;
+	Node * init;
+	Node * inc;
 
 	Node * body;
 
