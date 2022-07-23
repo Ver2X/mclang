@@ -74,6 +74,7 @@ typedef enum
 	ND_VAR, 		// local variable
 	ND_EXPR_STMT,	// statement
 	ND_RETURN,		// "return"
+	ND_BLOCK,		// { }
 }NodeKind;
 
 
@@ -82,11 +83,16 @@ typedef enum
 struct Node
 {
 	NodeKind kind;
+	
 	Node * lhs;
 	Node * rhs;
+	Node * next;
+
+	Node * body;
+
 	int val; 		// when kind == ND_NUM
 	Obj *var; 		// when kind == ND_VAR
-	Node * next;
+	
 };
 
 Function *parse(Token *tok);
