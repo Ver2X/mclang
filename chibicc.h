@@ -38,6 +38,7 @@ void error_tok(Token *tok, char *fmt, ...);
 bool equal(Token *tok, char *op);
 Token *skip(Token *tok, char *op);
 Token *tokenize(char *input);
+bool consume(Token **rest, Token *tok, char *str);
 
 
 // for local variable
@@ -46,7 +47,8 @@ struct Obj
 {
 	Obj * next;
 	char * name;
-	int offset; // from rbp
+	int offset; 	// from rbp
+	Type *ty;		// Type of local variable
 };
 
 // function
@@ -123,13 +125,16 @@ struct Type
 {
 	TypeKind kind;
 	Type * base;
+
+	// declaration
+	Token * name;
 };
 
 extern Type * ty_int;
 
 bool is_integer(Type * ty);
 void add_type(Node *node);
-
+Type * pointer_to(Type * base);
 
 
 

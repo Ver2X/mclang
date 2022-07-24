@@ -1,5 +1,9 @@
 # chibicc
 
+## TODO
+
+
+
 This is the reference implementation of https://www.sigbus.info/compilerbook.
 TODO LIST:
 
@@ -33,6 +37,98 @@ add printAST function
 change locals to a nest symbol, to support multi function
 
 may use the dic tree to boost string compare 
+
+
+
+## CODE
+
+
+
+### Step 17 : Support  declaration variable
+
+declaration
+
+type:
+
+declspec = "int"
+
+left of declaration
+
+declarator = "*"* ident
+
+ declaration = declspec (declarator ("=" expr)? ("," declarator  ("=" expr)?)* )? ;
+
+after ",",  >= 0 or more times, before >= 1 times
+
+
+
+```c++
+// declaration = declspec (declarator ("=" expr)? ("," declarator  ("=" expr)?)* )? ;
+static Node * declaration(Token **rest, Token *tok)
+{
+	Type * basety = declspec(&tok, tok);
+
+	Node head = {};
+	Node * cur = &head;
+
+
+	int i = 0; // label to check whether is the first declaration varibale
+	while(!equal(tok, ";"))
+	{
+		if(i++ > 0)
+			tok = skip(tok, ",");
+
+		// define but not used, add it to variable list
+		Type * ty = declaration(&tok, tok, basety);
+		Obj * var = new_lvar(get_ident(ty->name), ty);
+
+		if(!equal(tok, "="))
+			continue;
+
+		Node * lhs = new_var_node(var, ty->name);
+		Node * rhs = assign(&tok, tok->next);
+		Node * node = new_binary(ND_ASSIGN, lhs, rhs, tok);
+		cur = cur->next = new_unary(ND_EXPR_STMT, node, tok);
+	}
+
+	Node * node = new_node(ND_BLOCK, tok);
+	node->body = head.next;
+	*rest = tok->next;
+}
+
+```
+
+and
+
+```c++
+	
+// => primary =  "(" expr ")" | ident | num 
+static Node *primary(Token ** rest, Token * tok)
+    ...
+if(tok->kind == TK_IDENT)
+	{
+		Obj * var = find_var(tok);
+		if(!var){
+			error_tok(tok, "undefined varibale");
+		}
+		*rest = tok->next;
+		return new_var_node(var, tok);
+	}
+```
+
+
+
+then change the type.c
+
+
+
+
+
+
+
+
+
+
 
 
 

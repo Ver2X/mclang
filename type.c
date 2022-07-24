@@ -57,9 +57,12 @@ void add_type(Node *node)
 		case ND_NE:
 		case ND_LT:
 		case ND_LE:
-		case ND_VAR:
 		case ND_NUM:
 			node->ty = ty_int;
+			return;
+		case ND_VAR:
+			// int, int *, int ** ...
+			node->ty = node->var->ty;
 			return;
 
 		// for '&', create a new type as TY_PTR, setup base type
@@ -67,15 +70,13 @@ void add_type(Node *node)
 			node->ty = pointer_to(node->lhs->ty);
 			return;
 		case ND_DEREF:
+			if(node->lhs->ty->kind != TY_PTR)
+			{
+				error_tok(node->tok, "expect dereference a pointer, but not");
+				
+			}
 			// for '*', down a type level
-			if(node->lhs->ty->kind == TY_PTR)
-			{
-				node->ty = node->lhs->ty->base;
-			}
-			else
-			{
-				node->ty = ty_int;
-			}
+			node->ty = node->lhs->ty->base;
 			return;
 	}
 }
