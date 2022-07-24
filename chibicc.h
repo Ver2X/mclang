@@ -82,6 +82,7 @@ typedef enum
 	ND_IF,			// "if"
 	ND_FOR, 		// "for" or "while"
 	ND_BLOCK,		// { }
+	ND_FUNCALL,		// function call
 }NodeKind;
 
 
@@ -109,6 +110,7 @@ struct Node
 	int val; 		// when kind == ND_NUM
 	Obj *var; 		// when kind == ND_VAR
 	
+	char * funcname;
 };
 
 Function *parse(Token *tok);

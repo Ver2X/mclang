@@ -190,11 +190,37 @@ case ND_NUM:
 
 
 
-### Step 18 : Support  null argument function call
+### Step 18 : Support  null argument function call, don't support function define
 
+To support function call, first we need change parser, notice temp argument list is null
 
+```c++
+// before: primary =  "(" expr ")" | ident | num 
+// after: primary =  "(" expr ")" | ident args? | num 
+//           args = "(" ")"
+```
 
+for lexcer, add
 
+```c++
+// ND_FUNCALL
+//
+// and
+//
+// char *funcname;
+```
+
+just a call, assemby add  a "call" instruction 
+
+for test
+
+```c++
+cat <<EOF | gcc -xc -c -o tmp2.o -
+int ret3() { return 3; }
+int ret5() { return 5; }
+EOF
+
+```
 
 
 
