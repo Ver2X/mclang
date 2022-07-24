@@ -222,6 +222,29 @@ EOF
 
 ```
 
+### Step 19 : Support function call with up to 6 arguments, don't support function define
+
+for AST
+
+need 
+
+```c++
+Node * args;
+```
+
+for parser
+
+```c++
+// before : primary =  "(" expr ")" | ident args?| num 
+//			   args = "(" ")"
+//
+// primary = "(" expr ")" | ident func-args? | num
+//
+// funcall = ident "(" (assign ("," assign)*)? ")"  ---------- aux fucntion
+```
+
+for codegem, deal reg, pass argument use %rdi ~ %r9
+
 
 
 

@@ -111,6 +111,7 @@ struct Node
 	Obj *var; 		// when kind == ND_VAR
 	
 	char * funcname;
+	Node * args;
 };
 
 Function *parse(Token *tok);
