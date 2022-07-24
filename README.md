@@ -46,6 +46,36 @@ may use the dic tree to boost string compare
 
 ### Step 17 : Support  declaration variable
 
+for lexcer
+
+```c++
+// for local variable
+typedef struct Obj Obj;
+struct Obj
+{
+	Obj * next;
+	char * name;
+	int offset; 	// from rbp
+	Type *ty;		// Type of local variable ,  new add
+};
+
+struct Type
+{
+	TypeKind kind;
+	Type * base;
+
+	// declaration
+	Token * name;  // new add
+};
+
+```
+
+
+
+
+
+for parser
+
 declaration
 
 type:
@@ -59,6 +89,12 @@ declarator = "*"* ident
  declaration = declspec (declarator ("=" expr)? ("," declarator  ("=" expr)?)* )? ;
 
 after ",",  >= 0 or more times, before >= 1 times
+
+```c++
+// declaration = declspec (declarator ("=" expr)? ("," declarator  ("=" expr)?)* )? ;
+// compound-stmt = (declaration |stmt )* "}"
+// => primary =  "(" expr ")" | ident | num 
+```
 
 
 
@@ -79,7 +115,7 @@ static Node * declaration(Token **rest, Token *tok)
 			tok = skip(tok, ",");
 
 		// define but not used, add it to variable list
-		Type * ty = declaration(&tok, tok, basety);
+		Type * ty = declarator(&tok, tok, basety);
 		Obj * var = new_lvar(get_ident(ty->name), ty);
 
 		if(!equal(tok, "="))
@@ -94,6 +130,7 @@ static Node * declaration(Token **rest, Token *tok)
 	Node * node = new_node(ND_BLOCK, tok);
 	node->body = head.next;
 	*rest = tok->next;
+	return node;
 }
 
 ```
@@ -122,9 +159,38 @@ then change the type.c
 
 
 
+```c++
+void add_type(Node *node)
+    ...
+
+case ND_NUM:
+			node->ty = ty_int;
+			return;
+		case ND_VAR:
+			// int, int *, int ** ...
+			node->ty = node->var->ty;
+			return;
+
+		// for '&', create a new type as TY_PTR, setup base type
+		case ND_ADDR:
+			node->ty = pointer_to(node->lhs->ty);
+			return;
+		case ND_DEREF:
+			if(node->lhs->ty->kind != TY_PTR)
+			{
+				error_tok(node->tok, "expect dereference a pointer, but not");
+				
+			}
+			// for '*', down a type level
+			node->ty = node->lhs->ty->base;
+			return;
+```
+
+`commit d5895ddaf3ebe4f90176295fb52f788d8446643b`
 
 
 
+### Step 18 : Support  null argument function call
 
 
 
