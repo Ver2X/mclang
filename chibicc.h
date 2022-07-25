@@ -128,6 +128,7 @@ typedef enum
 	TY_PTR,
 	TY_FUNC,
 	TY_ARRAY,
+	TY_CHAR,
 }TypeKind;
 
 struct Type
@@ -159,6 +160,7 @@ struct Type
 };
 
 extern Type * ty_int;
+extern Type * ty_char;
 
 bool is_integer(Type * ty);
 void add_type(Node *node);

@@ -1,12 +1,12 @@
 #include "chibicc.h"
 
 Type *ty_int = &(Type){TY_INT, 8};
-
+Type *ty_char = &(Type){TY_INT, 1};
 /*! judge type	
 */
 bool is_integer(Type * ty)
 {
-	return ty->kind == TY_INT;
+	return ty->kind == TY_INT || ty->kind == TY_INT;
 }
 
 /*! create a pointer of type, with base type

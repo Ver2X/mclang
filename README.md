@@ -651,7 +651,7 @@ struct Obj
 
 `5962a3645688d81345bc938404a46549c32011ca`
 
-### Step 27:
+### Step 27:Support global variables
 
 for parser deal global varibale
 
@@ -696,6 +696,72 @@ static void emit_data(Obj * prog)
 	}
 }
 ```
+
+`7cb83c641af402c2f449178b9857e44605ba4e49`
+
+### Step 28: Support char
+
+for now, use think char is integer
+
+```c++
+// declspec = "char" | "int"
+static Type * declspec(Token ** rest, Token *tok)
+{
+	if(equal(tok, "char"))
+	{
+		*rest = tok->next;
+		return ty_char;
+	}
+	*rest = skip(tok, "int");
+	return ty_int;
+}
+```
+
+notice we need use 8bit reg, not 64bit, such as
+
+```c++
+static void emit_text(Obj * prog)
+{
+	for(Obj * fn = prog; fn; fn = fn->next)
+	{
+		if(!fn->is_function)
+			continue;
+
+		printf("  .globl %s\n", fn->name);
+		printf("  .text\n");
+		printf("%s:\n", fn->name);
+		current_fn = fn;
+
+
+		// prologue
+		printf("  push %%rbp\n");
+		printf("  mov %%rsp, %%rbp\n");
+		printf("  sub $%d, %%rsp\n", fn->stack_size);
+
+		// save passed-by-register arguments to the stack
+		int i = 0;
+		for(Obj * var = fn->params; var; var = var->next)
+		{
+			if(var->ty->size == 1)
+				printf("  mov %s, %d(%%rbp)\n", argreg8[i++], var->offset);
+			else
+				printf("  mov %s, %d(%%rbp)\n", argreg64[i++], var->offset);
+		}
+
+		// emit code
+		gen_stmt(fn->body);
+		assert(depth == 0);
+
+		// Epilogue
+		printf(".L.return.%s:\n", fn->name);
+		printf("  mov %%rbp, %%rsp\n");
+		printf("  pop %%rbp\n");
+		printf("  ret\n");
+	}
+}
+```
+
+
 
 
 
