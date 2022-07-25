@@ -420,3 +420,128 @@ void codegen(Function * prog)
 }
 ```
 
+`bfc8877e86be8d5b669a49b34b0e2f2990cc9dd6`
+
+### Step 22: Support one dimensional arrays
+
+in C , array is a lanuage sugar, it is a pointer with number of element, but is could be modify "not a lvalue"
+
+for AST and size and len
+
+```c++
+typedef enum
+{
+	TY_INT,
+	TY_PTR,
+	TY_FUNC,
+	TY_ARRAY,
+}TypeKind;
+
+struct Type
+{
+	TypeKind kind;
+
+	int size;      // sizeof() value
+
+  	// Pointer-to or array-of type. We intentionally use the same member
+	// to represent pointer/array duality in C.
+	//
+	// In many contexts in which a pointer is expected, we examine this
+	// member instead of "kind" member to determine whether a type is a
+	// pointer or not. That means in many contexts "array of T" is
+	// naturally handled as if it were "pointer to T", as required by
+	// the C spec.
+	Type * base;
+
+	// declaration
+	Token * name;
+
+	// array
+	int array_len;
+
+	// Function type
+	Type * return_ty;
+	Type *params;
+  	Type *next;
+};
+```
+
+
+
+for supoort arrays
+
+we need to change the parser make it support "[ num ]", besides make int => size = 8, maintain size set right
+
+```c++
+// func-params = (param ("," param)*)? ")"
+// param       = declspec declarator
+static Type * func_params(Token **rest, Token*tok, Type * ty)
+{
+	Type head = {};
+	Type * cur = &head;
+
+	while(!equal(tok, ")"))
+	{
+		if(cur != &head)
+		{
+			tok = skip(tok, ",");			
+		}
+
+		Type * basety = declspec(&tok, tok);
+		Type * ty = declarator(&tok, tok, basety);
+		cur = cur->next = copy_type(ty);
+	}
+
+	ty = func_type(ty);
+	ty->params = head.next;
+	*rest = tok->next;
+	return ty;
+}
+// type-suffix = "(" func-params
+//             | "[" num "]"
+//             | ε
+
+static Type * type_suffix(Token ** rest, Token *tok, Type *ty)
+{
+	if(equal(tok, "("))
+		return func_params(rest, tok->next, ty);
+
+	if(equal(tok, "["))
+	{
+		int sz = get_number(tok->next);
+		*rest = skip(tok->next->next, "]");
+		return array_of(ty, sz);
+	}
+
+	*rest = tok;
+	return ty;
+}
+```
+
+`bfc8877e86be8d5b669a49b34b0e2f2990cc9dd6`
+
+### Step 23: Support sizeof()
+
+in lexer, make it reconize "sizeof" as a keyword
+
+because before we have add  "size" int Type, change parser just return the correspond number
+
+```c++
+// primary =  "(" expr ")" | ident func-args?| num 
+//
+// to
+//
+// primary = "(" expr ")" | "sizeof" unary | ident func-args? | num
+static Node *primary(Token ** rest, Token * tok)
+{
+    // ...
+    if(equal(tok, "sizeof"))
+	{
+		Node * node = unary(rest, tok->next);
+		add_type(node);
+		return new_num(node->ty->size, tok);
+	}
+    // ...
+}
+```
+

@@ -1,6 +1,6 @@
 #include "chibicc.h"
 
-Type *ty_int = &(Type){TY_INT};
+Type *ty_int = &(Type){TY_INT, 8};
 
 /*! judge type	
 */
@@ -16,6 +16,7 @@ Type * pointer_to(Type * base)
 	Type * ty = calloc(1, sizeof(Type));
 	ty->kind = TY_PTR;
 	ty->base = base;
+	ty->size = 8;
 	return ty;
 }
 
@@ -32,6 +33,16 @@ Type * copy_type(Type * ty)
 	Type * ret = calloc(1, sizeof(Type));
 	*ret = *ty;
 	return ret;
+}
+
+Type * array_of(Type * base, int len)
+{
+	Type * ty = calloc(1, sizeof(Type));
+	ty->kind = TY_ARRAY;
+	ty->size =  base->size * len;
+	ty->base = base;
+	ty->array_len = len;
+	return ty;
 }
 
 /*! recursive setup the type of given AST node
@@ -66,8 +77,12 @@ void add_type(Node *node)
 		case ND_MUL:
 		case ND_DIV:
 		case ND_NEG:
-		case ND_ASSIGN:
 			// may need expand to support implict convert
+			node->ty = node->lhs->ty;
+			return ;
+		case ND_ASSIGN:
+			if(node->lhs->ty->kind == TY_ARRAY)
+				error_tok(node->lhs->tok, "not an lvalue");
 			node->ty = node->lhs->ty;
 			return ;
 
@@ -87,12 +102,15 @@ void add_type(Node *node)
 
 		// for '&', create a new type as TY_PTR, setup base type
 		case ND_ADDR:
-			node->ty = pointer_to(node->lhs->ty);
+			if(node->lhs->ty->kind == TY_ARRAY)
+				node->ty = pointer_to(node->lhs->ty->base);
+			else
+				node->ty = pointer_to(node->lhs->ty);
 			return;
 		case ND_DEREF:
-			if(node->lhs->ty->kind != TY_PTR)
+			if(!node->lhs->ty->base)
 			{
-				error_tok(node->tok, "expect dereference a pointer, but not");
+				error_tok(node->tok, "expect dereference a pointer or array pointer, but not");
 				
 			}
 			// for '*', down a type level
