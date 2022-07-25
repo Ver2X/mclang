@@ -248,7 +248,7 @@ for codegem, deal reg, pass argument use %rdi ~ %r9
 
 `8aa1e08253cfed02c57c780fc05a5441f5f56ed0`
 
-### 20 Support zero-arity function definition
+### Step 20: Support zero-arity function definition
 
 for function definition
 
@@ -324,5 +324,99 @@ static Function * function(Token * tok)
 }
 ```
 
+`27588a57a5233867f3fae96ee6355bd3b2d3f7bf`
 
+### Step 21: Support function definition up to 6 parameters
+
+for struct
+
+```c++
+// function
+typedef struct Function Function;
+struct Function
+{	// ...
+    Obj *params;
+};
+
+struct Type
+{
+	TypeKind kind;
+	Type * base;
+
+	// declaration
+	Token * name;
+
+	// Function type
+	Type * return_ty;
+	Type *params;
+  	Type *next;
+};
+```
+
+for parser
+
+```c++
+// type-suffix = ("(" func-params ")")?
+//
+// to
+//
+// type-suffix = ("(" func-params? ")")?
+// func-params = param ("," param)*
+// param       = declspec declarator
+```
+
+notice the sequence  of varibale created
+
+```c++
+static void create_param_lvars(Type * param)
+{
+	if(param)
+	{
+        // recurse to last params
+		create_param_lvars(param->next);
+		// head insert, in variable list seq is same with seq decl variable
+        new_lvar(get_ident(param->name, param));
+	}
+}
+```
+
+in codegen
+
+```c++
+void codegen(Function * prog)
+{
+	// first setup offset
+	assign_lvar_offsets(prog);
+
+	for(Function * fn = prog; fn; fn = fn->next)
+	{
+		printf("  .globl %s\n", fn->name);
+		printf("%s:\n", fn->name);
+		current_fn = fn;
+
+
+		// prologue
+		printf("  push %%rbp\n");
+		printf("  mov %%rsp, %%rbp\n");
+		printf("  sub $%d, %%rsp\n", fn->stack_size);
+
+		// save passed-by-register arguments to the stack
+		int i = 0;
+		for(Obj * var = fn->params; var; var = var->next)
+		{
+			printf("  mov %s, %d(%%rbp)\n", argreg[i++], var->offset);
+		}
+
+		// emit code
+		gen_stmt(fn->body);
+		assert(depth == 0);
+
+		// Epilogue
+		printf(".L.return.%s:\n", fn->name);
+		printf("  mov %%rbp, %%rsp\n");
+		printf("  pop %%rbp\n");
+		printf("  ret\n");
+	}
+}
+```
 

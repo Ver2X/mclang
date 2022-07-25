@@ -123,13 +123,32 @@ static Type * declspec(Token ** rest, Token *tok)
 }
 
 
-// type-suffix = ("(" func-params ")")?
+// type-suffix = ("(" func-params? ")")?
+// func-params = param ("," param)*
+// param       = declspec declarator
 static Type * type_suffix(Token ** rest, Token *tok, Type *ty)
 {
 	if(equal(tok, "("))
 	{
-		*rest = skip(tok->next, ")");
-		return func_type(ty);
+		tok = tok->next;
+
+		Type head = {};
+		Type * cur = &head;
+
+		while(!equal(tok, ")"))
+		{
+			if(cur != &head)
+				tok = skip(tok, ",");
+
+			Type * basety = declspec(&tok, tok);
+			Type * ty = declarator(&tok, tok, basety);
+			cur = cur->next = copy_type(ty);
+		}
+
+		ty = func_type(ty);
+		ty->params = head.next;
+		*rest = tok->next;
+		return ty;
 	}
 	*rest = tok;
 	return ty;
@@ -591,6 +610,18 @@ static Node *primary(Token ** rest, Token * tok)
 	error_tok(tok, "expected an expression");
 }
 
+static void create_param_lvars(Type * param)
+{
+	if(param)
+	{
+    // recurse to last params
+		create_param_lvars(param->next);
+		// head insert, in variable list seq is same with seq decl variable
+    new_lvar(get_ident(param->name), param);
+	}
+}
+
+
 // function_declaration = declspec declarator "{" compound_stmt "}"
 static Function * function(Token **rest, Token *tok)
 {
@@ -601,6 +632,8 @@ static Function * function(Token **rest, Token *tok)
 
 	Function *fn = calloc(1, sizeof(Function));
 	fn->name = get_ident(ty->name);
+	create_param_lvars(ty->params);
+	fn->params = locals;
 
 	tok = skip(tok, "{");
 
