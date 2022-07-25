@@ -649,3 +649,53 @@ struct Obj
 };
 ```
 
+`5962a3645688d81345bc938404a46549c32011ca`
+
+### Step 27:
+
+for parser deal global varibale
+
+```c++
+// program = (function-definition | global-variable)*
+Obj * parse(Token * tok)
+{
+	globals = NULL;
+
+
+	while(tok->kind != TK_EOF){
+		Type *basety = declspec(&tok, tok);
+
+		// function 
+		if(is_function(tok))
+		{
+			tok = function(tok, basety);
+			continue;
+		}
+
+		// global variable
+		tok = global_varibale(tok, basety);
+	}
+	return globals;
+}
+```
+
+for codegen()
+
+```c++
+// emit global data
+static void emit_data(Obj * prog)
+{
+	for(Obj * var = prog; var; var = var->next)
+	{
+		if(var->is_function)
+			continue;
+		printf("  .data\n");
+		printf("  .globl %s\n", var->name);
+		printf("%s:\n",var->name);
+		printf("  .zero %d\n", var->ty->size);
+	}
+}
+```
+
+
+

@@ -1,1 +1,1 @@
-int main() { int x=1; sizeof(x=2); return x; } =
+int x[4]; int main() { return sizeof(x); } =
