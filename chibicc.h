@@ -58,6 +58,9 @@ struct Function
 	Node * body;
 	Obj * locals;
 	int stack_size;
+
+	Function * next;
+	char * name;
 };
 
 // Node type of AST
@@ -122,6 +125,7 @@ typedef enum
 {
 	TY_INT,
 	TY_PTR,
+	TY_FUNC,
 }TypeKind;
 
 struct Type
@@ -131,6 +135,9 @@ struct Type
 
 	// declaration
 	Token * name;
+
+	// Function type
+	Type * return_ty;
 };
 
 extern Type * ty_int;
@@ -138,7 +145,7 @@ extern Type * ty_int;
 bool is_integer(Type * ty);
 void add_type(Node *node);
 Type * pointer_to(Type * base);
-
+Type *func_type(Type *return_ty);
 
 
 

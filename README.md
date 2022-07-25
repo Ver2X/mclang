@@ -1,11 +1,10 @@
 # chibicc
 
-## TODO
-
-
-
 This is the reference implementation of https://www.sigbus.info/compilerbook.
-TODO LIST:
+
+link:  https://github.com/rui314/chibicc
+
+## TODO LIST:
 
 
 
@@ -15,7 +14,7 @@ move to C with STL , then move to C++
 
 
 
-add free(), using tools to check
+add free(), using tools to check or use shared pointer...
 
 
 maybe create a function IRgen
@@ -222,6 +221,8 @@ EOF
 
 ```
 
+`69968644141c1a3c427950f0f26a42d8a268e881`
+
 ### Step 19 : Support function call with up to 6 arguments, don't support function define
 
 for AST
@@ -245,7 +246,83 @@ for parser
 
 for codegem, deal reg, pass argument use %rdi ~ %r9
 
+`8aa1e08253cfed02c57c780fc05a5441f5f56ed0`
 
+### 20 Support zero-arity function definition
+
+for function definition
+
+```c++
+// function
+typedef struct Function Function;
+struct Function
+{
+	Node * body;
+	Obj * locals;
+	int stack_size;
+
+	Function * next;
+	char * name;
+};
+// add FUNC type
+typedef enum
+{
+	TY_INT,
+	TY_PTR,
+	TY_FUNC,
+}TypeKind;
+
+struct Type
+{
+	TypeKind kind;
+	Type * base;
+
+	// declaration
+	Token * name;
+
+	// Function type
+	Type * return_ty;
+};
+
+```
+
+for parser, before we only could declaration a varibale, now we also could declaration functions
+
+```c++
+//before:
+// declspec = "int"
+// declarator = "*"* ident
+//
+
+// declarator = "*"* ident type-suffix
+// type-suffix = ("(" func-params ")")?
+//
+// for now, func-params = NULL
+```
+
+besides, now we should parser function first, not statements
+
+but for function definition. function also need a independent variable list
+
+```c++
+// function_declaration = declspec declarator "{" compound_stmt "}"
+static Function * function(Token * tok)
+{
+	Type * ty = declspec(&tok, tok);
+	ty = declarator(&tok, tok, ty);
+
+	locals = NULL;
+
+	Function *fn = calloc(1, sizeof(Function));
+	fn->name = get_ident(ty->name);
+
+	tok = skip(tok, "{");
+
+	fn->body = compound_stmt(rest, tok);
+	fn->locals = locals;
+	return fn;
+}
+```
 
 
 
