@@ -545,3 +545,77 @@ static Node *primary(Token ** rest, Token * tok)
 }
 ```
 
+`3c7242041444a16919c2d85a0b939bdd94113cce`
+
+### Step 24: Support arrays of arrays
+
+recursive parser
+
+```c++
+// type-suffix = "(" func-params
+//             | "[" num "]" type-suffix
+//             | ε
+static Type * type_suffix(Token ** rest, Token *tok, Type *ty)
+{
+	if(equal(tok, "("))
+		return func_params(rest, tok->next, ty);
+
+	if(equal(tok, "["))
+	{
+		int sz = get_number(tok->next);
+		tok = skip(tok->next->next, "]");
+		ty = type_suffix(rest, tok, ty);
+		return array_of(ty, sz);
+	}
+
+	*rest = tok;
+	return ty;
+}
+```
+
+`3c7242041444a16919c2d85a0b939bdd94113cce`
+
+### Step 25: Support [] operator
+
+it is a pot operator, just change parser
+
+```c++
+// unary   = ("+" | "-" | "&" | "*")? unary
+//         | postfix
+static Node* unary(Token ** rest, Token * tok)
+{
+	if(equal(tok, "+"))
+		return unary(rest, tok->next);
+
+	if(equal(tok, "-"))
+		return new_unary(ND_NEG, unary(rest, tok->next), tok);
+
+	if(equal(tok, "&"))
+		return new_unary(ND_ADDR, unary(rest, tok->next), tok);
+
+	if(equal(tok, "*"))
+		return new_unary(ND_DEREF, unary(rest, tok->next), tok);
+
+	return postfix(rest, tok);
+}
+
+// postfix = primary ("[" expr "]")*
+static Node *postfix(Token **rest, Token * tok)
+{
+	Node * node = primary(&tok, tok);
+
+	while(equal(tok, "["))
+	{
+		// x[y] ==> *(x+y)
+		Token * start = tok;
+		Node * idx = expr(&tok, tok->next);
+		tok = skip(tok, "]");
+		node = new_unary(ND_DEREF, new_add(node, idx, start), start);
+	}
+	*rest = tok;
+	return node;
+}
+```
+
+
+

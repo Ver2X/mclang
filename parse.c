@@ -38,6 +38,7 @@ static Node * stmt(Token ** rest, Token * tok);
 static Node *declaration(Token **rest, Token *tok);
 static Type *declspec(Token **rest, Token *tok);
 static Type *declarator(Token **rest, Token *tok, Type *ty);
+static Node *postfix(Token **rest, Token *tok);
 
 // All locals variable, head insert method 
 Obj * locals;
@@ -157,10 +158,10 @@ static Type * func_params(Token **rest, Token*tok, Type * ty)
 	*rest = tok->next;
 	return ty;
 }
-// type-suffix = "(" func-params
-//             | "[" num "]"
-//             | ε
 
+// type-suffix = "(" func-params
+//             | "[" num "]" type-suffix
+//             | ε
 static Type * type_suffix(Token ** rest, Token *tok, Type *ty)
 {
 	if(equal(tok, "("))
@@ -169,16 +170,14 @@ static Type * type_suffix(Token ** rest, Token *tok, Type *ty)
 	if(equal(tok, "["))
 	{
 		int sz = get_number(tok->next);
-		*rest = skip(tok->next->next, "]");
+		tok = skip(tok->next->next, "]");
+		ty = type_suffix(rest, tok, ty);
 		return array_of(ty, sz);
 	}
 
 	*rest = tok;
 	return ty;
 }
-
-
-
 
 // declarator = "*"* ident type-suffix
 static Type * declarator(Token **rest, Token *tok, Type * ty)
@@ -549,6 +548,7 @@ static Node *mul(Token ** rest, Token * tok)
 
 
 // unary   = ("+" | "-" | "&" | "*")? unary
+//         | postfix
 static Node* unary(Token ** rest, Token * tok)
 {
 	if(equal(tok, "+"))
@@ -563,9 +563,25 @@ static Node* unary(Token ** rest, Token * tok)
 	if(equal(tok, "*"))
 		return new_unary(ND_DEREF, unary(rest, tok->next), tok);
 
-	return primary(rest, tok);
+	return postfix(rest, tok);
 }
 
+// postfix = primary ("[" expr "]")*
+static Node *postfix(Token **rest, Token * tok)
+{
+	Node * node = primary(&tok, tok);
+
+	while(equal(tok, "["))
+	{
+		// x[y] ==> *(x+y)
+		Token * start = tok;
+		Node * idx = expr(&tok, tok->next);
+		tok = skip(tok, "]");
+		node = new_unary(ND_DEREF, new_add(node, idx, start), start);
+	}
+	*rest = tok;
+	return node;
+}
 
 
 // funcall = ident "(" (assign ("," assign)*)? ")"
