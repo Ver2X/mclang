@@ -44,6 +44,12 @@ Token *tokenize(char *input);
 bool consume(Token **rest, Token *tok, char *str);
 
 
+
+
+char * format(char * fmt, ...);
+
+
+
 // for local variable or function
 typedef struct Obj Obj;
 struct Obj
