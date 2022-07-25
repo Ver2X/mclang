@@ -761,7 +761,61 @@ static void emit_text(Obj * prog)
 }
 ```
 
+`b1847c506ae01823ef44c5fa59d93b03296f5ea2`
+
+### Step29: Support string literal
+
+for lexcer
+
+```c++
+
+struct Token
+{
+	// ...
+	Type * ty;				// used if TK_STR
+	char * str;				// string literal contents including terminating '\0'
+};
+
+// for local variable or function
+typedef struct Obj Obj;
+struct Obj
+{
+	// ...
+    
+	// Global variable
+	char * init_data;
+
+	// ...
+};
+```
 
 
 
+for parser
+
+```c++
+static char * new_unique_name(void)
+{
+	static int id = 0;
+	char * buf = calloc(1, 20);
+	sprintf(buf, ".L..%d", id++);
+	return buf;
+}
+
+static Obj * new_anon_gvar(Type * ty)
+{
+	return new_gvar(new_unique_name(), ty);
+}
+
+static Obj * new_string_literal(char * p, Type * ty)
+{
+	Obj * var = new_anon_gvar(ty);
+	var->init_data = p;
+	return val;
+}
+
+
+
+// primary = "(" expr ")" | "sizeof" unary | ident func-args? |  str | num
+```
 

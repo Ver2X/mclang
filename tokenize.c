@@ -105,6 +105,22 @@ static bool is_keyword(Token * tok)
 	return false;
 }
 
+static Token * read_string_literal(char * start)
+{
+	char * p = start + 1;
+	for(; *p != '"'; p++)
+	{
+		if(*p == '\n' || *p == '\0')
+			error_at(start, "unclosed string literal");
+	} 
+
+	Token * tok = new_token(TK_STR, start, p + 1);
+	tok->ty = array_of(ty_char, p - start);
+	tok->str = strndup(start + 1, p - start - 1);
+	return tok;
+}
+
+
 // travel again , convert idents to keywords
 static void convert_keywords(Token *tok)
 {
@@ -136,6 +152,15 @@ Token *tokenize(char *p) {
       cur->len = p - q;
       continue;
     }
+
+    // String literal
+    if(*p == '"')
+    {
+    	cur = cur->next = read_string_literal(p);
+    	p += cur->len;
+    	continue;
+    }
+
 
     // Identifier or keyword
     if(is_ident_first(*p))

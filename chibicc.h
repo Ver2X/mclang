@@ -18,6 +18,7 @@ typedef enum
 	TK_EOF,
 	TK_PUNCT,
 	TK_KEYWORD,
+	TK_STR,
 }TokenKind;
 
 typedef struct Token Token;
@@ -29,6 +30,8 @@ struct Token
 	int 		val;
 	char * 		loc;		// token location
 	int 		len; 		// token len
+	Type * ty;				// used if TK_STR
+	char * str;				// string literal contents including terminating '\0'
 };
 
 
@@ -56,6 +59,9 @@ struct Obj
 
 	// Global variable or function
 	bool is_function;
+
+	// Global variable
+	char * init_data;
 
 	// Function
 	Obj * params;

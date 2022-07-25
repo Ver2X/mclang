@@ -88,7 +88,25 @@ static Obj * new_gvar(char * name, Type *ty)
 	return var;
 }
 
+static char * new_unique_name(void)
+{
+	static int id = 0;
+	char * buf = calloc(1, 20);
+	sprintf(buf, ".L..%d", id++);
+	return buf;
+}
 
+static Obj * new_anon_gvar(Type * ty)
+{
+	return new_gvar(new_unique_name(), ty);
+}
+
+static Obj * new_string_literal(char * p, Type * ty)
+{
+	Obj * var = new_anon_gvar(ty);
+	var->init_data = p;
+	return var;
+}
 
 // create a new node by special kind
 static Node *new_node(NodeKind kind, Token * tok) {
@@ -644,7 +662,7 @@ static Node * funcall(Token **rest, Token *tok)
 }
 
 
-// primary = "(" expr ")" | "sizeof" unary | ident func-args? | num
+// primary = "(" expr ")" | "sizeof" unary | ident func-args? |  str | num
 static Node *primary(Token ** rest, Token * tok)
 {
 	if(equal(tok, "("))
@@ -677,6 +695,13 @@ static Node *primary(Token ** rest, Token * tok)
 		if(!var){
 			error_tok(tok, "undefined varibale");
 		}
+		*rest = tok->next;
+		return new_var_node(var, tok);
+	}
+
+	if(tok->kind == TK_STR)
+	{
+		Obj * var = new_string_literal(tok->str, tok->ty);
 		*rest = tok->next;
 		return new_var_node(var, tok);
 	}
