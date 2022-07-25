@@ -1,1 +1,1 @@
-int main() { return sizeof("abc"); } =
+int main() { return "\ax\ny"[3]; } =

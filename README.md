@@ -840,3 +840,35 @@ char * format(char * fmt, ...)
 }
 ```
 
+`5f01c23b6bcec6458f13f2adc9529926a7e48340`
+
+###  Step 30:  Support \a, \b, \t, \n \v, \f, \r and \e
+
+```c++
+static int read_escaped_char(char *p) {
+  // Escape sequences are defined using themselves here. E.g.
+  // '\n' is implemented using '\n'. This tautological definition
+  // works because the compiler that compiles our compiler knows
+  // what '\n' actually is. In other words, we "inherit" the ASCII
+  // code of '\n' from the compiler that compiles our compiler,
+  // so we don't have to teach the actual code here.
+  //
+  // This fact has huge implications not only for the correctness
+  // of the compiler but also for the security of the generated code.
+  // For more info, read "Reflections on Trusting Trust" by Ken Thompson.
+  // https://github.com/rui314/chibicc/wiki/thompson1984.pdf
+  switch (*p) {
+  case 'a': return '\a';
+  case 'b': return '\b';
+  case 't': return '\t';
+  case 'n': return '\n';
+  case 'v': return '\v';
+  case 'f': return '\f';
+  case 'r': return '\r';
+  // [GNU] \e for the ASCII escape character is a GNU C extension.
+  case 'e': return 27;
+  default: return *p;
+  }
+}
+```
+
