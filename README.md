@@ -577,7 +577,7 @@ static Type * type_suffix(Token ** rest, Token *tok, Type *ty)
 
 ### Step 25: Support [] operator
 
-it is a pot operator, just change parser
+it is a post operator, just change parser
 
 ```c++
 // unary   = ("+" | "-" | "&" | "*")? unary
@@ -618,4 +618,34 @@ static Node *postfix(Token **rest, Token * tok)
 ```
 
 
+
+### Step26: Merge Function with Var
+
+(reoder , not real diff)
+
+```diff
+// for local variable or function
+typedef struct Obj Obj;
+struct Obj
+{
+	Obj * next;
+	char * name;
+	int offset; 	// from rbp
+	Type *ty;		// Type of local variable
+-};
+
+-// function
+-typedef struct Function Function;
+-struct Function
+-{
+	Node * body;
+	Obj * locals;
+	int stack_size;
+
++	bool is_function;
+-	Function * next;
+-	char * name;
+	Obj *params;
+};
+```
 

@@ -41,27 +41,27 @@ Token *tokenize(char *input);
 bool consume(Token **rest, Token *tok, char *str);
 
 
-// for local variable
+// for local variable or function
 typedef struct Obj Obj;
 struct Obj
 {
 	Obj * next;
-	char * name;
-	int offset; 	// from rbp
-	Type *ty;		// Type of local variable
-};
 
-// function
-typedef struct Function Function;
-struct Function
-{
+	char * name;
+	bool is_local;	// local or global/function
+	Type *ty;		// Type 
+
+	// Local variable
+	int offset; 	// from rbp
+
+	// Global variable or function
+	bool is_function;
+
+	// Function
+	Obj * params;
 	Node * body;
 	Obj * locals;
 	int stack_size;
-
-	Function * next;
-	char * name;
-	Obj *params;
 };
 
 // Node type of AST
@@ -118,7 +118,7 @@ struct Node
 	Node * args;
 };
 
-Function *parse(Token *tok);
+Obj *parse(Token *tok);
 
 
 
@@ -167,4 +167,4 @@ Type * func_type(Type *return_ty);
 Type * copy_type(Type *ty);
 Type * array_of(Type *base, int size);
 
-void codegen(Function *prog);
+void codegen(Obj *prog);
