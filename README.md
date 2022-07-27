@@ -872,3 +872,128 @@ static int read_escaped_char(char *p) {
 }
 ```
 
+`0b7f19c9850ac1bcd10881de64d3661888200035`
+
+### Step 31:  Support  \<octal-sequence>
+
+chang the function in tokenize, we need change the pos of token
+
+```c++
+static int read_escaped_char(char ** new_pos, char *p) {
+	if('0' <= *p && *p <= '7')
+	{
+		// reand an octalnumber.
+		int c = *p++ - '0';
+		if('0' <= *p && *p <= '7')
+		{
+			c = (c <<3 ) + (*p++ - '0');
+			if('0' <= *p && *p <= '7')
+				c = (c << 3) + (*p++ - '0');
+		}
+		*new_pos = p;
+		return c;
+	}
+	// ...
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
