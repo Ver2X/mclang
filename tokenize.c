@@ -1,50 +1,79 @@
 #include "chibicc.h"
 
+// Input filename
+static char *current_filename;
+
 // Input string
 static char *current_input;
 
 // Reports an error and exit.
 void error(char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  vfprintf(stderr, fmt, ap);
-  fprintf(stderr, "\n");
-  exit(1);
+	va_list ap;
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	fprintf(stderr, "\n");
+	exit(1);
 }
 
-// Reports an error location and exit.
+// Reports an error message in the following format and exit.
+//
+// foo.c:10: x = y + 1;
+//               ^ <error message here>
 static void verror_at(char *loc, char *fmt, va_list ap) {
-  int pos = loc - current_input;
-  fprintf(stderr, "%s\n", current_input);
-  fprintf(stderr, "%*s", pos, ""); // print pos spaces.
-  fprintf(stderr, "^ ");
-  vfprintf(stderr, fmt, ap);
-  fprintf(stderr, "\n");
-  exit(1);
+	// find the line containing `loc`
+	char * line = loc;
+	while(current_input < line && line[-1] != '\n')
+		line--;
+
+	char * end = loc;
+	while(*end != '\n')
+		end++;
+
+	// get line number
+	int line_num = 1;
+	for(char * p = current_input; p < line; p++)
+	{
+		if(*p == '\n')
+			line_num++;
+	}
+
+	// print out the file and line
+	int indent = fprintf(stderr, "%s:%d", current_filename, line_num);
+  	fprintf(stderr, "%.*s\n", (int)(end - line), line);
+
+
+  	// show error message
+  	int pos = loc - line + indent;
+
+	fprintf(stderr, "%*s", pos, ""); // print pos spaces.
+	fprintf(stderr, "^ ");
+	vfprintf(stderr, fmt, ap);
+	fprintf(stderr, "\n");
+	exit(1);
 }
 
 void error_at(char *loc, char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  verror_at(loc, fmt, ap);
+	va_list ap;
+	va_start(ap, fmt);
+	verror_at(loc, fmt, ap);
 }
 
 void error_tok(Token *tok, char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  verror_at(tok->loc, fmt, ap);
+	va_list ap;
+	va_start(ap, fmt);
+	verror_at(tok->loc, fmt, ap);
 }
 
 // Consumes the current token if it matches `op`.
 bool equal(Token *tok, char *op) {
-  return memcmp(tok->loc, op, tok->len) == 0 && op[tok->len] == '\0';
+	return memcmp(tok->loc, op, tok->len) == 0 && op[tok->len] == '\0';
 }
 
 // Ensure that the current token is `op`.
 Token *skip(Token *tok, char *op) {
-  if (!equal(tok, op))
-    error_tok(tok, "expected '%s'", op);
-  return tok->next;
+	if (!equal(tok, op))
+		error_tok(tok, "expected '%s'", op);
+	return tok->next;
 }
 
 bool consume(Token **rest, Token *tok, char *str)
@@ -60,11 +89,11 @@ bool consume(Token **rest, Token *tok, char *str)
 
 // Create a new token.
 static Token *new_token(TokenKind kind, char *start, char *end) {
-  Token *tok = calloc(1, sizeof(Token));
-  tok->kind = kind;
-  tok->loc = start;
-  tok->len = end - start;
-  return tok;
+	Token *tok = calloc(1, sizeof(Token));
+	tok->kind = kind;
+	tok->loc = start;
+	tok->len = end - start;
+	return tok;
 }
 
 static bool startswith(char *p, char *q) {
@@ -94,11 +123,11 @@ static int from_hex(char c)
 
 // Read a punctuator token from p and returns its length.
 static int read_punct(char *p) {
-  if (startswith(p, "==") || startswith(p, "!=") ||
-      startswith(p, "<=") || startswith(p, ">="))
-    return 2;
+	if (startswith(p, "==") || startswith(p, "!=") ||
+		startswith(p, "<=") || startswith(p, ">="))
+	return 2;
 
-  return ispunct(*p) ? 1 : 0;
+	return ispunct(*p) ? 1 : 0;
 }
 
 // aux fuction , judge keywords
@@ -145,29 +174,29 @@ static int read_escaped_char(char ** new_pos, char *p) {
 
 	*new_pos = p + 1;
 
-  // Escape sequences are defined using themselves here. E.g.
-  // '\n' is implemented using '\n'. This tautological definition
-  // works because the compiler that compiles our compiler knows
-  // what '\n' actually is. In other words, we "inherit" the ASCII
-  // code of '\n' from the compiler that compiles our compiler,
-  // so we don't have to teach the actual code here.
-  //
-  // This fact has huge implications not only for the correctness
-  // of the compiler but also for the security of the generated code.
-  // For more info, read "Reflections on Trusting Trust" by Ken Thompson.
-  // https://github.com/rui314/chibicc/wiki/thompson1984.pdf
-  switch (*p) {
-	case 'a': return '\a';
-	case 'b': return '\b';
-	case 't': return '\t';
-	case 'n': return '\n';
-	case 'v': return '\v';
-	case 'f': return '\f';
-	case 'r': return '\r';
-	// [GNU] \e for the ASCII escape character is a GNU C extension.
-	case 'e': return 27;
-	default: return *p;
-  }
+	// Escape sequences are defined using themselves here. E.g.
+	// '\n' is implemented using '\n'. This tautological definition
+	// works because the compiler that compiles our compiler knows
+	// what '\n' actually is. In other words, we "inherit" the ASCII
+	// code of '\n' from the compiler that compiles our compiler,
+	// so we don't have to teach the actual code here.
+	//
+	// This fact has huge implications not only for the correctness
+	// of the compiler but also for the security of the generated code.
+	// For more info, read "Reflections on Trusting Trust" by Ken Thompson.
+	// https://github.com/rui314/chibicc/wiki/thompson1984.pdf
+	switch (*p) {
+		case 'a': return '\a';
+		case 'b': return '\b';
+		case 't': return '\t';
+		case 'n': return '\n';
+		case 'v': return '\v';
+		case 'f': return '\f';
+		case 'r': return '\r';
+		// [GNU] \e for the ASCII escape character is a GNU C extension.
+		case 'e': return 27;
+		default: return *p;
+  	}
 }
 
 // find a closing double-quote.
@@ -220,12 +249,13 @@ static void convert_keywords(Token *tok)
 }
 
 // Tokenize `current_input` and returns new tokens.
-Token *tokenize(char *p) {
-  current_input = p;
-  Token head = {};
-  Token *cur = &head;
+Token *tokenize(char *filename, char *p) {
+	current_filename = filename;
+	current_input = p;
+	Token head = {};
+	Token *cur = &head;
 
-  while (*p) {
+	while (*p) {
     // Skip whitespace characters.
     if (isspace(*p)) {
       p++;
@@ -278,4 +308,56 @@ Token *tokenize(char *p) {
   // convert identify to keyword
   convert_keywords(head.next);
   return head.next;
+}
+
+
+// return the contens of a given file
+static char * read_file(char *path)
+{
+	FILE * fp;
+	if(strcmp(path, "-") == 0)
+	{
+		// by convention, read from stdin if a given filename is "-".
+		fp = stdin;
+	}
+	else
+	{
+		fp = fopen(path, "r");
+		if(!fp)
+		{
+			error("cannot open %s: %s", path, strerror(errno));
+		}
+	}
+
+	char * buf;
+	size_t buflen;
+	FILE * out = open_memstream(&buf, &buflen);
+
+	// read the entire file.
+	for(;;)
+	{
+		char buf2[4096];
+		int n = fread(buf2, 1, sizeof(buf2), fp);
+		if(n == 0)
+			break;
+		fwrite(buf2, 1, n, out);
+	}
+
+	if(fp != stdin)
+	{
+		fclose(fp);
+	}
+
+	// make sure that the last line is properly terminated with '\n'.
+	fflush(out);
+	if(buflen == 0 || buf[buflen - 1] != '\n')
+		fputc('\n', out);
+	fputc('\0', out);
+	fclose(out);
+	return buf;
+}
+
+Token * tokenize_file(char * path)
+{
+	return tokenize(path, read_file(path));
 }

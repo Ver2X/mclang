@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <errno.h>
 
 typedef struct Node Node;
 typedef struct Type Type;
@@ -40,7 +41,7 @@ void error_at(char *loc, char *fmt, ...);
 void error_tok(Token *tok, char *fmt, ...);
 bool equal(Token *tok, char *op);
 Token *skip(Token *tok, char *op);
-Token *tokenize(char *input);
+Token *tokenize_file(char *filename);
 bool consume(Token **rest, Token *tok, char *str);
 
 

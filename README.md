@@ -922,7 +922,7 @@ GUN allow write epxression like
 int a = ({int c = 1; c + 2;});
 ```
 
-change parser
+change parser and codegen and type add_type() function
 
 ```c++
 // primary = "(" expr ")" | "sizeof" unary | ident func-args? |  str | num
@@ -950,7 +950,9 @@ static Node *primary(Token ** rest, Token * tok)
 }
 ```
 
+`274d26227af23175e57a1f9e7127149375126961`
 
+### Step 34: Support read from file
 
 
 
