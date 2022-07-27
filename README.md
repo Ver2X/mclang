@@ -1019,9 +1019,33 @@ static void parse_args(int argc, char ** argv)
 }
 ```
 
+`4d32c17c2acd5d27a9a42c5607e3ef2eb6062ae8`
 
+### Step 37: Support line and block comments
 
+just jum it when tokenize
 
+The C library function **char \*strstr(const char \*haystack, const char \*needle)** function finds the first occurrence of the substring **needle** in the string **haystack**. The terminating '\0' characters are not compared.
+
+```c++
+	// skip line comments
+	if(startswith(p, "//"))
+	{
+		p += 2;
+		while(*p != '\n')
+			p++;
+		continue;
+	}
+
+	// skip block comments
+	if(startswith(p, "/*"))
+	{
+		char * q = strstr(p + 2, "*/");
+		if(!q)
+			error_at(p, "unclosed block comment");
+		p = q + 2;
+	}
+```
 
 
 

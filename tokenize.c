@@ -256,13 +256,32 @@ Token *tokenize(char *filename, char *p) {
 	Token *cur = &head;
 
 	while (*p) {
-    // Skip whitespace characters.
+	// skip line comments
+	if(startswith(p, "//"))
+	{
+		p += 2;
+		while(*p != '\n')
+			p++;
+		continue;
+	}
+
+	// skip block comments
+	if(startswith(p, "/*"))
+	{
+		char * q = strstr(p + 2, "*/");
+		if(!q)
+			error_at(p, "unclosed block comment");
+		p = q + 2;
+	}
+
+
+    // skip whitespace characters
     if (isspace(*p)) {
       p++;
       continue;
     }
 
-    // Numeric literal
+    // numeric literal
     if (isdigit(*p)) {
       cur = cur->next = new_token(TK_NUM, p, p);
       char *q = p;
@@ -271,7 +290,7 @@ Token *tokenize(char *filename, char *p) {
       continue;
     }
 
-    // String literal
+    // string literal
     if(*p == '"')
     {
     	cur = cur->next = read_string_literal(p);
