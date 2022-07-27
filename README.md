@@ -954,13 +954,25 @@ static Node *primary(Token ** rest, Token * tok)
 
 ### Step 34: Support read from file
 
+read from file, need redirection
 
+`c9b848b2f8878a2a10699f7c876739ab88fd23ca`
 
+### Step 35: little refactor
 
+printf  + '\n' to println
 
+```c++
+static void println(char *fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+	printf("\n");
+}
+```
 
-
-
+### 
 
 
 
