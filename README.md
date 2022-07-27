@@ -897,9 +897,20 @@ static int read_escaped_char(char ** new_pos, char *p) {
 }
 ```
 
+`2805f768e2605029bd1819ac00974630ee38e78b`
 
+### Step 32:  Support   \x<hexadecimal-sequence>
 
-
+```c++
+static int from_hex(char c)
+{
+	if('0' <= c && c <= '9')
+		return c - '0';
+	if('a' <= c && c <= 'f')
+		return c - 'a' + 10;
+	return c - 'A' + 10;
+}
+```
 
 
 

@@ -1,1 +1,1 @@
-int main() { return "\1500"[0]; } =
+int main() { return "\x00ff"[0]; } =
