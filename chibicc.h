@@ -71,6 +71,8 @@ struct Obj
 
 	// Function
 	Obj * params;
+
+	// Block or statement expression
 	Node * body;
 	Obj * locals;
 	int stack_size;
@@ -99,6 +101,7 @@ typedef enum
 	ND_FOR, 		// "for" or "while"
 	ND_BLOCK,		// { }
 	ND_FUNCALL,		// function call
+	ND_STMT_EXPR,   // statement expressioni
 }NodeKind;
 
 

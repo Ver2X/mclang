@@ -1,6 +1,8 @@
 #include "chibicc.h"
 
 static void gen_expr(Node *node);
+static void gen_stmt(Node *node);
+
 
 static int depth;
 static char * argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
@@ -117,6 +119,12 @@ static void gen_expr(Node *node)
 			push();
 			gen_expr(node->rhs);
 			store(node->ty);
+			return;
+		case ND_STMT_EXPR:
+			for(Node * n = node->body; n; n = n->next)
+			{
+				gen_stmt(n);
+			}
 			return;
 		case ND_FUNCALL:
 			{

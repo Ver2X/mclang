@@ -912,7 +912,43 @@ static int from_hex(char c)
 }
 ```
 
+`bd66b632f4d73cfced4a97c3a45dee879a847ebf`
 
+### Step 33: Support [GNU] Add statement expression
+
+GUN allow write epxression like
+
+```c++
+int a = ({int c = 1; c + 2;});
+```
+
+change parser
+
+```c++
+// primary = "(" expr ")" | "sizeof" unary | ident func-args? |  str | num
+//
+// to
+//
+// primary = "(" "{" stmt+ "}" ")"
+//         | "(" expr ")"
+//         | "sizeof" unary
+//         | ident func-args?
+//         | str
+//         | num
+static Node *primary(Token ** rest, Token * tok)
+{
+
+	if(equal(tok, "(") && equal(tok->next, "{"))
+	{
+		// this is a GNU statement expresssion
+		Node * node = new_node(ND_STMT_EXPR, tok);
+		node->body = compound_stmt(&tok, tok->next->next)->body;
+		*rest = skip(tok, ")");
+		return node;
+	}
+	// ...
+}
+```
 
 
 
