@@ -3,22 +3,21 @@
 static void gen_expr(Node *node);
 static void gen_stmt(Node *node);
 
-static void println(char *fmt, ...) {
-	va_list ap;
-	va_start(ap, fmt);
-	vprintf(fmt, ap);
-	va_end(ap);
-	printf("\n");
-}
 
-
+static FILE * output_file;
 static int depth;
 static char * argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
 static char * argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 
 static Obj * current_fn;
 
-
+static void println(char *fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	vfprintf(output_file, fmt, ap);
+	va_end(ap);
+	fprintf(output_file, "\n");
+}
 
 // use to identify diff "if" statements
 static int count(void)
@@ -339,8 +338,9 @@ static void emit_text(Obj * prog)
 }
 
 
-void codegen(Obj * prog)
+void codegen(Obj * prog, FILE *out)
 {
+	output_file = out;
 	// first setup offset
 	assign_lvar_offsets(prog);
 	emit_data(prog);
