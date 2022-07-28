@@ -58,3 +58,6 @@ tmp*
 a.out
 9cc
 chibicc
+/tmp*
+**/a.out
+/test/*.ext

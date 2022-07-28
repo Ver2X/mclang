@@ -1168,7 +1168,41 @@ static VarScope * push_scope(char * name, Obj *var)
 }
 ```
 
+`6631123631ea2ab164927aebcb1af77d221d3e48`
 
+### Step 39: Rewrite tests in shell script in C
+
+```makefile
+CFLAGS=-std=c11 -g -fno-common
+
+SRCS=$(wildcard *.c)
+OBJS=$(SRCS:.c=.o)
+
+TEST_SRCS=$(wildcard test/*.c)
+TESTS=$(TEST_SRCS:.c=.exe)
+
+
+chibicc: $(OBJS)
+		$(CC) -o chibicc $(OBJS) $(LDFLAGS)	
+
+$(OBJS): chibicc.h
+
+test/%.exe: chibicc test/%.c
+		$(CC) -o- -E -P -C test/$*.c | ./chibicc -o test/$*.s -
+		$(CC) -o $@ test/$*.s -xc test/common
+
+test: $(TESTS)
+		for i in $^; do echo $$i; ./$$i || exit 1; echo; done	
+		test/driver.sh
+	
+
+clean:
+		rm -f chibicc tmp*  $(TESTS) test/*.s test/*.exe
+		find * -type f '(' -name '*~' -o -name '*.o' ')' -exec rm {} ';'
+
+.PHONU: test clean
+
+```
 
 
 
