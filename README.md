@@ -1047,11 +1047,126 @@ The C library function **char \*strstr(const char \*haystack, const char \*needl
 	}
 ```
 
+`da07308f95da1914d925eef8159198e84898d3aa`
+
+### Step 38: Support block scope
+
+remind how we deal variable before
+
+a. every time call new_lvar() will add a varibale to locals varibale list 
+
+b.
+
+1. when call parse first add global variable by global_varibale()
+2. when parse function(), wuk first add function name as global varibale and add function params (by create_param_lvars()) to local varibale list then call **compound_stmt()** which call declaration() , then declspec() and declarator() judge variable type and set right variable name, then return to declaration() call new_lvar() to create local variable
+
+parse --- > global_varibale
+
+parse --- > function ---> compound_stmt ---> declaration ---> new_lvar
+
+then if variable have been define, change it
+
+```c++
+// stmt = "return" expr ";"
+//		| "if" "(" expr ")" stmt ("else" stmt)?
+//      | "for" "(" expr-stmt expr? ";" expr? ")" stmt
+//      | "while" "(" expr ")" stmt
+//      | "{" compound-stmt
+//		| expr_stmt
+
+// function_declaration = declspec declarator "{" compound_stmt "}"
+```
+
+but actually in C, the varibale save as a nest list
+
+```c++
+// level 0
+{
+    // level 1
+    {
+        // level 2
+        {
+            // level 3
+            {
+                // level 4
+                
+            }
+        }
+        // level 2
+        {
+            // level 3
+            
+        }
+    }
+    // level 1
+    {
+        // level 2
+        
+    }
+}
+```
 
 
 
+```c++
+// compound-stmt = (declaration | stmt)* "}"
+// function_declaration = declspec declarator "{" compound_stmt "}"
+```
 
+the code of from scope,
 
+struct Scope, present a block scope, init it present global variable scope,
+
+and every time meet '{' enter a level scope, and meet '}' exit a level of scope, VarScope present variable list 
+
+```c++
+// scope for local or global variable
+typedef struct VarScope VarScope;
+struct VarScope{
+  VarScope * next;
+  char * name;
+  Obj *var;
+};
+
+// represent a block scope
+typedef struct Scope Scope;
+struct Scope{
+  Scope * next;
+  VarScope * vars;
+};
+
+static Obj * find_var(Token * tok)
+{
+	for(Scope * sc = scope; sc; sc = sc->next)
+	{
+		for(VarScope * sc2 = sc->vars; sc2; sc2 = sc2->next)
+			if(equal(tok, sc2->name))
+				return sc2->var;
+	}
+	return NULL;
+}
+
+static void enter_scope(void)
+{
+	Scope *sc = calloc(1, sizeof(Scope));
+	sc->next = scope;
+	scope = sc;
+}
+
+static void leave_scope(void)
+{
+	scope = scope->next;
+}
+
+static VarScope * push_scope(char * name, Obj *var)
+{
+	VarScope * sc = calloc(1, sizeof(VarScope));
+	sc->name = name;
+	sc->var = var;
+	sc->next = scope->vars;	// VarScope * vars, head insert here
+	scope->vars = sc;
+}
+```
 
 
 
