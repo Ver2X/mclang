@@ -1210,11 +1210,14 @@ clean:
 
 $O(n^2) => O(n)$
 
+`1dd304f3c8196f7b6da57f91b44a892d0d3a02ee`
 
+### Emit .file and .loc assembler directives
 
-
-
-
+```
+With these directives, gdb can print out an error location when
+a compiled program crashes.
+```
 
 
 
