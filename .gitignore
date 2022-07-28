@@ -60,4 +60,5 @@ a.out
 chibicc
 /tmp*
 **/a.out
-/test/*.ext
+/test/*.exe
+/test/.s

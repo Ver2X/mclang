@@ -6,7 +6,7 @@ link:  https://github.com/rui314/chibicc
 
 ## TODO LIST:
 
-
+before write code self, create a branch to save old code
 
 support **Doxygen**
 
@@ -29,15 +29,29 @@ then travel again to generate IR code
 
 add printAST function
 
+like	
 
+​		|
 
+​		|
 
+​		|
+
+​				|
+
+​				|
 
 change locals to a nest symbol, to support multi function
 
 may use the dic tree to boost string compare 
 
+support CHANGE LOG
 
+may using tree IR?  like gcc and open64
+
+
+
+===> tree base instruction selection ==> DAG base
 
 ## CODE
 
@@ -1254,7 +1268,7 @@ static Node * expr(Token ** rest, Token * tok)
 }
 ```
 
-
+`343df57590ee2b13bae5586e361cbf0c6245bb45`
 
 
 
