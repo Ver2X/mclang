@@ -1214,30 +1214,45 @@ $O(n^2) => O(n)$
 
 ### Emit .file and .loc assembler directives
 
+With these directives, gdb can print out an error location when a compiled program crashes.
+
+`88684ce9e881c1ba893530646f1d0f75d85dfa3e`
+
+### Step 40: Support comma operator
+
+This patch allows writing a comma expression on the left-hand side of an assignment expression. This is called the "generalized lvalue" which is a deprecated GCC language extension, implementing it anyway because it's useful to implement other features.
+
+```c++
+// expr       = assign
+// assign     = equality ("=" assign)?
+//
+// to
+//
+// expr = assign ("," expr)?
 ```
-With these directives, gdb can print out an error location when
-a compiled program crashes.
+
+make below right
+
+```c+
+  ASSERT(3, (1,2,3));
+  ASSERT(5, ({ int i=2, j=3; (i=5,j)=6; i; }));
+  ASSERT(6, ({ int i=2, j=3; (i=5,j)=6; j; }));
 ```
 
+which return a mutable variable
 
+```c++
+// expr       = assign ("," expr)
+static Node * expr(Token ** rest, Token * tok)
+{
+	Node * node = assign(&tok, tok);
+	if(equal(tok, ","))
+		return new_binary(ND_COMMA, node, expr(rest, tok->next), tok);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	*rest = tok;
+	return node;
+}
+```
 
 
 
