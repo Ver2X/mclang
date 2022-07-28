@@ -33,6 +33,9 @@ struct Token
 	int 		len; 		// token len
 	Type * ty;				// used if TK_STR
 	char * str;				// string literal contents including terminating '\0'
+
+
+	int line_no;			// line number
 };
 
 

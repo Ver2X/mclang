@@ -1204,9 +1204,11 @@ clean:
 
 ```
 
+`0bca9f751b2969e71dd599420b121133e730151a`
 
+### Precompute line number for each token
 
-
+$O(n^2) => O(n)$
 
 
 
