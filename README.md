@@ -1633,11 +1633,22 @@ static Type * struct_decl(Token **rest, Token *tok)
 }
 ```
 
+`55fef4513cb3c360b8a2f7a3d034559a161993ef`
 
+### Step 45: Support -> operator
 
+which is a postfix operator
 
-
-
+```c++
+		if(equal(tok, "->"))
+		{
+			// x->t is short for (*x).y
+			node = new_unary(ND_DEREF, node, tok);
+			node = struct_ref(node, tok->next);
+			tok = tok->next->next; // skip "->" and ident
+			continue;
+		}
+```
 
 
 

@@ -122,9 +122,13 @@ static int from_hex(char c)
 
 // Read a punctuator token from p and returns its length.
 static int read_punct(char *p) {
-	if (startswith(p, "==") || startswith(p, "!=") ||
-		startswith(p, "<=") || startswith(p, ">="))
-	return 2;
+	static char * puncts [] = {"==", "!=", "<=", ">=", "->"};
+
+	for(int i = 0; i < sizeof(puncts) / sizeof(*puncts); i++)
+	{
+		if(startswith(p, puncts[i]))
+			return strlen(puncts[i]);
+	}
 
 	return ispunct(*p) ? 1 : 0;
 }
