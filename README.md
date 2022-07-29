@@ -1508,7 +1508,7 @@ static Node * expr(Token ** rest, Token * tok)
 
 `343df57590ee2b13bae5586e361cbf0c6245bb45`
 
-### Step 41: Support struct (1)
+### Step 41: Support struct 
 
 for now, when meet struct's "{" we don't need enter scope, actually struct have its own scope
 
@@ -1650,9 +1650,42 @@ which is a postfix operator
 		}
 ```
 
+`601526fb1c19bff3f0eea5374a9532bd70562b54`
 
+### Step 46: Support union
 
+the way to handle union is like handle struct, for union, all offset is 0, but we need to compute the alignment and size.
 
+all variable share the space
+
+```c++
+// struct-union-decl = ident? ("{" struct-members)?
+// union-decl = struct-union-decl
+static Type * union_decl(Token **rest, Token *tok)
+{
+	Type * ty = struct_union_decl(rest, tok);
+	ty->kind = TY_UNION;
+
+	// for union, all offset is 0, but we need to compute the alignment
+	// and size 
+
+	for(Member * mem = ty->members; mem; mem = mem->next)
+	{
+
+		if(ty->align < mem->ty->align)
+		{
+			ty->align = mem->ty->align;
+		}
+		if(ty->size < mem->ty->size)
+			ty->size = mem->ty->size; // shred space, so set size as max elem size
+
+	}
+    // algin size, offset is always for all variable
+	ty->size = align_to(ty->size, ty->align);
+
+	return ty;
+}
+```
 
 
 
