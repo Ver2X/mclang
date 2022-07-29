@@ -1573,9 +1573,65 @@ when set vriable offset in codegen, just align it.
 offset = align_to(offset, var->ty->align);
 ```
 
+`2733964ec177e24d31c7f6d2bb178bc7943a2466`
+
+### Step 44: Support struct tags and scope
+
+```c++
+// struct-decl = "{" struct-members
+//
+// to
+// struct-decl = ident? ("{" struct-members)?
+static Type * struct_decl(Token **rest, Token *tok)
+{
+	// read a truct tag
+	// define
+	Token * tag = NULL;
+	if(tok->kind == TK_IDENT)
+	{
+		tag = tok;
+		tok = tok->next;
+	}
+
+	// use to define a struct variable
+	if(tag && !equal(tok, "{"))
+	{
+		Type * ty = find_tag(tag);
+		if(!ty)
+			error_tok(tag, "unknown struct type");
+		*rest = tok;
+		return ty;
+	}
 
 
 
+	// construct a struct object
+	Type * ty = calloc(1, sizeof(Type));
+	ty->kind = TY_STRUCT;
+	struct_members(rest, tok->next, ty);	// skip "}"
+	ty->align = 1;
+
+	int offset = 0;
+	for(Member * mem = ty->members; mem; mem = mem->next)
+	{
+		offset = align_to(offset, mem->ty->align);
+		mem->offset = offset;
+		offset += mem->ty->size;
+
+		if(ty->align < mem->ty->align)
+		{
+			ty->align = mem->ty->align;
+		}
+
+	}
+	ty->size = align_to(offset, ty->align);
+
+	// register the struct type if a name was given.
+	if(tag)
+		push_tag_scope(tag, ty);
+	return ty;
+}
+```
 
 
 

@@ -50,12 +50,24 @@ struct VarScope{
   Obj *var;
 };
 
+// scope for struct tags
+typedef struct TagScope TagScope;
+struct TagScope
+{
+	TagScope * next;
+	char * name;
+	Type * ty;
+};
+
 
 // represent a block scope
 typedef struct Scope Scope;
 struct Scope{
   Scope * next;
-  VarScope * vars;
+  
+  VarScope * vars;	// vars
+
+  TagScope * tags;	// structs
 };
 
 
@@ -90,6 +102,20 @@ static Obj * find_var(Token * tok)
 	return NULL;
 }
 
+static Type * find_tag(Token *tok)
+{
+	for(Scope * sc = scope; sc; sc = sc->next)
+	{
+		for(TagScope * sc2 = sc->tags; sc2; sc2 = sc2->next)
+		{
+			if(equal(tok, sc2->name))
+				return sc2->ty;
+		}
+	}
+
+	return NULL;
+}
+
 
 static VarScope * push_scope(char * name, Obj *var)
 {
@@ -98,6 +124,15 @@ static VarScope * push_scope(char * name, Obj *var)
 	sc->var = var;
 	sc->next = scope->vars;	// VarScope * vars, head insert here
 	scope->vars = sc;
+}
+
+static void push_tag_scope(Token *tok, Type *ty)
+{
+	TagScope * sc = calloc(1, sizeof(TagScope));
+	sc->name = strndup(tok->loc, tok->len);
+	sc->ty = ty;
+	sc->next = scope->tags;
+	scope->tags = sc;
 }
 
 
@@ -707,15 +742,34 @@ static void struct_members(Token **rest, Token * tok, Type *ty)
 	ty->members = head.next;
 }
 
-// struct-decl = "{" struct-members
+// struct-decl = ident? ("{" struct-members)?
 static Type * struct_decl(Token **rest, Token *tok)
 {
-	tok = skip(tok, "{");
+	// read a truct tag
+	// define
+	Token * tag = NULL;
+	if(tok->kind == TK_IDENT)
+	{
+		tag = tok;
+		tok = tok->next;
+	}
+
+	// use to define a struct variable
+	if(tag && !equal(tok, "{"))
+	{
+		Type * ty = find_tag(tag);
+		if(!ty)
+			error_tok(tag, "unknown struct type");
+		*rest = tok;
+		return ty;
+	}
+
+
 
 	// construct a struct object
 	Type * ty = calloc(1, sizeof(Type));
 	ty->kind = TY_STRUCT;
-	struct_members(rest, tok, ty);
+	struct_members(rest, tok->next, ty);	// skip "}"
 	ty->align = 1;
 
 	int offset = 0;
@@ -733,6 +787,9 @@ static Type * struct_decl(Token **rest, Token *tok)
 	}
 	ty->size = align_to(offset, ty->align);
 
+	// register the struct type if a name was given.
+	if(tag)
+		push_tag_scope(tag, ty);
 	return ty;
 }
 
