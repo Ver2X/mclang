@@ -165,6 +165,8 @@ struct Type
 
 	int size;      // sizeof() value
 
+	int align;
+
   	// Pointer-to or array-of type. We intentionally use the same member
 	// to represent pointer/array duality in C.
 	//
@@ -213,3 +215,4 @@ Type * copy_type(Type *ty);
 Type * array_of(Type *base, int size);
 
 void codegen(Obj *prog, FILE *out);
+int align_to(int n, int align);

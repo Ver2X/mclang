@@ -1508,7 +1508,11 @@ static Node * expr(Token ** rest, Token * tok)
 
 `343df57590ee2b13bae5586e361cbf0c6245bb45`
 
-### Step 41: Support struct
+### Step 41: Support struct (1)
+
+for now, when meet struct's "{" we don't need enter scope, actually struct have its own scope
+
+and struct just is a anonymous variable type, no tag
 
 ```c++
 // declspec = "char" | "int" | struct-decl
@@ -1544,9 +1548,20 @@ struct Member {
 
 ```
 
+`e562ff5a90f5eee001622409ed8319c2f31ed158`
 
+### Step 42: Align struct members
 
+align of a struct is the max ocopied space align
 
+add a `int align` to Type, and maintain it, besides align offset to `align`
+
+which mean
+
+```c
+  ASSERT(16, ({ struct {char a; int b;} x; sizeof(x); }));
+  ASSERT(16, ({ struct {int a; char b;} x; sizeof(x); }));
+```
 
 
 
