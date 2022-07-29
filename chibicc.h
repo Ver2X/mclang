@@ -10,6 +10,7 @@
 
 typedef struct Node Node;
 typedef struct Type Type;
+typedef struct Member Member;
 
 // kinds of token
 typedef enum
@@ -106,7 +107,8 @@ typedef enum
 	ND_FOR, 		// "for" or "while"
 	ND_BLOCK,		// { }
 	ND_FUNCALL,		// function call
-	ND_STMT_EXPR,   // statement expressioni
+	ND_STMT_EXPR,   // statement expression
+	ND_MEMBER,		// . (struct member access)
 }NodeKind;
 
 
@@ -134,6 +136,11 @@ struct Node
 	int val; 		// when kind == ND_NUM
 	Obj *var; 		// when kind == ND_VAR
 	
+
+	// struct member access
+	Member * member;
+
+	// function call
 	char * funcname;
 	Node * args;
 };
@@ -149,6 +156,7 @@ typedef enum
 	TY_FUNC,
 	TY_ARRAY,
 	TY_CHAR,
+	TY_STRUCT,
 }TypeKind;
 
 struct Type
@@ -173,11 +181,26 @@ struct Type
 	// array
 	int array_len;
 
+	// struct
+	Member * members;
+
 	// Function type
 	Type * return_ty;
 	Type *params;
   	Type *next;
 };
+
+
+// struct member
+struct Member
+{
+	Member * next;
+	Type * ty;
+	Token  * name;
+	int offset;
+};
+
+
 
 extern Type * ty_int;
 extern Type * ty_char;

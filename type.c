@@ -102,6 +102,9 @@ void add_type(Node *node)
 		case ND_COMMA:
 			node->ty = node->rhs->ty;
 			return;
+		case ND_MEMBER:
+			node->ty = node->member->ty;
+			return;
 		// for '&', create a new type as TY_PTR, setup base type
 		case ND_ADDR:
 			if(node->lhs->ty->kind == TY_ARRAY)
