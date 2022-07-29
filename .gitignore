@@ -61,4 +61,4 @@ chibicc
 /tmp*
 **/a.out
 /test/*.exe
-#/test/*.s
+/test/*.s
