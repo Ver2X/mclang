@@ -1687,9 +1687,30 @@ static Type * union_decl(Token **rest, Token *tok)
 }
 ```
 
+`f7e55d253fb8578a3e0ad652f73c48b31e5d00e2`
 
+### Step 47: Support struct assignment
 
+```c++
+// store %rax to an address that the stack top is pointing to.
+static void store(Type * ty) {
+  pop("%rdi");
+  if(ty->kind == TY_STRUCT || ty->kind == TY_UNION)
+  {
+  	for(int i = 0; i < ty->size; i++)
+  	{
+  		println("  mov %d(%%rax), %%r8b", i);
+  		println("  mov %%r8b, %d(%%rdi)", i);
+  	}
+  	return;
+  }
 
+  if(ty->size == 1)
+  	println("  mov %%al, (%%rdi)");
+  else
+  	println("  mov %%rax, (%%rdi)");
+}
+```
 
 
 
