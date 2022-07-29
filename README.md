@@ -1563,7 +1563,15 @@ which mean
   ASSERT(16, ({ struct {int a; char b;} x; sizeof(x); }));
 ```
 
+`74b5f74e3f4aa463670f2906f8f18d36ad45d3a0`
 
+### Step 43: Align local variables
+
+when set vriable offset in codegen, just align it.
+
+```c++
+offset = align_to(offset, var->ty->align);
+```
 
 
 
