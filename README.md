@@ -1735,7 +1735,8 @@ add long to keyword
 // declspec = "char" | "short" | "int" | "long" | struct-decl | union-decl
 ```
 
+`7813a650342b59f33b24df93035bd74ead7f293c`
 
+### Step 50: Support short type
 
-
-
+same as long
