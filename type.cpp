@@ -1,13 +1,19 @@
 #include "chibicc.h"
+Type type__t1 = (Type){TY_CHAR, 1, 1};
+Type *ty_char = &type__t1;
 
-Type *ty_char = &(Type){TY_CHAR, 1, 1};
-Type *ty_short = &(Type){TY_SHORT, 2, 2};
-Type *ty_int = &(Type){TY_INT, 4, 4};
-Type *ty_long = &(Type){TY_LONG, 8, 8};
+Type type__t2 = (Type){TY_SHORT, 2, 2};
+Type *ty_short = &type__t2;
+
+Type type__t3 = (Type){TY_INT, 4, 4};
+Type *ty_int = &type__t3;
+
+Type type__t4 = (Type){TY_LONG, 8, 8};
+Type *ty_long = &type__t4;
 
 static Type * new_type(TypeKind kind, int size, int align)
 {
-	Type * ty = calloc(1, sizeof(Type));
+	Type * ty = (Type *)calloc(1, sizeof(Type));
 	ty->kind = kind;
 	ty->size = size;
 	ty->align = align;
@@ -33,7 +39,7 @@ Type * pointer_to(Type * base)
 
 Type * func_type(Type * return_ty)
 {
-	Type * ty = calloc(1, sizeof(Type));
+	Type * ty = (Type *)calloc(1, sizeof(Type));
 	ty->kind = TY_FUNC;
 	ty->return_ty = return_ty;
 	return ty;
@@ -41,7 +47,7 @@ Type * func_type(Type * return_ty)
 
 Type * copy_type(Type * ty)
 {
-	Type * ret = calloc(1, sizeof(Type));
+	Type * ret = (Type *)calloc(1, sizeof(Type));
 	*ret = *ty;
 	return ret;
 }

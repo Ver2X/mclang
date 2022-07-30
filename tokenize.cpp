@@ -1,5 +1,6 @@
 #include "chibicc.h"
 
+using std::string;
 // Input filename
 static char *current_filename;
 
@@ -7,7 +8,7 @@ static char *current_filename;
 static char *current_input;
 
 // Reports an error and exit.
-void error(char *fmt, ...) {
+void error(const char *fmt, ...) {
 	va_list ap;
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
@@ -19,7 +20,7 @@ void error(char *fmt, ...) {
 //
 // foo.c:10: x = y + 1;
 //               ^ <error message here>
-static void verror_at(int line_no, char *loc, char *fmt, va_list ap) {
+static void verror_at(int line_no, char *loc, const char *fmt, va_list ap) {
 	// find the line containing `loc`
 	char * line = loc;
 	while(current_input < line && line[-1] != '\n')
@@ -45,7 +46,7 @@ static void verror_at(int line_no, char *loc, char *fmt, va_list ap) {
 	exit(1);
 }
 
-void error_at(char *loc, char *fmt, ...) {
+void error_at(char *loc, const char *fmt, ...) {
 	int line_no = 1;
 	for(char * p = current_input; p < loc; p++)
 	{
@@ -57,25 +58,26 @@ void error_at(char *loc, char *fmt, ...) {
 	verror_at(line_no, loc, fmt, ap);
 }
 
-void error_tok(Token *tok, char *fmt, ...) {
+void error_tok(Token *tok, const char *fmt, ...) {
 	va_list ap;
 	va_start(ap, fmt);
 	verror_at(tok->line_no ,tok->loc, fmt, ap);
 }
 
 // Consumes the current token if it matches `op`.
-bool equal(Token *tok, char *op) {
+bool equal(Token *tok, const char *op) {
 	return memcmp(tok->loc, op, tok->len) == 0 && op[tok->len] == '\0';
 }
 
 // Ensure that the current token is `op`.
-Token *skip(Token *tok, char *op) {
-	if (!equal(tok, op))
+Token *skip(Token *tok, const char *op) {
+	if (!equal(tok, op)){
 		error_tok(tok, "expected '%s'", op);
+	}
 	return tok->next;
 }
 
-bool consume(Token **rest, Token *tok, char *str)
+bool consume(Token **rest, Token *tok, const char *str)
 {
 	if(equal(tok, str))
 	{
@@ -88,14 +90,14 @@ bool consume(Token **rest, Token *tok, char *str)
 
 // Create a new token.
 static Token *new_token(TokenKind kind, char *start, char *end) {
-	Token *tok = calloc(1, sizeof(Token));
+	Token *tok = (Token *)calloc(1, sizeof(Token));
 	tok->kind = kind;
 	tok->loc = start;
 	tok->len = end - start;
 	return tok;
 }
 
-static bool startswith(char *p, char *q) {
+static bool startswith(char *p, const char *q) {
   return strncmp(p, q, strlen(q)) == 0;
 }
 
@@ -122,7 +124,7 @@ static int from_hex(char c)
 
 // Read a punctuator token from p and returns its length.
 static int read_punct(char *p) {
-	static char * puncts [] = {"==", "!=", "<=", ">=", "->"};
+	static const char * puncts [] = {"==", "!=", "<=", ">=", "->"};
 
 	for(int i = 0; i < sizeof(puncts) / sizeof(*puncts); i++)
 	{
@@ -133,10 +135,35 @@ static int read_punct(char *p) {
 	return ispunct(*p) ? 1 : 0;
 }
 
+static bool startswith_string(char *p, string &q)
+{
+	for(int i = 0; i < q.length(); i++)
+	{
+		if(*(p+i) != q[i])
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+// Read a punctuator token from p and returns its length.
+static int read_punct2(char *p) {
+	static string puncts [] = {"==", "!=", "<=", ">=", "->"};
+
+	for(int i = 0; i < 5; i++)
+	{
+		if(startswith_string(p, puncts[i]))
+			return puncts[i].length();
+	}
+
+	return ispunct(*p) ? 1 : 0;
+}
+
 // aux fuction , judge keywords
 static bool is_keyword(Token * tok)
 {
-	static char * kw[] = {"return", "if", "else", "for", "while",\
+	static const char * kw[] = {"return", "if", "else", "for", "while",\
 		 "int", "sizeof", "char", "struct", "union", "short", "long"};
 
 	for(int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
@@ -146,6 +173,7 @@ static bool is_keyword(Token * tok)
 	}
 	return false;
 }
+
 
 
 static int read_escaped_char(char ** new_pos, char *p) {
@@ -220,7 +248,7 @@ static char * string_literal_end(char *p)
 static Token * read_string_literal(char * start)
 {
 	char * end = string_literal_end(start + 1);
-	char * buf = calloc(1, end - start);
+	char * buf = (char *)calloc(1, end - start);
 	int len = 0;
 
 

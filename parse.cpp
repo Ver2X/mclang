@@ -75,12 +75,13 @@ struct Scope{
 static Obj * locals;
 static Obj * globals;
 
-static Scope * scope = &(Scope){};
+Scope scope__t = (Scope){};
+static Scope * scope = &scope__t;
 
 
 static void enter_scope(void)
 {
-	Scope *sc = calloc(1, sizeof(Scope));
+	Scope *sc = (Scope *)calloc(1, sizeof(Scope));
 	sc->next = scope;
 	scope = sc;
 }
@@ -119,16 +120,17 @@ static Type * find_tag(Token *tok)
 
 static VarScope * push_scope(char * name, Obj *var)
 {
-	VarScope * sc = calloc(1, sizeof(VarScope));
+	VarScope * sc = (VarScope *)calloc(1, sizeof(VarScope));
 	sc->name = name;
 	sc->var = var;
 	sc->next = scope->vars;	// VarScope * vars, head insert here
 	scope->vars = sc;
+	return sc;
 }
 
 static void push_tag_scope(Token *tok, Type *ty)
 {
-	TagScope * sc = calloc(1, sizeof(TagScope));
+	TagScope * sc = (TagScope *)calloc(1, sizeof(TagScope));
 	sc->name = strndup(tok->loc, tok->len);
 	sc->ty = ty;
 	sc->next = scope->tags;
@@ -139,7 +141,7 @@ static void push_tag_scope(Token *tok, Type *ty)
 // head insert
 static Obj * new_var(char * name, Type *ty)
 {
-	Obj * var = calloc(1, sizeof(Obj));
+	Obj * var = (Obj *)calloc(1, sizeof(Obj));
 	var->name = name;
 	var->ty = ty;
 	push_scope(name, var);
@@ -185,7 +187,7 @@ static Obj * new_string_literal(char * p, Type * ty)
 
 // create a new node by special kind
 static Node *new_node(NodeKind kind, Token * tok) {
-  Node *node = calloc(1, sizeof(Node));
+  Node *node = (Node *)calloc(1, sizeof(Node));
   node->kind = kind;
   node->tok = tok;
   return node;
@@ -281,6 +283,8 @@ static Type * declspec(Token ** rest, Token *tok)
 	}
 
 	error_tok(tok, "typename expected");
+
+	return NULL; // unreachable
 }
 
 
@@ -657,6 +661,8 @@ static Node * new_sub(Node *lhs, Node *rhs, Token *tok)
 
 
 	error_tok(tok, "invalid operands");
+
+	return NULL; // unreachable
 }
 
 
@@ -749,7 +755,7 @@ static void struct_members(Token **rest, Token * tok, Type *ty)
 			if(i++)
 				tok = skip(tok, ",");
 
-			Member * mem = calloc(1, sizeof(Member));
+			Member * mem = (Member *)calloc(1, sizeof(Member));
 			mem->ty = declarator(&tok, tok, basety);
 			mem->name = mem->ty->name;
 			cur = cur->next = mem;
@@ -784,7 +790,7 @@ static Type * struct_union_decl(Token **rest, Token *tok)
 
 
 	// construct a struct object
-	Type * ty = calloc(1, sizeof(Type));
+	Type * ty = (Type *)calloc(1, sizeof(Type));
 	ty->kind = TY_STRUCT;
 	struct_members(rest, tok->next, ty);	// skip "}"
 	ty->align = 1;
@@ -793,8 +799,8 @@ static Type * struct_union_decl(Token **rest, Token *tok)
 	if(tag)
 	{
 		push_tag_scope(tag, ty);
-		return ty;
 	}
+	return ty;
 }
 // struct-decl = struct-union-decl
 static Type * struct_decl(Token **rest, Token *tok)
@@ -859,6 +865,8 @@ static Member * get_struct_member(Type *ty, Token * tok)
 	}
 
 	error_tok(tok, "no such member");
+
+	return NULL;
 }
 
 
@@ -1009,6 +1017,8 @@ static Node *primary(Token ** rest, Token * tok)
 	}
 
 	error_tok(tok, "expected an expression");
+
+	return NULL;
 }
 
 static void create_param_lvars(Type * param)

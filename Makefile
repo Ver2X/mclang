@@ -1,20 +1,20 @@
 CFLAGS=-std=c11 -g -fno-common
 
-SRCS=$(wildcard *.c)
-OBJS=$(SRCS:.c=.o)
+SRCS=$(wildcard *.cpp)
+OBJS=$(SRCS:.cpp=.o)
 
 TEST_SRCS=$(wildcard test/*.c)
 TESTS=$(TEST_SRCS:.c=.exe)
 
 
 chibicc: $(OBJS)
-		$(CC) -o chibicc $(OBJS) $(LDFLAGS)	
+		$(CXX) -o chibicc $(OBJS) $(LDFLAGS)	
 
 $(OBJS): chibicc.h
 
 test/%.exe: chibicc test/%.c
-		$(CC) -o- -E -P -C test/$*.c | ./chibicc -o test/$*.s -
-		$(CC) -o $@ test/$*.s -xc test/common
+		$(CXX) -o- -E -P -C test/$*.c | ./chibicc -o test/$*.s -
+		$(CXX) -o $@ test/$*.s -xc test/common
 
 test: $(TESTS)
 		for i in $^; do echo $$i; ./$$i || exit 1; echo; done	

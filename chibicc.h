@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdint.h>
+#include <string>
 
 typedef struct Node Node;
 typedef struct Type Type;
@@ -41,19 +42,19 @@ struct Token
 };
 
 
-void error(char *fmt, ...);
-void error_at(char *loc, char *fmt, ...);
-void error_tok(Token *tok, char *fmt, ...);
-bool equal(Token *tok, char *op);
-Token *skip(Token *tok, char *op);
+void error(const char *fmt, ...);
+void error_at(char *loc, const char *fmt, ...);
+void error_tok(Token *tok, const char *fmt, ...);
+bool equal(Token *tok, const char *op);
+Token *skip(Token *tok, const char *op);
 Token *tokenize_file(char *filename);
-bool consume(Token **rest, Token *tok, char *str);
+bool consume(Token **rest, Token *tok, const char *str);
 
 
 #define unreachable() \
   error("internal error at %s:%d", __FILE__, __LINE__)
 
-char * format(char * fmt, ...);
+char * format(const char * fmt, ...);
 
 
 
