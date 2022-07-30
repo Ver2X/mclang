@@ -49,7 +49,8 @@ Token *tokenize_file(char *filename);
 bool consume(Token **rest, Token *tok, char *str);
 
 
-
+#define unreachable() \
+  error("internal error at %s:%d", __FILE__, __LINE__)
 
 char * format(char * fmt, ...);
 

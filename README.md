@@ -1714,6 +1714,8 @@ static void store(Type * ty) {
 
 `cf39095e150df76e1c81679f997bcfee4922faf8`
 
+### Step 48: Change size of int from 8 to 4
+
 
 
 
