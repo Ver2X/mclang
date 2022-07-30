@@ -207,7 +207,7 @@ static Node *new_unary(NodeKind kind, Node *expr, Token *tok) {
 }
 
 // create a number
-static Node * new_num(int val, Token * tok)
+static Node * new_num(int64_t val, Token * tok)
 {
 	Node *node = new_node(ND_NUM, tok);
 	node->val = val;
@@ -243,7 +243,7 @@ static int get_number(Token * tok)
 	return tok->val;
 }
 
-// declspec = "char" | "int" | struct-decl
+// declspec = "char" | "short" | "int" | "long" |struct-decl |union-decl
 static Type * declspec(Token ** rest, Token *tok)
 {
 	if(equal(tok, "char"))
@@ -256,6 +256,12 @@ static Type * declspec(Token ** rest, Token *tok)
 	{
 		*rest = tok->next;
 		return ty_int;
+	}
+
+	if(equal(tok, "long"))
+	{
+		*rest = tok->next;
+		return ty_long;
 	}
 
 	if(equal(tok, "struct"))
@@ -274,7 +280,8 @@ static Type * declspec(Token ** rest, Token *tok)
 
 static bool is_typename(Token *tok)
 {
-	return equal(tok, "char") || equal(tok, "int") || equal(tok, "struct") || equal(tok, "union");
+	return equal(tok, "char") || equal(tok, "short") || equal(tok, "int") || equal(tok, "long")  \
+			|| equal(tok, "struct") || equal(tok, "union");
 }
 
 // func-params = (param ("," param)*)? ")"

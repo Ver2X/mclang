@@ -7,6 +7,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <stdint.h>
 
 typedef struct Node Node;
 typedef struct Type Type;
@@ -29,7 +30,7 @@ struct Token
 {
 	TokenKind 	kind;
 	Token * 	next;
-	int 		val;
+	int64_t		val;		// if kind == TK_NUM, val is the number
 	char * 		loc;		// token location
 	int 		len; 		// token len
 	Type * ty;				// used if TK_STR
@@ -134,7 +135,7 @@ struct Node
 
 	Node * body;
 
-	int val; 		// when kind == ND_NUM
+	int64_t val; 		// when kind == ND_NUM
 	Obj *var; 		// when kind == ND_VAR
 	
 
@@ -153,6 +154,7 @@ Obj *parse(Token *tok);
 typedef enum
 {
 	TY_INT,
+	TY_LONG,
 	TY_PTR,
 	TY_FUNC,
 	TY_ARRAY,
@@ -208,6 +210,7 @@ struct Member
 
 extern Type * ty_int;
 extern Type * ty_char;
+extern Type * ty_long;
 
 bool is_integer(Type * ty);
 void add_type(Node *node);

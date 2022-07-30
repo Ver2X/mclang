@@ -1716,9 +1716,24 @@ static void store(Type * ty) {
 
 ### Step 48: Change size of int from 8 to 4
 
+samplely change
 
+```c++
+Type *ty_int = &(Type){TY_INT, 8, 8};
+Type *ty_int = &(Type){TY_INT, 4, 4};
+```
 
+and related code
 
+`c914abc8901a23e172d9551f55b7acc29447f6b2`
+
+### Step 49: Support long type
+
+add long to keyword
+
+```c++
+// declspec = "char" | "short" | "int" | "long" | struct-decl | union-decl
+```
 
 
 
