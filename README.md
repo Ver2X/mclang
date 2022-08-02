@@ -1802,3 +1802,20 @@ static Token * function(Token *tok, Type *basety)
       continue;
 ```
 
+`07246dd0d629034407aa36b364a63fcc20dffcf9`
+
+### Step53: Support function void type
+
+new keyowrd , type
+
+but only function may return as void type, not variable, we need check in `declaration` 
+
+besides also couldn't be dereference.
+
+```c++
+// declspec = "char" | "short" | "int" | "long" |struct-decl |union-decl
+//
+// declspec = "void" | "char" | "short" | "int" | "long"
+//          | struct-decl | union-decl
+```
+

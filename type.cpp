@@ -11,6 +11,9 @@ Type *ty_int = &type__t3;
 Type type__t4 = (Type){TY_LONG, 8, 8};
 Type *ty_long = &type__t4;
 
+Type type__t5 = (Type){TY_VOID, 1, 1};
+Type *ty_void = &type__t5;
+
 static Type * new_type(TypeKind kind, int size, int align)
 {
 	Type * ty = (Type *)calloc(1, sizeof(Type));
@@ -133,6 +136,11 @@ void add_type(Node *node)
 				error_tok(node->tok, "expect dereference a pointer or array pointer, but not");
 				
 			}
+			if(node->lhs->ty->base->kind == TY_VOID)
+			{
+				error_tok(node->tok, "dereferencing a void pointer");
+			}
+
 			// for '*', down a type level
 			node->ty = node->lhs->ty->base;
 			return;

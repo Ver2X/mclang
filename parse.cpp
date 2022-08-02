@@ -245,9 +245,16 @@ static int get_number(Token * tok)
 	return tok->val;
 }
 
-// declspec = "char" | "short" | "int" | "long" |struct-decl |union-decl
+// declspec = "void" | "char" | "short" | "int" | "long"
+//          | struct-decl | union-decl
 static Type * declspec(Token ** rest, Token *tok)
 {
+	if(equal(tok, "void"))
+	{
+		*rest = tok->next;
+		return ty_void;
+	}
+
 	if(equal(tok, "char"))
 	{
 		*rest = tok->next;
@@ -290,8 +297,14 @@ static Type * declspec(Token ** rest, Token *tok)
 
 static bool is_typename(Token *tok)
 {
-	return equal(tok, "char") || equal(tok, "short") || equal(tok, "int") || equal(tok, "long")  \
-			|| equal(tok, "struct") || equal(tok, "union");
+	static const char * kw[] = {"void", "char", "short", "int", "long", \
+																					"struct", "union"};
+	for(int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
+	{
+		if(equal(tok, kw[i]))
+			return true;
+	}
+	return false;
 }
 
 // func-params = (param ("," param)*)? ")"
@@ -384,6 +397,8 @@ static Node * declaration(Token **rest, Token *tok)
 
 		// define but not used, add it to variable list
 		Type * ty = declarator(&tok, tok, basety);
+		if(ty->kind == TY_VOID)
+			error_tok(tok, "varibale declared as void type");
 		Obj * var = new_lvar(get_ident(ty->name), ty);
 
 		if(!equal(tok, "="))

@@ -164,6 +164,7 @@ typedef enum
 	TY_CHAR,
 	TY_STRUCT,
 	TY_UNION,
+	TY_VOID,
 }TypeKind;
 
 struct Type
@@ -214,6 +215,8 @@ extern Type * ty_char;
 extern Type * ty_short;
 extern Type * ty_int;
 extern Type * ty_long;
+
+extern Type * ty_void;
 
 bool is_integer(Type * ty);
 void add_type(Node *node);
