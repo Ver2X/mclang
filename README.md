@@ -3,6 +3,42 @@
 This is the reference implementation of https://www.sigbus.info/compilerbook.
 
 link:  https://github.com/rui314/chibicc
+## IR idea
+ir is a struct
+
+struct irbuilder;
+
+struct block;
+
+struct inst
+{
+	node * left;
+	node * right;
+	emum op;
+	int align;
+
+	label * lb;
+}
+
+node * create(op, left, right)
+{
+	%3 = add %1 , %2
+	node * rt = new node(3);
+	rt->left = %1;
+	rt->right = %2;
+	rt->op = op;
+
+	// here save instruction to a instruction list,array, generate linear ir
+	// temp generate llvm ir, then use clang to compile it
+
+	return *rt;
+}
+
+%1 , %2, ...
+
+
+write a AST_traveler passing to a function operator
+make it reuse, like ir gen, printer 
 
 ## TODO LIST:
 
