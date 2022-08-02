@@ -33,11 +33,11 @@ static void verror_at(int line_no, char *loc, const char *fmt, va_list ap) {
 
 	// print out the file and line
 	int indent = fprintf(stderr, "%s:%d", current_filename, line_no);
-  	fprintf(stderr, "%.*s\n", (int)(end - line), line);
+  fprintf(stderr, "%.*s\n", (int)(end - line), line);
 
 
-  	// show error message
-  	int pos = loc - line + indent;
+  // show error message
+  int pos = loc - line + indent;
 
 	fprintf(stderr, "%*s", pos, ""); // print pos spaces.
 	fprintf(stderr, "^ ");

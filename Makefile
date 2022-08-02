@@ -1,4 +1,4 @@
-CFLAGS=-std=c11 -g -fno-common
+CFLAGS=-std=c++20 -g -fno-common
 
 SRCS=$(wildcard *.cpp)
 OBJS=$(SRCS:.cpp=.o)

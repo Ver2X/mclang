@@ -1740,3 +1740,44 @@ add long to keyword
 ### Step 50: Support short type
 
 same as long
+
+`456a93585f176dfd75eea55086a3e68776d9ad5c`
+
+### Navigate source code files to Cpp
+
+`f0d44e6c271892ee7efa26a128a4091d752ab077`
+
+### Step 51:  Supoport nested type declarators
+
+```c++
+// declarator = "*"* ident type-suffix
+//
+//
+// declarator = "*"* ("(" ident ")" | "(" declarator ")" | ident) type-suffix
+static Type * declarator(Token **rest, Token *tok, Type * ty)
+{
+	while(consume(&tok, tok, "*"))
+	{
+		ty = pointer_to(ty);
+	}
+
+	if(equal(tok, "("))
+	{
+		Token * start = tok;
+		Type dummy = {};
+		declarator(&tok, start->next, & dummy);
+		tok = skip(tok, ")");
+		ty = type_suffix(rest, tok, ty);
+		return declarator(&tok, start->next, ty);
+	}
+
+
+	if(tok->kind != TK_IDENT)
+		error_tok(tok, "expected a varibale name");
+
+	ty = type_suffix(rest, tok->next, ty);
+	ty->name = tok;
+	return ty;
+}
+```
+
