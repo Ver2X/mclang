@@ -1781,3 +1781,24 @@ static Type * declarator(Token **rest, Token *tok, Type * ty)
 }
 ```
 
+`03b8718fdd6290ede0e5518fca3c77ac9259c369`
+
+### Step52: Support function declaration
+
+if detected a function declaration, not definition , just skip it.
+
+```c++
+// in Obg
+bool is_definition;
+// parse.c
+// function_declaration = declspec declarator "{" compound_stmt "}"
+static Token * function(Token *tok, Type *basety)
+{// ...
+    fn->is_definition = !consume(&tok, tok, ";"); // if consume(&tok, tok, ";") == true, is a declaration   
+}
+
+// codegen.c
+    if (!fn->is_function || !fn->is_definition) // ===> declaration
+      continue;
+```
+
