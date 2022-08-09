@@ -1891,3 +1891,9 @@ besides also couldn't be dereference.
 ```
 
 the idea is change to a big switch
+
+`17329c7115e2f8f3e8724af898f0891312376ca1`
+
+### Step55: using long long as an alias for long
+
+because in Step54 have implemention a bitint, just add to switch
