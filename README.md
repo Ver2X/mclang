@@ -1897,3 +1897,118 @@ the idea is change to a big switch
 ### Step55: using long long as an alias for long
 
 because in Step54 have implemention a bitint, just add to switch
+
+`39837604bef4d47421274254c2a83bda60fcc758`
+
+### Step56: Support typedef
+
+typedef is a special keyword, it create a type, typically
+
+In the following example, `x` is defined as an alias for `int`.
+
+  typedef x;
+
+Below is valid C code where the second `t` is a local variable
+of type int having value 3.
+
+  typedef int t;
+  t t = 3;
+
+make typedef also is a typename, invoke complex type, beside every time judg whether is a type, try to find typedef.
+
+before variable just a variable, but now is maybe a typedef
+
+**detial:**
+
+when meeting a "typedef" 
+
+1. first set attr 'is_typedef' to true , tag it is a typedef
+2. since `declspec`actually return two value, first is Type * , second is attr return by pointer. the caller of `declspec` change from `declaration` to `compound_stmt` , whjch create a `VarAttr attr` variable and pass to `declspec`. and `declspec` fill the is_typedef field. 
+3. if the is_typedef is true, then call `parse_typedef` to create a typedef variable, save to variable scope, otherwise same as ordinary variable declaration.
+4. next time, function `declspec` also need to check whether a type is a typedef type.
+5. since, function `declaration` no longer call  `declspec`, so it need a `basety` ,passing by function argument
+6. last thing need be mention, since now variable maybe a typedef, so every time call `find_var` no longer return the Obj *var, but VarScope *, need extract variable from VarScope if need.
+
+```c++
+static Node * declaration(Token **rest, Token *tok)
+{
+	Type * basety = declspec(&tok, tok);
+}
+// now
+static Node * declaration(Token **rest, Token *tok, Type *basety)
+{
+    
+}
+// compound-stmt = (declaration |stmt )* "}"
+// compound-stmt = (typedef | declaration |stmt )* "}"
+
+// declaration = declspec (declarator ("=" expr)? ("," declarator  ("=" expr)?)* )? ;
+// declaration = (declarator ("=" expr)? ("," declarator  ("=" expr)?)* )? ;
+
+```
+
+code:
+
+```c++
+// compound-stmt = (typedef | declaration |stmt )* "}"
+static Node * compound_stmt(Token ** rest, Token * tok)
+{
+	Node * node = new_node(ND_BLOCK, tok);
+
+	Node head = {};
+	Node * cur = &head;
+
+	enter_scope();
+
+
+	while(!equal(tok, "}")){
+		if(is_typename(tok))
+		{
+			VarAttr attr = {};
+			Type * basety = declspec(&tok, tok, &attr);
+
+			if(attr.is_typedef)
+			{
+				tok = parse_typedef(tok, basety);
+				continue;
+			}
+
+			cur = cur->next = declaration(&tok, tok, basety);
+		}
+		else
+		{
+			cur = cur->next = stmt(&tok, tok);
+		}
+
+		// here add type
+		add_type(cur);
+	}
+	
+	leave_scope();
+
+	node->body = head.next;
+	*rest = tok->next;
+	return node;
+}
+```
+
+
+
+```c++
+static Token *parse_typedef(Token *tok, Type * basety)
+{
+	bool first = true;
+	while(!consume(&tok, tok, ";"))
+	{
+		if(!first)
+			tok = skip(tok, ",");
+		first =false;
+
+		Type * ty = declarator(&tok, tok, basety);
+		push_scope(get_ident(ty->name))->type_def = ty;
+	}
+	return tok;
+}
+
+```
+
