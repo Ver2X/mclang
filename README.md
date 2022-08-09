@@ -2012,3 +2012,24 @@ static Token *parse_typedef(Token *tok, Type * basety)
 
 ```
 
+`ccfc6a29d386a285015f50f30952ca76aa82885a`
+
+### Step57: Support sizeof() a typename
+
+the base idea is expand the `primary` to support a special expression
+
+replace the expression in sizeof() to a num node.
+
+```c++
+// abstract-declarator = "*"* ("(" abstract-declarator ")")? type-suffix
+// type-name = declspec abstract-declarator
+
+// primary = "(" "{" stmt+ "}" ")"
+//         | "(" expr ")"
+//         | "sizeof" "(" type-name ")"
+//         | "sizeof" unary
+//         | ident func-args?
+//         | str
+//         | num
+```
+
