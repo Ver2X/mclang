@@ -30,7 +30,7 @@ node * create(op, left, right)
 
 	// here save instruction to a instruction list,array, generate linear ir
 	// temp generate llvm ir, then use clang to compile it
-
+	
 	return *rt;
 }
 
@@ -1855,3 +1855,39 @@ besides also couldn't be dereference.
 //          | struct-decl | union-decl
 ```
 
+`34493bd616627d0746176bbf34e80d4bd5b13698`
+
+### Step54: Support complex type declarations correctly
+
+ can now read complex type declarations such as below.
+
+  long x;
+  long int x;
+  int long x;
+  short x;
+  short int x;
+  int short x;
+  long long x;
+  long long int x;
+
+```c++
+// declspec = "void" | "char" | "short" | "int" | "long"
+//          | struct-decl | union-decl
+//
+// declspec = ("void" | "char" | "short" | "int" | "long"
+//             | struct-decl | union-decl)+
+//
+// The order of typenames in a type-specifier doesn't matter. For
+// example, `int long static` means the same as `static long int`.
+// That can also be written as `static long` because you can omit
+// `int` if `long` or `short` are specified. However, something like
+// `char int` is not a valid type specifier. We have to accept only a
+// limited combinations of the typenames.
+//
+// In this function, we count the number of occurrences of each typename
+// while keeping the "current" type object that the typenames up
+// until that point represent. When we reach a non-typename token,
+// we returns the current type object.
+```
+
+the idea is change to a big switch
