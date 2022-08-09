@@ -2033,3 +2033,8 @@ replace the expression in sizeof() to a num node.
 //         | num
 ```
 
+`588154350f1d39fac80de859b7d0b954f7632c43`
+
+### Use 32 bit registers for char, short and int
+
+change codegen()
