@@ -2038,3 +2038,7 @@ replace the expression in sizeof() to a num node.
 ### Use 32 bit registers for char, short and int
 
 change codegen()
+
+`3500d5c84ee41725df211c0fc8ac68402c6e3a51`
+
+### Add Symbol Table and function argument, but all return type is void

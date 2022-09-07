@@ -9,7 +9,9 @@
 #include <errno.h>
 #include <stdint.h>
 #include <string>
-
+#include <map>
+#include <fstream>
+#include <iostream>
 typedef struct Node Node;
 typedef struct Type Type;
 typedef struct Member Member;
@@ -227,3 +229,213 @@ Type * array_of(Type *base, int size);
 
 void codegen(Obj *prog, FILE *out);
 int align_to(int n, int align);
+
+
+
+
+typedef enum
+{
+	RTY_INT,
+	RTY_SHORT,
+	RTY_LONG,
+	RTY_PTR,
+	RTY_ARRAY,
+	RTY_CHAR,
+	RTY_STRUCT,
+	RTY_UNION,
+	RTY_VOID,
+}ReturnTypeKind;
+
+
+typedef enum
+{
+	VAR_8,
+	VAR_16,
+	VAR_32,
+	VAR_64,
+	VAR_PRT,
+}VaribleKind;
+
+
+class Operand {
+public:
+	int Ival;
+	double Fval;
+	VaribleKind type;
+	std::string name;
+	Operand * next;
+	Operand()
+	{
+		next = NULL;
+	}
+
+	std::string CodeGen()
+	{
+
+		std::string s;
+		switch (type)
+		{
+			
+			case VAR_8:
+				s += "i8 ";
+				break;
+			case VAR_16:
+				s += "i16 ";
+				break;
+			case VAR_32:
+				s += "i32 ";
+				break;
+			case VAR_64:
+				s += "i64 ";
+				break;
+			case VAR_PRT:
+				s += "i32* ";
+				break;
+			default:
+				break;
+		}
+
+		s += "%";
+		s += name;
+		return s;
+	}
+
+};
+
+using Variable = Operand;
+
+class SymbolTable{
+public:
+	std::string name;
+	Variable * variables;
+	int level;
+	SymbolTable * next_level;
+	std::map<std::string, Variable *> table;
+	void insert(std::string var_name, Variable * var,int level)
+	{
+		// down to special level
+		if(auto iter = table.find(var_name) != table.end())
+		{
+			// Error, variable redefine define
+			return ;
+		}
+
+		table.insert(	make_pair(var_name, var) );
+
+	}
+
+	// use a cache save inserted varibale, when leaving function, delete
+	// it from symbol table
+	void erase(std::string var_name,int level)
+	{
+		auto iter = table.find(var_name);
+
+		if(iter != table.end())
+		{
+			table.erase(iter);
+		}
+	}
+
+	void find_var()
+	{
+
+	}
+};
+
+
+class IR {
+public:
+	int opcode;
+	Operand * left;
+	Operand * right;
+	Operand * result;
+	int align;
+};
+
+class IRFunction{
+public:
+	IRFunction()
+	{
+		argsNum = 0;
+		retTy = RTY_VOID; 
+	}
+
+
+	std::string functionName;
+	Variable * args;
+	int argsNum;
+	Variable * ret;
+	ReturnTypeKind retTy;
+
+	std::string rename(){
+		return functionName;
+	}
+	void AddArgs()
+	{
+		// when enter function, need push varibale into symbol table
+		// but when leave, destory it
+	}
+	std::string CodeGen()
+	{
+		// if body non-null
+		std::string s;
+		s += "define dso_local ";
+		switch (retTy)
+		{
+			case RTY_VOID:
+				s += "void ";
+				break;
+			case RTY_INT:
+				s += "i32 ";
+				break;
+			case RTY_CHAR:
+				s += "signext i8 ";
+				break;
+			case RTY_PTR:
+				// dump de type
+				s += "i32";
+				s+="* ";
+				break;	
+			default:
+				s += "void ";
+				break;
+		}
+		s += "@";
+		s += rename();
+		s += "(";
+		Variable * head = args;
+		//s += "argsNum is :";
+		//s += std::to_string(argsNum);
+		//s += "\n";
+		for(int i = 0; i < argsNum; i++)
+		{
+			assert(head != NULL);
+			s += head->CodeGen();
+			if(i != argsNum - 1)
+			{
+				s += ", ";
+			}
+			head = head->next;
+		}
+		s += ")";
+		return s;
+	}
+};
+
+
+class IRBuilder{
+public:
+	Variable * globalVariable;
+	IRFunction * function;
+
+	std::string CodeGen()
+	{
+		std::string s;
+		if(function != NULL)
+		{
+			s += function->CodeGen();
+		}
+		return s;
+	}
+};
+
