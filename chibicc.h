@@ -259,6 +259,7 @@ typedef enum
 
 class Operand {
 public:
+	// SSA?
 	int Ival;
 	double Fval;
 	VaribleKind type;
@@ -280,6 +281,7 @@ public:
 	// Variable * variables;
 	int level;
 	SymbolTable * symb_list;
+	SymbolTable * symb_list_back_level;
 	std::map<std::string, Variable *> table;
 	void insert(Variable * var,int level);
 	// use a cache save inserted varibale, when leaving function, delete
@@ -320,20 +322,58 @@ public:
 };
 
 
+typedef enum
+{
+	Op_ADD,  		// +
+	Op_SUB,  		// -
+	Op_MUL,  		// *
+	Op_DIV,  		// /
+	Op_EQ, 	 		// ==
+	Op_NE,   		// !=
+	Op_LT,   		// <
+	Op_LE,   		// <=
+	Op_COMMA,		// ,
+	Op_NEG,         // -, unary
+	Op_ADDR,		// &, unary
+	Op_DEREF,		// *, unary
+	Op_barnch,
+	Op_FUNCALL,		// function call
+	Op_STMT_EXPR,   // statement expression
+	Op_MEMBER,		// . (struct member access)
+}IROpKind;
+
+
+
+
+class Instruction{
+	IROpKind Op;
+	Variable * left;
+	Variable * right;
+	Variable * result;
+
+	Instruction(IROpKind Op, Variable *left, Variable * right, Variable * result)
+	{
+		this->Op = Op;
+		this->left = left;
+		this->right = right;
+		this->result = result;
+	}
+
+ };
+
+class Block{
+	int label;
+	Instruction * instructinos;
+};
+
 class IRBuilder{
 public:
 	Variable * globalVariable;
 	IRFunction * function;
 
-	std::string CodeGen()
-	{
-		std::string s;
-		if(function != NULL)
-		{
-			s += function->CodeGen();
-		}
-		return s;
-	}
+	std::string CodeGen();
+
+	void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op);
 };
 
 

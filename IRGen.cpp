@@ -14,7 +14,25 @@ static int count()
 	return count_diff_if++;
 }
 
+// for now, define as a fucntion, then change to rope data structure.
+static std::string Twine(std::string &l, std::string & r)
+{
+	return r + r;
+}
 
+
+static std::string Twine(std::string l, std::string r)
+{
+	return r + r;
+}
+
+
+static std::string next_variable_name()
+{
+	int next_variable_name_v = 0;
+	std::string name = Twine("%" , std::to_string(next_variable_name_v++));
+	return name;
+}
 
 IRBuilder InMemoryIR;
 SymbolTable symTable;
@@ -299,47 +317,200 @@ static void gen_expr_ir(Node *node, Variable * res)
 	{
 		case ND_ADD:
 			{
+				res = new Variable();
+				res->name = next_variable_name();
 				assert(node->lhs->kind == ND_VAR || node->lhs->kind == ND_NUM);
 				if((node->lhs->kind == ND_NUM) && (node->lhs->kind == ND_NUM))
 				{
 					
+					res->Ival = node->lhs->val + node->rhs->val;
 				}
-				std::string s = node->lhs->var->name;
-				Variable * l = symTable.find_var(s);
+				else
+				{
+					if(node->lhs->kind == ND_NUM)
+					{
+						std::string s = node->rhs->var->name;
+						Variable * r = symTable.find_var(s);
+						res->Ival = node->lhs->val + r->Ival;
+					}else if(node->rhs->kind == ND_NUM)
+					{
+						std::string s = node->lhs->var->name;
+						Variable * l = symTable.find_var(s);
+						res->Ival = l->Ival + node->rhs->val;
+					}else{
+						std::string s = node->lhs->var->name;
+						Variable * l = symTable.find_var(s);
+						std::string s2 = node->rhs->var->name;
+						Variable * r = symTable.find_var(s2);
+						res->Ival = l->Ival + r->Ival;
+					}
+				}
+				symTable.insert(res, 0);
 				return;
 			}
 			//println("  add %s, %s", di, ax);
 			
 		case ND_SUB:
-			//println("  sub %s, %s", di, ax);
-			return;
+			{
+				res = new Variable();
+				res->name = next_variable_name();
+				assert(node->lhs->kind == ND_VAR || node->lhs->kind == ND_NUM);
+				if((node->lhs->kind == ND_NUM) && (node->lhs->kind == ND_NUM))
+				{
+					res->Ival = node->lhs->val - node->rhs->val;
+				}
+				else
+				{
+					if(node->lhs->kind == ND_NUM)
+					{
+						std::string s = node->rhs->var->name;
+						Variable * r = symTable.find_var(s);
+						res->Ival = node->lhs->val - r->Ival;
+					}else if(node->rhs->kind == ND_NUM)
+					{
+						std::string s = node->lhs->var->name;
+						Variable * l = symTable.find_var(s);
+						res->Ival = l->Ival - node->rhs->val;
+					}else{
+						std::string s = node->lhs->var->name;
+						Variable * l = symTable.find_var(s);
+						std::string s2 = node->rhs->var->name;
+						Variable * r = symTable.find_var(s2);
+						res->Ival = l->Ival - r->Ival;
+					}
+				}
+				symTable.insert(res, 0);
+				return;
+			}
 		case ND_MUL:
-			//println("  imul %s, %s", di, ax);
-			return;
+			{
+				res = new Variable();
+				res->name = next_variable_name();
+				assert(node->lhs->kind == ND_VAR || node->lhs->kind == ND_NUM);
+				if((node->lhs->kind == ND_NUM) && (node->lhs->kind == ND_NUM))
+				{
+					res->Ival = node->lhs->val * node->rhs->val;
+				}
+				else
+				{
+					if(node->lhs->kind == ND_NUM)
+					{
+						std::string s = node->rhs->var->name;
+						Variable * r = symTable.find_var(s);
+						res->Ival = node->lhs->val * r->Ival;
+					}else if(node->rhs->kind == ND_NUM)
+					{
+						std::string s = node->lhs->var->name;
+						Variable * l = symTable.find_var(s);
+						res->Ival = l->Ival * node->rhs->val;
+					}else{
+						std::string s = node->lhs->var->name;
+						Variable * l = symTable.find_var(s);
+						std::string s2 = node->rhs->var->name;
+						Variable * r = symTable.find_var(s2);
+						res->Ival = l->Ival * r->Ival;
+					}
+				}
+				symTable.insert(res, 0);
+				return;
+			}
 		case ND_DIV:
-			//if(node->lhs->ty->size == 8)
-				//println("  cqo");
-			//else
-				//println("  cdq");
-			//println("idiv %s", di);
-			return;
+			{
+				res = new Variable();
+				res->name = next_variable_name();
+				assert(node->lhs->kind == ND_VAR || node->lhs->kind == ND_NUM);
+				if((node->lhs->kind == ND_NUM) && (node->lhs->kind == ND_NUM))
+				{
+					res->Ival = node->lhs->val / node->rhs->val;
+				}
+				else
+				{
+					if(node->lhs->kind == ND_NUM)
+					{
+						std::string s = node->rhs->var->name;
+						Variable * r = symTable.find_var(s);
+						res->Ival = node->lhs->val / r->Ival;
+					}else if(node->rhs->kind == ND_NUM)
+					{
+						std::string s = node->lhs->var->name;
+						Variable * l = symTable.find_var(s);
+						res->Ival = l->Ival / node->rhs->val;
+					}else{
+						std::string s = node->lhs->var->name;
+						Variable * l = symTable.find_var(s);
+						std::string s2 = node->rhs->var->name;
+						Variable * r = symTable.find_var(s2);
+						res->Ival = l->Ival / r->Ival;
+					}
+				}
+				symTable.insert(res, 0);
+				return;
+			}
 		case ND_EQ:
 		case ND_NE:
 		case ND_LT:
 		case ND_LE:
-			//println("  cmp %s, %s", di, ax);
-
-			/*
-			if(node->kind == ND_EQ)
-				println("  sete %%al");
-			else if(node->kind == ND_NE)
-				println("  setne %%al");
-			else if(node->kind == ND_LT)
-				println("  setl %%al");
-			else if(node->kind == ND_LE)
-				println("  setle %%al");
-			*/
-			// println("  movzb %%al, %%rax");
+			{
+				res = new Variable();
+				res->name = next_variable_name();
+				assert(node->lhs->kind == ND_VAR || node->lhs->kind == ND_NUM);
+				if((node->lhs->kind == ND_NUM) && (node->lhs->kind == ND_NUM))
+				{
+					if(node->kind == ND_EQ)
+						res->Ival = node->lhs->val == node->rhs->val;
+					else if(node->kind == ND_NE)
+						res->Ival = node->lhs->val != node->rhs->val;
+					else if(node->kind == ND_LT)
+						res->Ival = node->lhs->val < node->rhs->val;
+					else if(node->kind == ND_LE)
+						res->Ival = node->lhs->val <= node->rhs->val;
+				}
+				else
+				{
+					if(node->lhs->kind == ND_NUM)
+					{
+						std::string s = node->rhs->var->name;
+						Variable * r = symTable.find_var(s);
+						if(node->kind == ND_EQ)
+							res->Ival = r->Ival == node->lhs->val;
+						else if(node->kind == ND_NE)
+							res->Ival = r->Ival != node->lhs->val;
+						else if(node->kind == ND_LT)
+							res->Ival = r->Ival < node->lhs->val;
+						else if(node->kind == ND_LE)
+							res->Ival = r->Ival <= node->lhs->val;
+						
+					}else if(node->rhs->kind == ND_NUM)
+					{
+						std::string s = node->lhs->var->name;
+						Variable * l = symTable.find_var(s);
+						if(node->kind == ND_EQ)
+							res->Ival = l->Ival == node->rhs->val;
+						else if(node->kind == ND_NE)
+							res->Ival = l->Ival != node->rhs->val;
+						else if(node->kind == ND_LT)
+							res->Ival = l->Ival < node->rhs->val;
+						else if(node->kind == ND_LE)
+							res->Ival = l->Ival <= node->rhs->val;
+						
+					}else{
+						std::string s = node->lhs->var->name;
+						Variable * l = symTable.find_var(s);
+						std::string s2 = node->rhs->var->name;
+						Variable * r = symTable.find_var(s2);
+						if(node->kind == ND_EQ)
+							res->Ival = l->Ival == r->Ival;
+						else if(node->kind == ND_NE)
+							res->Ival = l->Ival != r->Ival;
+						else if(node->kind == ND_LT)
+							res->Ival = l->Ival < r->Ival;
+						else if(node->kind == ND_LE)
+							res->Ival = l->Ival <= r->Ival;
+					}
+				}
+				symTable.insert(res, 0);
+				return;
+			}
 			return;
 		default:
 			return;
