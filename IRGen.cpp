@@ -120,7 +120,7 @@ void emit_ir(Obj * prog)
 			}
 			(func->argsNum)++;
 		}
-		InMemoryIR.function = func;
+		InMemoryIR.SetFunc(func);
 		// emit code
 
 

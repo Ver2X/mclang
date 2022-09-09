@@ -360,12 +360,12 @@ typedef enum
 
 
 class Instruction{
-public:
+
 	IROpKind Op;
 	Variable * left;
 	Variable * right;
 	Variable * result;
-
+public:
 	Instruction(Variable * left, Variable * right, Variable * result, IROpKind Op)
 	{
 		this->Op = Op;
@@ -378,20 +378,30 @@ public:
  };
 
 class Block{
-public:
+
 	Block * preds;
 	Block * succes;
 	int label;
 	std::string name;
 	// may need :
 	// std::vector<Instruction *> allocas;
-	
+
 	std::vector<Instruction *> instructinos;
+public:
 	Block()
 	{
 		preds = NULL;
 		succes = NULL;
 		label = 0;
+	}
+
+	void SetName(std::string name)
+	{
+		this->name = name;
+	}
+	void SetLabel(int label)
+	{
+		this->label = label;
 	}
 	void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op);
 	void SetPred(Block *);
@@ -400,11 +410,13 @@ public:
 };
 
 class IRBuilder{
-public:
+
 	Variable * globalVariable;
 	IRFunction * function;
 	// order by label
 	std::map<int, Block *> blocks;
+public:
+	void SetFunc(IRFunction * func) { function = func; }
 	std::string CodeGen();
 	// using label to index Blocks
 	void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label, std::string name);

@@ -164,8 +164,8 @@ void IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IRO
 	if(blocks.count(label) == 0)
 	{
 		Block * block = new Block();
-		block->name = name;
-		block->label = label;
+		block->SetName(name);
+		block->SetLabel(label);
 		blocks.insert(std::make_pair(label, block));
 	}
 	else
