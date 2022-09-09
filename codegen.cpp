@@ -2,14 +2,12 @@
 
 static void gen_expr(Node *node);
 static void gen_stmt(Node *node);
-static void gen_stmt_ir(Node * node);
-static void gen_expr_ir(Node *node);
-static void gen_func_arg_ir(Obj * var, int r, int offset, int sz);
+
 std::fstream file_out;
 
 
 static FILE * output_file;
-static int depth;
+int depth;
 static const char * argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
 static const char * argreg16[] = {"%di", "%si", "%dx", "%cx", "%r8w", "%r9w"};
 static const char * argreg32[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
@@ -25,11 +23,13 @@ static void println(const char *fmt, ...) {
 	fprintf(output_file, "\n");
 }
 
+
+int count_diff_if = 1;
 // use to identify diff "if" statements
-static int count(void)
+static int count()
 {
-	static int i = 1;
-	return i++;
+	
+	return count_diff_if++;
 }
 
 
@@ -78,6 +78,8 @@ static void gen_addr(Node *node)
 		case ND_MEMBER:
 			gen_addr(node->lhs);
 			println("  add $%d, %%rax", node->member->offset);
+			return;
+		default:
 			return;
 	}
 
@@ -188,6 +190,8 @@ static void gen_expr(Node *node)
 				println("  call %s", node->funcname);
 				return;
 			}
+		default:
+			return;
 	}
 
 	// there must deal rhs first
@@ -242,6 +246,8 @@ static void gen_expr(Node *node)
 				println("  setle %%al");
 			
 			println("  movzb %%al, %%rax");
+			return;
+		default:
 			return;
 	}
 
@@ -300,7 +306,9 @@ static void gen_stmt(Node * node)
 			return;
 		case ND_EXPR_STMT:
 			gen_expr(node->lhs);
-		return;
+			return;
+		default:
+			return;
 	}
 
 	error("invalid statement");
@@ -411,273 +419,11 @@ static void emit_text(Obj * prog)
 
 
 
-IRBuilder InMemoryIR;
-SymbolTable symTable;
-// emit IR
-static void emit_ir(Obj * prog)
-{
-	
-
-	for(Obj * fn = prog; fn; fn = fn->next)
-	{
-		if(!fn->is_function || !fn->is_definition)
-			continue;
-		IRFunction * func = new IRFunction();
-		func->functionName = fn->name;
-
-		// prologue
-		//println("  push %%rbp");
-		//println("  mov %%rsp, %%rbp");
-		//println("  sub $%d, %%rsp", fn->stack_size);
- 
-		// save passed-by-register arguments to the stack
-		//int i = 0;
-		Variable * head;
-		for(Obj * var = fn->params; var; var = var->next)
-		{
-			//file_out << "func args increase 1" << std::endl;
-			
-			
-			Variable * arg_variable = new Variable();
-			switch(var->ty->size)
-			{
-				
-				case 1:
-					// var->name
-					arg_variable->type = VAR_8;
-					arg_variable->name = std::string(var->name);
-					symTable.insert(arg_variable->name, arg_variable, 0);
-					break;
-				case 2:
-					arg_variable->type = VAR_16;
-					arg_variable->name = std::string(var->name);
-					symTable.insert(arg_variable->name, arg_variable, 0);
-					break;
-				case 4:
-					arg_variable->type = VAR_32;
-					arg_variable->name = std::string(var->name);
-					symTable.insert(arg_variable->name, arg_variable, 0);
-					break;
-				case 8:
-					arg_variable->type = VAR_64;
-					arg_variable->name = std::string(var->name);
-					symTable.insert(arg_variable->name, arg_variable, 0);
-					break;
-				default:
-					break;
-			} // end switch
-			if(func->argsNum == 0)
-			{
-				func->args = arg_variable;
-				head = func->args;
-			}
-			else
-			{
-				head->next = arg_variable;
-				head = head->next;
-			}
-			(func->argsNum)++;
-		}
-		InMemoryIR.function = func;
-		// emit code
-		gen_stmt_ir(fn->body);
-		assert(depth == 0);
-
-		// Epilogue
-		//println(".L.return.%s:", fn->name);
-		//println("  mov %%rbp, %%rsp");
-		//println("  pop %%rbp");
-		//println("  ret");
-		file_out << InMemoryIR.CodeGen() << std::endl;
-	}
-	
-}
-
-
-
-static void gen_stmt_ir(Node * node)
-{
-	//println("  .loc 1 %d", node->tok->line_no);
-	switch(node->kind )
-	{	
-		case ND_IF:
-		{
-			int c = count();
-			gen_expr_ir(node->cond);
-			//println("  cmp $0, %%rax");
-			//println("  je .L.else.%d", c);
-			gen_stmt_ir(node->then);
-			//println("  jmp .L.end.%d", c);
-			//println(".L.else.%d:", c);
-			if(node->els)
-				gen_stmt_ir(node->els);
-			//println(".L.end.%d:", c);
-			return; 
-		}
-		case ND_FOR: // or while
-		{
-			int c = count();
-
-			// for handle while
-			if(node->init)
-				gen_stmt_ir(node->init);
-			//println(".L.begin.%d:", c);
-			if(node->cond)
-			{
-				gen_expr_ir(node->cond);
-				//println("  cmp $0, %%rax");
-				//println("  je .L.end.%d", c);
-			}
-			gen_stmt_ir(node->then);
-
-			if(node->inc)
-				gen_expr_ir(node->inc);
-
-			//println("  jmp .L.begin.%d", c);
-			//println(".L.end.%d:", c);
-			return; 
-		}
-		case ND_BLOCK:
-			for(Node * n = node->body; n; n = n->next)
-				gen_stmt_ir(n);
-			return;
-		case ND_RETURN:
-			gen_expr_ir(node->lhs);
-			//println("  jmp .L.return.%s", current_fn->name);
-			return;
-		case ND_EXPR_STMT:
-			gen_expr_ir(node->lhs);
-		return;
-	}
-
-	error("invalid statement");
-}
-
-
-// stack machine
-static void gen_expr_ir(Node *node)
-{
-
-	//println("  .loc 1 %d", node->tok->line_no);
-	switch(node->kind)
-	{
-		case ND_NUM:
-			//println("  mov $%ld, %%rax", node->val);
-			return ;
-		case ND_NEG:
-			gen_expr_ir(node->lhs);
-			//println("  neg %%rax");
-			return ;
-		case ND_VAR:
-		case ND_MEMBER:
-			//gen_addr(node);
-			//load(node->ty);
-			return ;
-		case ND_DEREF:
-			gen_expr_ir(node->lhs);
-			//load(node->ty);
-			return;
-		case ND_ADDR:
-			//gen_addr(node->lhs);
-			return;
-		case ND_ASSIGN:
-			//gen_addr(node->lhs);
-			//push();
-			gen_expr_ir(node->rhs);
-			//store(node->ty);
-			return;
-		case ND_STMT_EXPR:
-			for(Node * n = node->body; n; n = n->next)
-			{
-				gen_stmt_ir(n);
-			}
-			return;
-		case ND_COMMA:
-			gen_expr_ir(node->lhs);
-			gen_expr_ir(node->rhs);
-			return;
-		case ND_FUNCALL:
-			{
-				int nargs = 0;
-				for(Node *arg = node->args; arg; arg = arg->next)
-				{
-					gen_expr_ir(arg);
-					//push();
-					nargs++;
-				}
-
-				//for(int i = nargs - 1; i >= 0; i--)
-				//	pop(argreg64[i]);
-
-				//println("  mov $0, %%rax");
-				//println("  call %s", node->funcname);
-				return;
-			}
-	}
-
-	// there must deal rhs first
-	gen_expr_ir(node->rhs);
-	//push();
-	gen_expr_ir(node->lhs);
-	//pop("%rdi");
-
-	const char * ax, *di;
-	if(node->lhs->ty->kind == TY_LONG || node->lhs->ty->base)
-	{
-		//ax = "%rax";
-		//di = "%rdi";
-	}
-	else
-	{
-		//ax = "%eax";
-		//di = "%edi";
-	}
-
-	switch(node->kind)
-	{
-		case ND_ADD:
-			//println("  add %s, %s", di, ax);
-			return;
-		case ND_SUB:
-			//println("  sub %s, %s", di, ax);
-			return;
-		case ND_MUL:
-			//println("  imul %s, %s", di, ax);
-			return;
-		case ND_DIV:
-			//if(node->lhs->ty->size == 8)
-				//println("  cqo");
-			//else
-				//println("  cdq");
-			//println("idiv %s", di);
-			return;
-		case ND_EQ:
-		case ND_NE:
-		case ND_LT:
-		case ND_LE:
-			//println("  cmp %s, %s", di, ax);
-
-			/*
-			if(node->kind == ND_EQ)
-				println("  sete %%al");
-			else if(node->kind == ND_NE)
-				println("  setne %%al");
-			else if(node->kind == ND_LT)
-				println("  setl %%al");
-			else if(node->kind == ND_LE)
-				println("  setle %%al");
-			*/
-			// println("  movzb %%al, %%rax");
-			return;
-	}
-
-	error("invalid expression");
-}
 
 
 void codegen(Obj * prog, FILE *out)
 {
-	file_out.open("/home/zyy/files/GitHub/chibicc/tmp.ll", std::ios_base::app);
+	file_out.open("./tmp.ll", std::ios_base::app);
 	output_file = out;
 	// first setup offset
 	assign_lvar_offsets(prog);
