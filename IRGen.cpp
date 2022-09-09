@@ -1,7 +1,7 @@
 #include "chibicc.h"
 
-static void gen_stmt_ir(Node * node);
-static void gen_expr_ir(Node *node, Variable *);
+static void gen_stmt_ir(Node * node, SymbolTable *);
+static void gen_expr_ir(Node *node, Variable *, SymbolTable *);
 static void gen_func_arg_ir(Obj * var, int r, int offset, int sz);
 extern std::fstream file_out;
 extern int depth;
@@ -27,10 +27,15 @@ static std::string Twine(std::string l, std::string r)
 }
 
 
+static int next_variable_name_number()
+{
+	static int next_variable_name_v = 0;
+	return next_variable_name_v++;
+}
+
 static std::string next_variable_name()
 {
-	int next_variable_name_v = 0;
-	std::string name = Twine("%" , std::to_string(next_variable_name_v++));
+	std::string name = Twine("%" , std::to_string(next_variable_name_number()));
 	return name;
 }
 
@@ -69,12 +74,13 @@ void emit_ir(Obj * prog)
 		// save passed-by-register arguments to the stack
 		//int i = 0;
 		Variable * head;
+		Variable * arg_variable = new Variable();
+		SymbolTable * loca_table = new SymbolTable(&symTable);
+
+		/// Cache and release variable
 		for(Obj * var = fn->params; var; var = var->next)
 		{
 			//file_out << "func args increase 1" << std::endl;
-			
-			
-			Variable * arg_variable = new Variable();
 			switch(var->ty->size)
 			{
 				
@@ -82,22 +88,22 @@ void emit_ir(Obj * prog)
 					// var->name
 					arg_variable->type = VAR_8;
 					arg_variable->name = std::string(var->name);
-					symTable.insert(arg_variable, 0);
+					loca_table->insert(arg_variable, 0);
 					break;
 				case 2:
 					arg_variable->type = VAR_16;
 					arg_variable->name = std::string(var->name);
-					symTable.insert(arg_variable, 0);
+					loca_table->insert(arg_variable, 0);
 					break;
 				case 4:
 					arg_variable->type = VAR_32;
 					arg_variable->name = std::string(var->name);
-					symTable.insert(arg_variable, 0);
+					loca_table->insert(arg_variable, 0);
 					break;
 				case 8:
 					arg_variable->type = VAR_64;
 					arg_variable->name = std::string(var->name);
-					symTable.insert(arg_variable, 0);
+					loca_table->insert(arg_variable, 0);
 					break;
 				default:
 					break;
@@ -119,7 +125,7 @@ void emit_ir(Obj * prog)
 
 
 		////////// maybe need generate Block first
-		gen_stmt_ir(fn->body);
+		gen_stmt_ir(fn->body, loca_table);
 		assert(depth == 0);
 
 		// Epilogue
@@ -134,7 +140,7 @@ void emit_ir(Obj * prog)
 
 
 
-static void gen_stmt_ir(Node * node)
+static void gen_stmt_ir(Node * node, SymbolTable * table)
 {
 	//println("  .loc 1 %d", node->tok->line_no);
 	switch(node->kind )
@@ -142,14 +148,14 @@ static void gen_stmt_ir(Node * node)
 		case ND_IF:
 		{
 			int c = count();
-			gen_expr_ir(node->cond, NULL);
+			gen_expr_ir(node->cond, NULL, table);
 			//println("  cmp $0, %%rax");
 			//println("  je .L.else.%d", c);
-			gen_stmt_ir(node->then);
+			gen_stmt_ir(node->then, table);
 			//println("  jmp .L.end.%d", c);
 			//println(".L.else.%d:", c);
 			if(node->els)
-				gen_stmt_ir(node->els);
+				gen_stmt_ir(node->els, table);
 			//println(".L.end.%d:", c);
 			return; 
 		}
@@ -159,18 +165,18 @@ static void gen_stmt_ir(Node * node)
 
 			// for handle while
 			if(node->init)
-				gen_stmt_ir(node->init);
+				gen_stmt_ir(node->init, table);
 			//println(".L.begin.%d:", c);
 			if(node->cond)
 			{
-				gen_expr_ir(node->cond, NULL);
+				gen_expr_ir(node->cond, NULL, table);
 				//println("  cmp $0, %%rax");
 				//println("  je .L.end.%d", c);
 			}
-			gen_stmt_ir(node->then);
+			gen_stmt_ir(node->then, table);
 
 			if(node->inc)
-				gen_expr_ir(node->inc, NULL);
+				gen_expr_ir(node->inc, NULL, table);
 
 			//println("  jmp .L.begin.%d", c);
 			//println(".L.end.%d:", c);
@@ -178,14 +184,14 @@ static void gen_stmt_ir(Node * node)
 		}
 		case ND_BLOCK:
 			for(Node * n = node->body; n; n = n->next)
-				gen_stmt_ir(n);
+				gen_stmt_ir(n, table);
 			return;
 		case ND_RETURN:
-			gen_expr_ir(node->lhs, NULL);
+			gen_expr_ir(node->lhs, NULL, table);
 			//println("  jmp .L.return.%s", current_fn->name);
 			return;
 		case ND_EXPR_STMT:
-			gen_expr_ir(node->lhs, NULL);
+			gen_expr_ir(node->lhs, NULL, table);
 			return;
 		default:
 			return;
@@ -196,7 +202,7 @@ static void gen_stmt_ir(Node * node)
 
 
 
-static void gen_variable_ir(Node *node)
+static void gen_variable_ir(Node *node, SymbolTable * table)
 {
 	switch(node->kind)
 	{
@@ -207,7 +213,7 @@ static void gen_variable_ir(Node *node)
 				Variable * local_variable = new Variable();
 				local_variable->name = node->var->name;
 				local_variable->type = VAR_32;
-				symTable.insert(local_variable, 0);
+				table->insert(local_variable, 0);
 				//println("  lea %d(%%rbp), %%rax", node->var->offset);
 			}
 			else
@@ -217,10 +223,10 @@ static void gen_variable_ir(Node *node)
 			}
 			return;
 		case ND_DEREF:
-			gen_expr_ir(node->lhs, NULL);
+			gen_expr_ir(node->lhs, NULL, table);
 			return;
 		case ND_COMMA:
-			gen_expr_ir(node->lhs, NULL);
+			gen_expr_ir(node->lhs, NULL, table);
 			//gen_addr(node->rhs);
 			return;
 		case ND_MEMBER:
@@ -236,7 +242,7 @@ static void gen_variable_ir(Node *node)
 
 
 // stack machine
-static void gen_expr_ir(Node *node, Variable * res)
+static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 {
 
 	//println("  .loc 1 %d", node->tok->line_no);
@@ -246,7 +252,7 @@ static void gen_expr_ir(Node *node, Variable * res)
 			//println("  mov $%ld, %%rax", node->val);
 			return ;
 		case ND_NEG:
-			gen_expr_ir(node->lhs, NULL);
+			gen_expr_ir(node->lhs, NULL, table);
 			//println("  neg %%rax");
 			return ;
 		case ND_VAR:
@@ -255,34 +261,34 @@ static void gen_expr_ir(Node *node, Variable * res)
 			//load(node->ty);
 			return ;
 		case ND_DEREF:
-			gen_expr_ir(node->lhs, NULL);
+			gen_expr_ir(node->lhs, NULL, table);
 			//load(node->ty);
 			return;
 		case ND_ADDR:
 			//gen_addr(node->lhs);
 			return;
 		case ND_ASSIGN:
-			gen_variable_ir(node->lhs);
+			gen_variable_ir(node->lhs, table);
 			//push();
-			gen_expr_ir(node->rhs, NULL);
+			gen_expr_ir(node->rhs, NULL, table);
 			//store(node->ty);
 			return;
 		case ND_STMT_EXPR:
 			for(Node * n = node->body; n; n = n->next)
 			{
-				gen_stmt_ir(n);
+				gen_stmt_ir(n, table);
 			}
 			return;
 		case ND_COMMA:
-			gen_expr_ir(node->lhs, NULL);
-			gen_expr_ir(node->rhs, NULL);
+			gen_expr_ir(node->lhs, NULL, table);
+			gen_expr_ir(node->rhs, NULL, table);
 			return;
 		case ND_FUNCALL:
 			{
 				int nargs = 0;
 				for(Node *arg = node->args; arg; arg = arg->next)
 				{
-					gen_expr_ir(arg, NULL);
+					gen_expr_ir(arg, NULL, table);
 					//push();
 					nargs++;
 				}
@@ -299,9 +305,9 @@ static void gen_expr_ir(Node *node, Variable * res)
 	}
 
 	// there must deal rhs first
-	gen_expr_ir(node->rhs, NULL);
+	gen_expr_ir(node->rhs, NULL, table);
 	//push();
-	gen_expr_ir(node->lhs, NULL);
+	gen_expr_ir(node->lhs, NULL, table);
 	//pop("%rdi");
 
 	const char * ax, *di;
@@ -333,22 +339,22 @@ static void gen_expr_ir(Node *node, Variable * res)
 					if(node->lhs->kind == ND_NUM)
 					{
 						std::string s = node->rhs->var->name;
-						Variable * r = symTable.find_var(s);
+						Variable * r = table->find_var(s);
 						res->Ival = node->lhs->val + r->Ival;
 					}else if(node->rhs->kind == ND_NUM)
 					{
 						std::string s = node->lhs->var->name;
-						Variable * l = symTable.find_var(s);
+						Variable * l = table->find_var(s);
 						res->Ival = l->Ival + node->rhs->val;
 					}else{
 						std::string s = node->lhs->var->name;
-						Variable * l = symTable.find_var(s);
+						Variable * l = table->find_var(s);
 						std::string s2 = node->rhs->var->name;
-						Variable * r = symTable.find_var(s2);
+						Variable * r = table->find_var(s2);
 						res->Ival = l->Ival + r->Ival;
 					}
 				}
-				symTable.insert(res, 0);
+				table->insert(res, 0);
 				return;
 			}
 			//println("  add %s, %s", di, ax);
@@ -367,22 +373,22 @@ static void gen_expr_ir(Node *node, Variable * res)
 					if(node->lhs->kind == ND_NUM)
 					{
 						std::string s = node->rhs->var->name;
-						Variable * r = symTable.find_var(s);
+						Variable * r = table->find_var(s);
 						res->Ival = node->lhs->val - r->Ival;
 					}else if(node->rhs->kind == ND_NUM)
 					{
 						std::string s = node->lhs->var->name;
-						Variable * l = symTable.find_var(s);
+						Variable * l = table->find_var(s);
 						res->Ival = l->Ival - node->rhs->val;
 					}else{
 						std::string s = node->lhs->var->name;
-						Variable * l = symTable.find_var(s);
+						Variable * l = table->find_var(s);
 						std::string s2 = node->rhs->var->name;
-						Variable * r = symTable.find_var(s2);
+						Variable * r = table->find_var(s2);
 						res->Ival = l->Ival - r->Ival;
 					}
 				}
-				symTable.insert(res, 0);
+				table->insert(res, 0);
 				return;
 			}
 		case ND_MUL:
@@ -399,22 +405,22 @@ static void gen_expr_ir(Node *node, Variable * res)
 					if(node->lhs->kind == ND_NUM)
 					{
 						std::string s = node->rhs->var->name;
-						Variable * r = symTable.find_var(s);
+						Variable * r = table->find_var(s);
 						res->Ival = node->lhs->val * r->Ival;
 					}else if(node->rhs->kind == ND_NUM)
 					{
 						std::string s = node->lhs->var->name;
-						Variable * l = symTable.find_var(s);
+						Variable * l = table->find_var(s);
 						res->Ival = l->Ival * node->rhs->val;
 					}else{
 						std::string s = node->lhs->var->name;
-						Variable * l = symTable.find_var(s);
+						Variable * l = table->find_var(s);
 						std::string s2 = node->rhs->var->name;
-						Variable * r = symTable.find_var(s2);
+						Variable * r = table->find_var(s2);
 						res->Ival = l->Ival * r->Ival;
 					}
 				}
-				symTable.insert(res, 0);
+				table->insert(res, 0);
 				return;
 			}
 		case ND_DIV:
@@ -431,22 +437,22 @@ static void gen_expr_ir(Node *node, Variable * res)
 					if(node->lhs->kind == ND_NUM)
 					{
 						std::string s = node->rhs->var->name;
-						Variable * r = symTable.find_var(s);
+						Variable * r = table->find_var(s);
 						res->Ival = node->lhs->val / r->Ival;
 					}else if(node->rhs->kind == ND_NUM)
 					{
 						std::string s = node->lhs->var->name;
-						Variable * l = symTable.find_var(s);
+						Variable * l = table->find_var(s);
 						res->Ival = l->Ival / node->rhs->val;
 					}else{
 						std::string s = node->lhs->var->name;
-						Variable * l = symTable.find_var(s);
+						Variable * l = table->find_var(s);
 						std::string s2 = node->rhs->var->name;
-						Variable * r = symTable.find_var(s2);
+						Variable * r = table->find_var(s2);
 						res->Ival = l->Ival / r->Ival;
 					}
 				}
-				symTable.insert(res, 0);
+				table->insert(res, 0);
 				return;
 			}
 		case ND_EQ:
@@ -473,7 +479,7 @@ static void gen_expr_ir(Node *node, Variable * res)
 					if(node->lhs->kind == ND_NUM)
 					{
 						std::string s = node->rhs->var->name;
-						Variable * r = symTable.find_var(s);
+						Variable * r = table->find_var(s);
 						if(node->kind == ND_EQ)
 							res->Ival = r->Ival == node->lhs->val;
 						else if(node->kind == ND_NE)
@@ -486,7 +492,7 @@ static void gen_expr_ir(Node *node, Variable * res)
 					}else if(node->rhs->kind == ND_NUM)
 					{
 						std::string s = node->lhs->var->name;
-						Variable * l = symTable.find_var(s);
+						Variable * l = table->find_var(s);
 						if(node->kind == ND_EQ)
 							res->Ival = l->Ival == node->rhs->val;
 						else if(node->kind == ND_NE)
@@ -498,9 +504,9 @@ static void gen_expr_ir(Node *node, Variable * res)
 						
 					}else{
 						std::string s = node->lhs->var->name;
-						Variable * l = symTable.find_var(s);
+						Variable * l = table->find_var(s);
 						std::string s2 = node->rhs->var->name;
-						Variable * r = symTable.find_var(s2);
+						Variable * r = table->find_var(s2);
 						if(node->kind == ND_EQ)
 							res->Ival = l->Ival == r->Ival;
 						else if(node->kind == ND_NE)
@@ -511,7 +517,7 @@ static void gen_expr_ir(Node *node, Variable * res)
 							res->Ival = l->Ival <= r->Ival;
 					}
 				}
-				symTable.insert(res, 0);
+				table->insert(res, 0);
 				return;
 			}
 			return;

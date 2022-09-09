@@ -31,7 +31,36 @@ std::string Operand::CodeGen()
 	return s;
 }
 
+std::string Instruction::CodeGen()
+{
+	std::string s;
+	s += "	" + result->name + " = ";
+	switch(Op)
+	{
+		case Op_ADD:
+			s += "add ";
+			break;
+		case Op_SUB:
+			s += "sub ";
+		case Op_MUL:
+			s += "mul ";
+		default:
+			break;
+	}
+	s += left->name + ", " + right->name + "\n";
+	return s;
+}
 
+
+std::string Block::CodeGen()
+{
+	std::string s = name + ":\n";
+	for(const auto & ins : instructinos)
+	{
+		s += ins->CodeGen();
+	}
+	return s;
+}
 
 
 void SymbolTable::insert(Variable * var,int level)
@@ -121,11 +150,28 @@ void IRFunction::AddArgs()
 }
 
 
-
-
-void IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label)
+// fix me: alloca need insert at font
+void Block::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op)
 {
-	
+	Instruction * inst = new Instruction(left, right, result, Op);
+	instructinos.push_back(inst);
+}
+
+
+
+void IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label, std::string name)
+{
+	if(blocks.count(label) == 0)
+	{
+		Block * block = new Block();
+		block->name = name;
+		block->label = label;
+		blocks.insert(std::make_pair(label, block));
+	}
+	else
+	{
+		blocks[label]->Insert(left, right, result, Op);
+	}
 }
 
 
@@ -135,6 +181,10 @@ std::string IRBuilder::CodeGen()
 	if(function != NULL)
 	{
 		s += function->CodeGen();
+	}
+	for(const auto & blk: blocks)
+	{
+		s += blk.second->CodeGen();
 	}
 	return s;
 }

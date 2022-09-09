@@ -12,6 +12,8 @@
 #include <map>
 #include <fstream>
 #include <iostream>
+#include <vector>
+#include <unordered_map>
 typedef struct Node Node;
 typedef struct Type Type;
 typedef struct Member Member;
@@ -282,7 +284,19 @@ public:
 	int level;
 	SymbolTable * symb_list;
 	SymbolTable * symb_list_back_level;
-	std::map<std::string, Variable *> table;
+	std::map<std::string, Variable *> table; // global
+
+	SymbolTable()
+	{
+
+	}
+
+	SymbolTable(SymbolTable * fa)
+	{
+		symb_list_back_level = fa;
+		symb_list = new SymbolTable();
+	}
+
 	void insert(Variable * var,int level);
 	// use a cache save inserted varibale, when leaving function, delete
 	// it from symbol table
@@ -346,6 +360,7 @@ typedef enum
 
 
 class Instruction{
+public:
 	IROpKind Op;
 	Variable * left;
 	Variable * right;
@@ -359,22 +374,40 @@ class Instruction{
 		this->result = result;
 	}
 
+	std::string CodeGen();
  };
 
 class Block{
+public:
+	Block * preds;
+	Block * succes;
 	int label;
-	Instruction * instructinos;
+	std::string name;
+	// may need :
+	// std::vector<Instruction *> allocas;
+	
+	std::vector<Instruction *> instructinos;
+	Block()
+	{
+		preds = NULL;
+		succes = NULL;
+		label = 0;
+	}
 	void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op);
+	void SetPred(Block *);
+	void SetSucc(Block *);
+	std::string CodeGen();
 };
 
 class IRBuilder{
 public:
 	Variable * globalVariable;
 	IRFunction * function;
-	Block * blocks;
+	// order by label
+	std::map<int, Block *> blocks;
 	std::string CodeGen();
-
-	void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label);
+	// using label to index Blocks
+	void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label, std::string name);
 };
 
 
