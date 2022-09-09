@@ -123,9 +123,9 @@ void IRFunction::AddArgs()
 
 
 
-void IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op)
+void IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label)
 {
-
+	
 }
 
 

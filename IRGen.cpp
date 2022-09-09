@@ -116,6 +116,9 @@ void emit_ir(Obj * prog)
 		}
 		InMemoryIR.function = func;
 		// emit code
+
+
+		////////// maybe need generate Block first
 		gen_stmt_ir(fn->body);
 		assert(depth == 0);
 

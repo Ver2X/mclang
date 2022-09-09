@@ -351,7 +351,7 @@ class Instruction{
 	Variable * right;
 	Variable * result;
 
-	Instruction(IROpKind Op, Variable *left, Variable * right, Variable * result)
+	Instruction(Variable * left, Variable * right, Variable * result, IROpKind Op)
 	{
 		this->Op = Op;
 		this->left = left;
@@ -364,16 +364,17 @@ class Instruction{
 class Block{
 	int label;
 	Instruction * instructinos;
+	void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op);
 };
 
 class IRBuilder{
 public:
 	Variable * globalVariable;
 	IRFunction * function;
-
+	Block * blocks;
 	std::string CodeGen();
 
-	void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op);
+	void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label);
 };
 
 
