@@ -38,10 +38,10 @@ std::string Instruction::CodeGen()
 	switch(Op)
 	{
 		case Op_Alloca:
-			s += " %" + result->name + " = " + "alloca i32 " + ", align " + std::to_string(result->align) + "\n";
+			s += "  %" + result->name + " = " + "alloca i32 " + ", align " + std::to_string(result->align) + "\n";
 			break;
 		case Op_ADD:
-			s += " " + result->name + " = " + "add ";
+			s += "  " + result->name + " = " + "add ";
 			if(left->isConst)
 				s += left->name;
 			else
@@ -54,7 +54,7 @@ std::string Instruction::CodeGen()
 			s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case Op_SUB:
-			s += " " + result->name + " = " + "sub ";
+			s += "  " + result->name + " = " + "sub ";
 			if(left->isConst)
 				s += left->name;
 			else
@@ -67,7 +67,7 @@ std::string Instruction::CodeGen()
 			s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case Op_MUL:
-			s += " " + result->name + " = " + "mul ";
+			s += "  " + result->name + " = " + "mul ";
 			if(left->isConst)
 				s += left->name;
 			else
@@ -80,7 +80,7 @@ std::string Instruction::CodeGen()
 			s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case Op_DIV:
-			s += " " + result->name + " = " + "div ";
+			s += "  " + result->name + " = " + "sdiv ";
 			if(left->isConst)
 				s += left->name;
 			else
@@ -102,7 +102,7 @@ std::string Instruction::CodeGen()
 std::string Block::CodeGen()
 {
 	std::string s;
-	s += name + ":\n";
+	// s += name + ":\n";
 	for(const auto & ins : instructinos)
 	{
 		s += ins->CodeGen();
@@ -257,7 +257,7 @@ std::string IRBuilder::CodeGen()
 	{
 		s += function->CodeGen();
 	}
-	s += "\n{\n";
+	s += "{\n";
 	for(const auto & blk: blocks)
 	{
 		// *blk.second;

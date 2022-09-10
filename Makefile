@@ -1,4 +1,4 @@
-CFLAGS=-std=c++20 -g -fno-common
+CFLAGS=-std=c17 -g -fno-common
 CPPFLAGS=-std=c++17 -g -fno-common
 
 GCC_CXXFLAGS = -DMESSAGE='"Compiled with GCC"'

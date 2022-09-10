@@ -1,7 +1,7 @@
 #include "chibicc.h"
 
 static void gen_stmt_ir(Node * node, SymbolTable *);
-static void gen_expr_ir(Node *node, Variable *, SymbolTable *);
+static void gen_expr_ir(Node *node, Variable **, SymbolTable *);
 static void gen_func_arg_ir(Obj * var, int r, int offset, int sz);
 extern std::fstream file_out;
 extern int depth;
@@ -74,14 +74,15 @@ void emit_ir(Obj * prog)
  		}
 		// save passed-by-register arguments to the stack
 		//int i = 0;
-		Variable * head;
-		Variable * arg_variable = new Variable();
+		Variable * head = NULL;
+		Variable * arg_variable;
 		SymbolTable * loca_table = new SymbolTable(&symTable);
 
 		/// Cache and release variable
 		for(Obj * var = fn->params; var; var = var->next)
 		{
 			//file_out << "func args increase 1" << std::endl;
+			arg_variable = new Variable();
 			next_variable_name_number();
 			switch(var->ty->size)
 			{
@@ -120,16 +121,22 @@ void emit_ir(Obj * prog)
 			} // end switch
 			if(func->argsNum == 0)
 			{
-				func->args = arg_variable;
-				head = func->args;
+				if(arg_variable != NULL){
+					func->args = arg_variable;
+					head = func->args;
+				}
+				
 			}
 			else
 			{
-				head->next = arg_variable;
-				head = head->next;
+				if(head != NULL){
+					head->next = arg_variable;
+					head = head->next;
+				}
 			}
 			(func->argsNum)++;
 		}
+
 		InMemoryIR.SetFunc(func);
 		// emit code
 
@@ -159,7 +166,8 @@ static void gen_stmt_ir(Node * node, SymbolTable * table)
 		case ND_IF:
 		{
 			int c = count();
-			gen_expr_ir(node->cond, NULL, table);
+			Variable * res;
+			gen_expr_ir(node->cond, &res, table);
 			//println("  cmp $0, %%rax");
 			//println("  je .L.else.%d", c);
 			gen_stmt_ir(node->then, table);
@@ -180,14 +188,17 @@ static void gen_stmt_ir(Node * node, SymbolTable * table)
 			//println(".L.begin.%d:", c);
 			if(node->cond)
 			{
-				gen_expr_ir(node->cond, NULL, table);
+				Variable * res;
+				gen_expr_ir(node->cond, &res, table);
 				//println("  cmp $0, %%rax");
 				//println("  je .L.end.%d", c);
 			}
 			gen_stmt_ir(node->then, table);
 
-			if(node->inc)
-				gen_expr_ir(node->inc, NULL, table);
+			if(node->inc){
+				Variable * res;
+				gen_expr_ir(node->inc, &res, table);
+			}
 
 			//println("  jmp .L.begin.%d", c);
 			//println(".L.end.%d:", c);
@@ -204,13 +215,19 @@ static void gen_stmt_ir(Node * node, SymbolTable * table)
 			return;
 		}
 		case ND_RETURN:
-			gen_expr_ir(node->lhs, NULL, table);
+		{
+			Variable * res;
+			gen_expr_ir(node->lhs, &res, table);
 			//println("  jmp .L.return.%s", current_fn->name);
 			return;
+		}
 		case ND_EXPR_STMT:
+		{
 			//file_out << "arrive three 8" << std::endl;
-			gen_expr_ir(node->lhs, NULL, table);
+			Variable * res = new Variable();
+			gen_expr_ir(node->lhs, &res, table);
 			return;
+		}
 		default:
 			return;
 	}
@@ -220,7 +237,7 @@ static void gen_stmt_ir(Node * node, SymbolTable * table)
 
 
 
-static void gen_variable_ir(Node *node, SymbolTable * table)
+static Variable * gen_variable_ir(Node *node, SymbolTable * table)
 {
 	switch(node->kind)
 	{
@@ -233,6 +250,7 @@ static void gen_variable_ir(Node *node, SymbolTable * table)
 				local_variable->type = VAR_32;
 				if(table->insert(local_variable, 0))
 					InMemoryIR.Insert(NULL, NULL, local_variable, Op_Alloca);
+				return local_variable;
 				//file_out << "\nalloca a varibale !!!" << std::endl;
 				//println("  lea %d(%%rbp), %%rax", node->var->offset);
 			}
@@ -241,28 +259,28 @@ static void gen_variable_ir(Node *node, SymbolTable * table)
 				// Global variable
 				//println("  lea %s(%%rip), %%rax", node->var->name);
 			}
-			return;
+			return NULL;
 		case ND_DEREF:
 		{
 			Variable * res;
-			gen_expr_ir(node->lhs, res, table);
+			gen_expr_ir(node->lhs, &res, table);
 			//file_out << "arrive three 10" << std::endl;
-			return;
+			return NULL;
 		}
 		case ND_COMMA:
 		{
 			Variable * res;
-			gen_expr_ir(node->lhs, res, table);
+			gen_expr_ir(node->lhs, &res, table);
 			//file_out << "arrive three 9" << std::endl;
 			gen_variable_ir(node->rhs, table);			
-			return;
+			return NULL;
 		}
 		case ND_MEMBER:
 			gen_variable_ir(node->lhs, table);
 			//println("  add $%d, %%rax", node->member->offset);
-			return;
+			return NULL;
 		default:
-			return;
+			return NULL;
 	}
 
 	error("not an lvalue");
@@ -270,7 +288,7 @@ static void gen_variable_ir(Node *node, SymbolTable * table)
 
 
 // stack machine
-static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
+static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 {
 	//println("  .loc 1 %d", node->tok->line_no);
 	// left = ...;
@@ -298,11 +316,14 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 			gen_variable_ir(node->lhs, table);
 			return;
 		case ND_ASSIGN:
-			gen_variable_ir(node->lhs, table);
+		{
+			Variable * left = gen_variable_ir(node->lhs, table);
 			//push();
 			gen_expr_ir(node->rhs, res, table);
+			// need bind varibale at here
 			//store(node->ty);
 			return;
+		}
 		case ND_STMT_EXPR:
 			for(Node * n = node->body; n; n = n->next)
 			{
@@ -371,12 +392,12 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 					if(node->lhs != NULL && node->rhs != NULL){
 						int constVaule = node->lhs->val + node->rhs->val;
 						Variable * l, *r;
-						res = new Variable();
+						(*res) = new Variable();
 						l = new Variable(node->lhs->val);
 						r = new Variable(node->rhs->val);
-						res->name = next_variable_name();
-						InMemoryIR.Insert(l, r, res, Op_ADD);	
-						table->insert(res, 0);			
+						(*res)->name = next_variable_name();
+						InMemoryIR.Insert(l, r, (*res), Op_ADD);	
+						table->insert((*res), 0);			
 					}
 				}
 				else
@@ -389,13 +410,13 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 							std::string s = node->rhs->var->name;
 							Variable * r;
 							if(table->findVar(s, r)){
-								res = new Variable();
-								//res->Ival = node->lhs->val + r->Ival;
+								(*res) = new Variable();
+								//(*res)->Ival = node->lhs->val + r->Ival;
 								Variable * l;
 								l = new Variable(node->lhs->val);
-								res->name = next_variable_name();
-								InMemoryIR.Insert(l, r, res, Op_ADD);
-								table->insert(res, 0);
+								(*res)->name = next_variable_name();
+								InMemoryIR.Insert(l, r, (*res), Op_ADD);
+								table->insert((*res), 0);
 							}
 						}
 					}else if(node->rhs->kind == ND_NUM)
@@ -406,13 +427,13 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 							std::string s = node->lhs->var->name;
 							Variable * l;
 							if(table->findVar(s, l)){
-								res = new Variable();
-								//res->Ival = l->Ival + node->rhs->val;
+								(*res) = new Variable();
+								//(*res)->Ival = l->Ival + node->rhs->val;
 								Variable * r;
 								r = new Variable(node->rhs->val);
-								res->name = next_variable_name();
-								InMemoryIR.Insert(l, r, res, Op_ADD);
-								table->insert(res, 0);
+								(*res)->name = next_variable_name();
+								InMemoryIR.Insert(l, r, (*res), Op_ADD);
+								table->insert((*res), 0);
 							}
 						}
 					}else{
@@ -424,11 +445,11 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 							Variable * l , * r;
 							//file_out << "arrive three 1" << std::endl;
 							if(table->findVar(s, l) && table->findVar(s2, r)){
-								res = new Variable();
-								//res->Ival = l->Ival + r->Ival;
-								res->name = next_variable_name();
-								InMemoryIR.Insert(l, r, res, Op_ADD);
-								table->insert(res, 0);
+								(*res) = new Variable();
+								//(*res)->Ival = l->Ival + r->Ival;
+								(*res)->name = next_variable_name();
+								InMemoryIR.Insert(l, r, (*res), Op_ADD);
+								table->insert((*res), 0);
 							}
 						}
 					}
@@ -439,21 +460,19 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 			//println("  add %s, %s", di, ax);
 			
 		case ND_SUB:
-			{
-				res = new Variable();
-				
+			{				
 				// assert(node->lhs->kind == ND_VAR || node->lhs->kind == ND_NUM);
 				if((node->lhs->kind == ND_NUM) && (node->rhs->kind == ND_NUM))
 				{
-					if(node->lhs->var != NULL && node->rhs->var != NULL){
+					if(node->lhs != NULL && node->rhs != NULL){
 						int constVaule = node->lhs->val - node->rhs->val;
 						Variable * l, *r;
-						res = new Variable();
+						(*res) = new Variable();
 						l = new Variable(node->lhs->val);
 						r = new Variable(node->rhs->val);
-						res->name = next_variable_name();
-						InMemoryIR.Insert(l, r, res, Op_SUB);	
-						table->insert(res, 0);				
+						(*res)->name = next_variable_name();
+						InMemoryIR.Insert(l, r, (*res), Op_SUB);	
+						table->insert((*res), 0);				
 					}
 				}
 				else
@@ -464,13 +483,13 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 							std::string s = node->rhs->var->name;
 							Variable * r;
 							if(table->findVar(s, r)){
-								res = new Variable();
-								//res->Ival = node->lhs->val - r->Ival;
+								(*res) = new Variable();
+								//(*res)->Ival = node->lhs->val - r->Ival;
 								Variable * l;
 								l = new Variable(node->lhs->val);
-								res->name = next_variable_name();
-								InMemoryIR.Insert(l, r, res, Op_SUB);
-								table->insert(res, 0);
+								(*res)->name = next_variable_name();
+								InMemoryIR.Insert(l, r, (*res), Op_SUB);
+								table->insert((*res), 0);
 							}
 						}
 					}else if(node->rhs->kind == ND_NUM)
@@ -479,13 +498,13 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 							std::string s = node->lhs->var->name;
 							Variable * l;
 							if(table->findVar(s, l)){
-								res = new Variable();
-								//res->Ival = l->Ival - node->rhs->val;
+								(*res) = new Variable();
+								//(*res)->Ival = l->Ival - node->rhs->val;
 								Variable * r;
 								r = new Variable(node->rhs->val);
-								res->name = next_variable_name();
-								InMemoryIR.Insert(l, r, res, Op_SUB);
-								table->insert(res, 0);
+								(*res)->name = next_variable_name();
+								InMemoryIR.Insert(l, r, (*res), Op_SUB);
+								table->insert((*res), 0);
 							}
 						}
 					}else{
@@ -494,11 +513,11 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 							std::string s2 = node->rhs->var->name;
 							Variable * l, *r;
 							if(table->findVar(s, l) && table->findVar(s2, r)){
-								res = new Variable();
-								//res->Ival = l->Ival - r->Ival;
-								res->name = next_variable_name();
-								InMemoryIR.Insert(l, r, res, Op_SUB);
-								table->insert(res, 0);
+								(*res) = new Variable();
+								//(*res)->Ival = l->Ival - r->Ival;
+								(*res)->name = next_variable_name();
+								InMemoryIR.Insert(l, r, (*res), Op_SUB);
+								table->insert((*res), 0);
 							}
 						}
 					}
@@ -507,22 +526,20 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 				return;
 			}
 		case ND_MUL:
-			{
-				res = new Variable();
-				
+			{				
 				// assert(node->lhs->kind == ND_VAR || node->lhs->kind == ND_NUM);
 				if((node->lhs->kind == ND_NUM) && (node->rhs->kind == ND_NUM))
 				{
-					if(node->lhs->var != NULL && node->rhs->var != NULL){
-						res = new Variable();
-						//res->Ival = node->lhs->val * node->rhs->val;
+					if(node->lhs != NULL && node->rhs != NULL){
+						(*res) = new Variable();
+						//(*res)->Ival = node->lhs->val * node->rhs->val;
 						int constVaule = node->lhs->val * node->rhs->val;
 						Variable * l, *r;
 						l = new Variable(node->lhs->val);
 						r = new Variable(node->rhs->val);
-						res->name = next_variable_name();
-						InMemoryIR.Insert(l, r, res, Op_MUL);
-						table->insert(res, 0);
+						(*res)->name = next_variable_name();
+						InMemoryIR.Insert(l, r, (*res), Op_MUL);
+						table->insert((*res), 0);
 					}
 				}
 				else
@@ -533,13 +550,13 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 							std::string s = node->rhs->var->name;
 							Variable * r;
 							if(table->findVar(s, r)){
-								res = new Variable();
-								//res->Ival = node->lhs->val * r->Ival;
+								(*res) = new Variable();
+								//(*res)->Ival = node->lhs->val * r->Ival;
 								Variable * l;
 								l = new Variable(node->lhs->val);
-								res->name = next_variable_name();
-								InMemoryIR.Insert(l, r, res, Op_MUL);
-								table->insert(res, 0);
+								(*res)->name = next_variable_name();
+								InMemoryIR.Insert(l, r, (*res), Op_MUL);
+								table->insert((*res), 0);
 							}
 						}
 					}else if(node->rhs->kind == ND_NUM)
@@ -548,13 +565,13 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 							std::string s = node->lhs->var->name;
 							Variable * l;
 							if(table->findVar(s, l)){
-								res = new Variable();
-								//res->Ival = l->Ival * node->rhs->val;
+								(*res) = new Variable();
+								//(*res)->Ival = l->Ival * node->rhs->val;
 								Variable * r;
 								r = new Variable(node->rhs->val);
-								res->name = next_variable_name();
-								InMemoryIR.Insert(l, r, res, Op_MUL);
-								table->insert(res, 0);
+								(*res)->name = next_variable_name();
+								InMemoryIR.Insert(l, r, (*res), Op_MUL);
+								table->insert((*res), 0);
 							}
 						}
 					}else{
@@ -563,35 +580,32 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 							std::string s2 = node->rhs->var->name;
 							Variable * l, *r;						
 							if(table->findVar(s, l) && table->findVar(s2, r)){
-								res = new Variable();
-								//res->Ival = l->Ival * r->Ival;
-								res->name = next_variable_name();
-								InMemoryIR.Insert(l, r, res, Op_MUL);
-								table->insert(res, 0);
+								(*res) = new Variable();
+								//(*res)->Ival = l->Ival * r->Ival;
+								(*res)->name = next_variable_name();
+								InMemoryIR.Insert(l, r, (*res), Op_MUL);
+								table->insert((*res), 0);
 							}
 						}
 					}
 				}
-				table->insert(res, 0);
 				return;
 			}
 		case ND_DIV:
-			{
-				res = new Variable();
-				
+			{				
 				// assert(node->lhs->kind == ND_VAR || node->lhs->kind == ND_NUM);
 				if((node->lhs->kind == ND_NUM) && (node->rhs->kind == ND_NUM))
 				{
-					if(node->lhs->var != NULL && node->rhs->var != NULL){
-						res = new Variable();
-						//res->Ival = node->lhs->val * node->rhs->val;
+					if(node->lhs != NULL && node->rhs != NULL){
+						(*res) = new Variable();
+						//(*res)->Ival = node->lhs->val * node->rhs->val;
 						int constVaule = node->lhs->val / node->rhs->val;
 						Variable * l, *r;
 						l = new Variable(node->lhs->val);
 						r = new Variable(node->rhs->val);
-						res->name = next_variable_name();
-						InMemoryIR.Insert(l, r, res, Op_DIV);
-						table->insert(res, 0);
+						(*res)->name = next_variable_name();
+						InMemoryIR.Insert(l, r, (*res), Op_DIV);
+						table->insert((*res), 0);
 					}
 				}
 				else
@@ -602,13 +616,13 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 							std::string s = node->rhs->var->name;
 							Variable * r;
 							if(table->findVar(s, r)){
-								res = new Variable();
-								//res->Ival = node->lhs->val * r->Ival;
+								(*res) = new Variable();
+								//(*res)->Ival = node->lhs->val * r->Ival;
 								Variable * l;
 								l = new Variable(node->lhs->val);
-								res->name = next_variable_name();
-								InMemoryIR.Insert(l, r, res, Op_DIV);
-								table->insert(res, 0);
+								(*res)->name = next_variable_name();
+								InMemoryIR.Insert(l, r, (*res), Op_DIV);
+								table->insert((*res), 0);
 							}
 						}
 					}else if(node->rhs->kind == ND_NUM)
@@ -617,13 +631,13 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 							std::string s = node->lhs->var->name;
 							Variable * l;
 							if(table->findVar(s, l)){
-								res = new Variable();
-								//res->Ival = l->Ival * node->rhs->val;
+								(*res) = new Variable();
+								//(*res)->Ival = l->Ival * node->rhs->val;
 								Variable * r;
 								r = new Variable(node->rhs->val);
-								res->name = next_variable_name();
-								InMemoryIR.Insert(l, r, res, Op_DIV);
-								table->insert(res, 0);
+								(*res)->name = next_variable_name();
+								InMemoryIR.Insert(l, r, (*res), Op_DIV);
+								table->insert((*res), 0);
 							}
 						}
 					}else{
@@ -632,16 +646,15 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 							std::string s2 = node->rhs->var->name;
 							Variable * l, *r;						
 							if(table->findVar(s, l) && table->findVar(s2, r)){
-								res = new Variable();
-								//res->Ival = l->Ival * r->Ival;
-								res->name = next_variable_name();
-								InMemoryIR.Insert(l, r, res, Op_DIV);
-								table->insert(res, 0);
+								(*res) = new Variable();
+								//(*res)->Ival = l->Ival * r->Ival;
+								(*res)->name = next_variable_name();
+								InMemoryIR.Insert(l, r, (*res), Op_DIV);
+								table->insert((*res), 0);
 							}
 						}
 					}
 				}
-				table->insert(res, 0);
 				return;
 			}
 		case ND_EQ:
@@ -650,21 +663,20 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 		case ND_LE:
 			{
 				return ;
-				res = new Variable();
-				//res->name = next_variable_name();
+				//(*res)->name = next_variable_name();
 				assert(node->lhs->kind == ND_VAR || node->rhs->kind == ND_NUM);
 				if((node->lhs->kind == ND_NUM) && (node->rhs->kind == ND_NUM))
 				{
 					if(node->lhs->var != NULL && node->rhs->var != NULL){
 						
 						/*if(node->kind == ND_EQ)
-							res->Ival = node->lhs->val == node->rhs->val;
+							(*res)->Ival = node->lhs->val == node->rhs->val;
 						else if(node->kind == ND_NE)
-							res->Ival = node->lhs->val != node->rhs->val;
+							(*res)->Ival = node->lhs->val != node->rhs->val;
 						else if(node->kind == ND_LT)
-							res->Ival = node->lhs->val < node->rhs->val;
+							(*res)->Ival = node->lhs->val < node->rhs->val;
 						else if(node->kind == ND_LE)
-							res->Ival = node->lhs->val <= node->rhs->val;*/
+							(*res)->Ival = node->lhs->val <= node->rhs->val;*/
 					}
 				}
 				else
@@ -677,13 +689,13 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 							table->findVar(s, r);
 							std::string s2 = node->rhs->var->name;
 							/*if(node->kind == ND_EQ)
-								res->Ival = r->Ival == node->lhs->val;
+								(*res)->Ival = r->Ival == node->lhs->val;
 							else if(node->kind == ND_NE)
-								res->Ival = r->Ival != node->lhs->val;
+								(*res)->Ival = r->Ival != node->lhs->val;
 							else if(node->kind == ND_LT)
-								res->Ival = r->Ival < node->lhs->val;
+								(*res)->Ival = r->Ival < node->lhs->val;
 							else if(node->kind == ND_LE)
-								res->Ival = r->Ival <= node->lhs->val;*/
+								(*res)->Ival = r->Ival <= node->lhs->val;*/
 						}
 					}else if(node->rhs->kind == ND_NUM)
 					{
@@ -692,13 +704,13 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 							Variable * l;
 							table->findVar(s, l);
 							/*if(node->kind == ND_EQ)
-								res->Ival = l->Ival == node->rhs->val;
+								(*res)->Ival = l->Ival == node->rhs->val;
 							else if(node->kind == ND_NE)
-								res->Ival = l->Ival != node->rhs->val;
+								(*res)->Ival = l->Ival != node->rhs->val;
 							else if(node->kind == ND_LT)
-								res->Ival = l->Ival < node->rhs->val;
+								(*res)->Ival = l->Ival < node->rhs->val;
 							else if(node->kind == ND_LE)
-								res->Ival = l->Ival <= node->rhs->val;*/
+								(*res)->Ival = l->Ival <= node->rhs->val;*/
 						}
 					}else{
 						if(node->lhs->var != NULL && node->rhs->var != NULL){
@@ -708,17 +720,16 @@ static void gen_expr_ir(Node *node, Variable * res, SymbolTable * table)
 							table->findVar(s, l);
 							table->findVar(s2, r);
 							/*if(node->kind == ND_EQ)
-								res->Ival = l->Ival == r->Ival;
+								(*res)->Ival = l->Ival == r->Ival;
 							else if(node->kind == ND_NE)
-								res->Ival = l->Ival != r->Ival;
+								(*res)->Ival = l->Ival != r->Ival;
 							else if(node->kind == ND_LT)
-								res->Ival = l->Ival < r->Ival;
+								(*res)->Ival = l->Ival < r->Ival;
 							else if(node->kind == ND_LE)
-								res->Ival = l->Ival <= r->Ival;*/
+								(*res)->Ival = l->Ival <= r->Ival;*/
 						}
 					}
 				}
-				table->insert(res, 0);
 				return;
 			}
 			return;
