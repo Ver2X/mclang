@@ -190,8 +190,6 @@ static void gen_expr(Node *node)
 				println("  call %s", node->funcname);
 				return;
 			}
-		default:
-			return;
 	}
 
 	// there must deal rhs first
