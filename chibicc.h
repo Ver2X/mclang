@@ -446,8 +446,8 @@ class Block{
 	Block * succes;
 	int label;
 	std::string name;
-	// may need :
-	// std::vector<Instruction *> allocas;
+	// entry blck is a special block
+	std::vector<Instruction *> allocas;
 
 	std::vector<Instruction *> instructinos;
 public:
@@ -470,6 +470,7 @@ public:
 	void SetPred(Block *);
 	void SetSucc(Block *);
 	std::string CodeGen();
+	std::string AllocaCodeGen();
 };
 
 class IRBuilder{
@@ -479,8 +480,16 @@ class IRBuilder{
 	// order by label
 	std::map<int, Block *> blocks;
 	int cache_label;
+	int entry_label;
 	std::string cache_name;
 public:
+	IRBuilder()
+	{
+		cache_label = -1;
+		entry_label = -1;
+		globalVariable = NULL;
+		function = NULL;
+	}
 	void SetInsertPoint(int label, std::string name);
 	void SetFunc(IRFunction * func) { function = func; }
 	std::string CodeGen();

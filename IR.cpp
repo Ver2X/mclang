@@ -1,5 +1,5 @@
 #include "chibicc.h"
-
+extern std::fstream file_out;
 
 //////////////////////////////////////////////////////////////////////////     //////////////////////////////////////////////////////////////////////////////////
 std::string Operand::CodeGen()
@@ -36,10 +36,7 @@ std::string Instruction::CodeGen()
 	std::string s;
 	assert(result != NULL);
 	switch(Op)
-	{
-		case Op_Alloca:
-			s += "  %" + result->name + " = " + "alloca i32 " + ", align " + std::to_string(result->align) + "\n";
-			break;
+	{		
 		case Op_ADD:
 			s += "  " + result->name + " = " + "add ";
 			if(left->isConst)
@@ -92,6 +89,9 @@ std::string Instruction::CodeGen()
 				s += Twine("%", right->name);
 			s += ", align " + std::to_string(result->align) + "\n";
 			break;
+		case Op_Alloca:
+			s += "  %" + result->name + " = " + "alloca i32 " + ", align " + std::to_string(result->align) + "\n";
+			break;
 		default:
 			break;
 	}
@@ -110,6 +110,16 @@ std::string Block::CodeGen()
 	return s;
 }
 
+std::string Block::AllocaCodeGen()
+{
+	std::string s;
+	// s += name + ":\n";
+	for(const auto & ins : allocas)
+	{
+		s += ins->CodeGen();
+	}
+	return s;
+}
 
 bool SymbolTable::insert(Variable * var,int level)
 {
@@ -214,13 +224,20 @@ int Instruction::getAlign(Variable * left, Variable * right, Variable * result)
 
 // fix me: alloca need insert at font
 void Block::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op)
-{
+{	
+
 	Instruction * inst = new Instruction(left, right, result, Op);
-	instructinos.push_back(inst);
+	if(Op == Op_Alloca){
+		allocas.push_back(inst);
+	}
+	else
+		instructinos.push_back(inst);
 }
 
 void IRBuilder::SetInsertPoint(int label, std::string name)
 {
+	if(entry_label < 0)
+		entry_label = label;
 	if(blocks.count(label) == 0)
 	{
 		Block * block = new Block();
@@ -234,14 +251,20 @@ void IRBuilder::SetInsertPoint(int label, std::string name)
 
 void IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label, std::string name)
 {
-	/*if(blocks.count(label) == 0)
+	if(entry_label < 0)
+		entry_label = label;
+	if(blocks.count(label) == 0)
 	{
 		Block * block = new Block();
 		block->SetName(name);
 		block->SetLabel(label);
 		blocks.insert(std::make_pair(label, block));
-	}*/
-	blocks[label]->Insert(left, right, result, Op);
+	}
+	if(Op == Op_Alloca){
+		blocks[entry_label]->Insert(left, right, result, Op);
+	}
+	else
+		blocks[label]->Insert(left, right, result, Op);
 	// std::cout << "in ssss" << std::endl;
 }
 
@@ -261,6 +284,8 @@ std::string IRBuilder::CodeGen()
 	for(const auto & blk: blocks)
 	{
 		// *blk.second;
+		if(blk.first == entry_label)
+			s += blk.second->AllocaCodeGen();
 		s += blk.second->CodeGen();
 	}
 	s += "}\n";
