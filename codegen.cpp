@@ -209,10 +209,11 @@ static void gen_expr(Node *node)
 		ax = "%eax";
 		di = "%edi";
 	}
-
+	//file_out << "arrive three 3s" << std::endl;
 	switch(node->kind)
 	{
 		case ND_ADD:
+			//file_out << "arrive three 2s" << std::endl;
 			println("  add %s, %s", di, ax);
 			return;
 		case ND_SUB:

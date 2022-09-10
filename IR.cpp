@@ -34,27 +34,75 @@ std::string Operand::CodeGen()
 std::string Instruction::CodeGen()
 {
 	std::string s;
-	s += "	" + result->name + " = ";
+	assert(result != NULL);
 	switch(Op)
 	{
+		case Op_Alloca:
+			s += " %" + result->name + " = " + "alloca i32 " + ", align " + std::to_string(result->align) + "\n";
+			break;
 		case Op_ADD:
-			s += "add ";
+			s += " " + result->name + " = " + "add ";
+			if(left->isConst)
+				s += left->name;
+			else
+				s += Twine("%", left->name);
+			s += ", ";
+			if(right->isConst)
+				s += right->name;
+			else
+				s += Twine("%", right->name);
+			s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case Op_SUB:
-			s += "sub ";
+			s += " " + result->name + " = " + "sub ";
+			if(left->isConst)
+				s += left->name;
+			else
+				s += Twine("%", left->name);
+			s += ", ";
+			if(right->isConst)
+				s += right->name;
+			else
+				s += Twine("%", right->name);
+			s += ", align " + std::to_string(result->align) + "\n";
+			break;
 		case Op_MUL:
-			s += "mul ";
+			s += " " + result->name + " = " + "mul ";
+			if(left->isConst)
+				s += left->name;
+			else
+				s += Twine("%", left->name);
+			s += ", ";
+			if(right->isConst)
+				s += right->name;
+			else
+				s += Twine("%", right->name);
+			s += ", align " + std::to_string(result->align) + "\n";
+			break;
+		case Op_DIV:
+			s += " " + result->name + " = " + "div ";
+			if(left->isConst)
+				s += left->name;
+			else
+				s += Twine("%", left->name);
+			s += ", ";
+			if(right->isConst)
+				s += right->name;
+			else
+				s += Twine("%", right->name);
+			s += ", align " + std::to_string(result->align) + "\n";
+			break;
 		default:
 			break;
 	}
-	s += left->name + ", " + right->name + "\n";
 	return s;
 }
 
 
 std::string Block::CodeGen()
 {
-	std::string s = name + ":\n";
+	std::string s;
+	s += name + ":\n";
 	for(const auto & ins : instructinos)
 	{
 		s += ins->CodeGen();
@@ -63,16 +111,16 @@ std::string Block::CodeGen()
 }
 
 
-void SymbolTable::insert(Variable * var,int level)
+bool SymbolTable::insert(Variable * var,int level)
 {
 	// down to special level
 	std::string var_name = var->name;
 	if(auto iter = table.find(var_name) != table.end())
 	{
-		// Error, variable redefine define
-		return ;
+		return false;
 	}
-	table.insert(	make_pair(var_name, var) );
+	table.insert(make_pair(var_name, var));
+	return true;
 }
 // use a cache save inserted varibale, when leaving function, delete
 // it from symbol table
@@ -84,9 +132,16 @@ void SymbolTable::erase(std::string var_name,int level)
 		table.erase(iter);
 	}
 }
-Variable * SymbolTable::find_var(std::string & var_name)
+
+bool SymbolTable::findVar(std::string & var_name, Variable * & result)
 {
-	return table.find(var_name)->second;
+	result = table.find(var_name)->second;
+	if(result == NULL)
+		return false;
+	else{
+		assert(result != NULL);
+		return true;
+	}
 }
 
 
@@ -150,6 +205,13 @@ void IRFunction::AddArgs()
 }
 
 
+int Instruction::getAlign(Variable * left, Variable * right, Variable * result)
+{
+	if(left != NULL && right != NULL)
+		return std::max(std::max(left->align, right->align), result->align);
+	return result->align;
+}
+
 // fix me: alloca need insert at font
 void Block::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op)
 {
@@ -157,9 +219,7 @@ void Block::Insert(Variable * left, Variable * right, Variable * result, IROpKin
 	instructinos.push_back(inst);
 }
 
-
-
-void IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label, std::string name)
+void IRBuilder::SetInsertPoint(int label, std::string name)
 {
 	if(blocks.count(label) == 0)
 	{
@@ -168,12 +228,27 @@ void IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IRO
 		block->SetLabel(label);
 		blocks.insert(std::make_pair(label, block));
 	}
-	else
-	{
-		blocks[label]->Insert(left, right, result, Op);
-	}
+	cache_label = label;
+	cache_name = name;
 }
 
+void IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label, std::string name)
+{
+	/*if(blocks.count(label) == 0)
+	{
+		Block * block = new Block();
+		block->SetName(name);
+		block->SetLabel(label);
+		blocks.insert(std::make_pair(label, block));
+	}*/
+	blocks[label]->Insert(left, right, result, Op);
+	// std::cout << "in ssss" << std::endl;
+}
+
+void IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op)
+{
+	Insert(left, right, result, Op, cache_label, cache_name);
+}
 
 std::string IRBuilder::CodeGen()
 {
@@ -182,9 +257,12 @@ std::string IRBuilder::CodeGen()
 	{
 		s += function->CodeGen();
 	}
+	s += "\n{\n";
 	for(const auto & blk: blocks)
 	{
+		// *blk.second;
 		s += blk.second->CodeGen();
 	}
+	s += "}\n";
 	return s;
 }

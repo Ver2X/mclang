@@ -266,11 +266,69 @@ public:
 	double Fval;
 	VaribleKind type;
 	std::string name;
+	int align;
 	Operand * next;
+	bool isConst;
 	Operand()
 	{
 		next = NULL;
+		align = 4;
+		isConst = false;
 	}
+
+	Operand(int64_t v)
+	{
+		Ival = v;
+		next = NULL;
+		align = 8;
+		isConst = true;
+		name = std::to_string(Ival);
+	}	
+
+	Operand(int v)
+	{
+		Ival = v;
+		next = NULL;
+		align = 4;
+		isConst = true;
+		name = std::to_string(Ival);
+	}	
+
+	Operand(double v)
+	{
+		Fval = v;
+		next = NULL;
+		align = 8;
+		isConst = true;
+		name = std::to_string(Fval);
+	}	
+
+	void SetConst(double v)
+	{
+		Fval = v;
+		next = NULL;
+		align = 8;
+		isConst = true;
+		name = std::to_string(Fval);
+	}	
+
+	void SetConst(int v)
+	{
+		Ival = v;
+		next = NULL;
+		align = 4;
+		isConst = true;
+		name = std::to_string(Ival);
+	}	
+
+	void SetConst(int64_t v)
+	{
+		Ival = v;
+		next = NULL;
+		align = 8;
+		isConst = true;
+		name = std::to_string(Ival);
+	}	
 
 	std::string CodeGen();
 };
@@ -297,14 +355,14 @@ public:
 		symb_list = new SymbolTable();
 	}
 
-	void insert(Variable * var,int level);
+	bool insert(Variable * var,int level);
 	// use a cache save inserted varibale, when leaving function, delete
 	// it from symbol table
 	void erase(std::string var_name,int level);
-	Variable * find_var(std::string & var_name);
+	bool findVar(std::string & var_name, Variable * &);
 };
 
-
+/*
 class IR {
 public:
 	int opcode;
@@ -312,7 +370,7 @@ public:
 	Operand * right;
 	Operand * result;
 	int align;
-};
+};*/
 
 class IRFunction{
 public:
@@ -350,8 +408,9 @@ typedef enum
 	Op_NEG,         // -, unary
 	Op_ADDR,		// &, unary
 	Op_DEREF,		// *, unary
-	Op_barnch,
-	Op_FUNCALL,		// function call
+	Op_barnch,  // branch
+	Op_FUNCALL,	// function call
+	Op_Alloca,  // allcoa
 	Op_STMT_EXPR,   // statement expression
 	Op_MEMBER,		// . (struct member access)
 }IROpKind;
@@ -365,13 +424,17 @@ class Instruction{
 	Variable * left;
 	Variable * right;
 	Variable * result;
+	int getAlign(Variable * left, Variable * right, Variable * result);
+
 public:
 	Instruction(Variable * left, Variable * right, Variable * result, IROpKind Op)
 	{
 		this->Op = Op;
 		this->left = left;
 		this->right = right;
+		result->align = getAlign(left, right, result);
 		this->result = result;
+
 	}
 
 	std::string CodeGen();
@@ -415,12 +478,18 @@ class IRBuilder{
 	IRFunction * function;
 	// order by label
 	std::map<int, Block *> blocks;
+	int cache_label;
+	std::string cache_name;
 public:
+	void SetInsertPoint(int label, std::string name);
 	void SetFunc(IRFunction * func) { function = func; }
 	std::string CodeGen();
 	// using label to index Blocks
 	void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label, std::string name);
+	void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op);
 };
 
 
 void emit_ir(Obj * prog);
+std::string Twine(std::string &l, std::string & r);
+std::string Twine(std::string l, std::string r);
