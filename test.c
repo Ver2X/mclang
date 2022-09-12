@@ -21,6 +21,6 @@ int main(int kk, int h, int g)
     d = c - 3;
     d = c * 3;
     d = c / 3;
-
+    d = c / 3 + 5;
     return d;
 }

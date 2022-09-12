@@ -26,7 +26,7 @@ std::string Operand::CodeGen()
 		default:
 			break;
 	}
-	s += "%";
+	// s += "%";
 	s += name;
 	return s;
 }
@@ -38,59 +38,35 @@ std::string Instruction::CodeGen()
 	switch(Op)
 	{		
 		case IROpKind::Op_ADD:
-			s += "  " + result->name + " = " + "add ";
-			if(left->isConst)
-				s += left->name;
-			else
-				s += Twine("%", left->name);
+			s += "  " + result->GetName() + " = " + "add ";
+			s += left->GetName();
 			s += ", ";
-			if(right->isConst)
-				s += right->name;
-			else
-				s += Twine("%", right->name);
+			s += right->GetName();
 			s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case IROpKind::Op_SUB:
-			s += "  " + result->name + " = " + "sub ";
-			if(left->isConst)
-				s += left->name;
-			else
-				s += Twine("%", left->name);
+			s += "  " + result->GetName() + " = " + "sub ";
+			s += left->GetName();
 			s += ", ";
-			if(right->isConst)
-				s += right->name;
-			else
-				s += Twine("%", right->name);
+			s += right->GetName();
 			s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case IROpKind::Op_MUL:
-			s += "  " + result->name + " = " + "mul ";
-			if(left->isConst)
-				s += left->name;
-			else
-				s += Twine("%", left->name);
+			s += "  " + result->GetName() + " = " + "mul ";
+			s += left->GetName();
 			s += ", ";
-			if(right->isConst)
-				s += right->name;
-			else
-				s += Twine("%", right->name);
+			s += right->GetName();
 			s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case IROpKind::Op_DIV:
-			s += "  " + result->name + " = " + "sdiv ";
-			if(left->isConst)
-				s += left->name;
-			else
-				s += Twine("%", left->name);
+			s += "  " + result->GetName() + " = " + "sdiv ";
+			s += left->GetName();
 			s += ", ";
-			if(right->isConst)
-				s += right->name;
-			else
-				s += Twine("%", right->name);
+			s += right->GetName();
 			s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case IROpKind::Op_Alloca:
-			s += "  %" + result->name + " = " + "alloca i32 " + ", align " + std::to_string(result->align) + "\n";
+			s += "  " + result->GetName() + " = " + "alloca i32 " + ", align " + std::to_string(result->align) + "\n";
 			break;
 		default:
 			break;
@@ -124,7 +100,7 @@ std::string Block::AllocaCodeGen()
 bool SymbolTable::insert(Variable * var,int level)
 {
 	// down to special level
-	std::string var_name = var->name;
+	std::string var_name = var->GetName();
 	auto iter = table.find(var_name);
 
 	if(iter != table.end())
@@ -149,6 +125,27 @@ bool SymbolTable::insert(Variable * var,int level)
 	sVariable->push_back(var);
 	table[var_name] = sVariable;
 	return true;
+}
+
+bool SymbolTable::insert(Variable * var,Variable * newVar, int level)
+{
+	// down to special level
+	std::string var_name = var->GetName();
+	auto iter = table.find(var_name);
+	assert(iter != table.end());
+	auto finout = [=](VarList vars){
+		auto res = std::find(vars->begin(), vars->end(), newVar);
+		if(res != vars->end())
+		{
+			return false;
+		}
+		else
+		{
+			vars->push_back(newVar);
+			return true;
+		}	
+	};
+	return finout(iter->second);
 }
 // use a cache save inserted varibale, when leaving function, delete
 // it from symbol table
@@ -286,7 +283,7 @@ bool IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IRO
 	}
 
 	if(Op == IROpKind::Op_Alloca){
-		if(!table->findVar(result->name, result)){
+		if(!table->findVar(result->GetName(), result)){
 			blocks[entry_label]->Insert(left, right, result, Op);	
 			return true;
 		}else{

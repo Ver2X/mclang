@@ -37,6 +37,12 @@ static std::string next_variable_name()
 {
 	std::string name = Twine("%" , std::to_string(next_variable_name_number()));
 	return name;
+	//return std::to_string(next_variable_name_number());
+}
+
+static std::string getPreName(std::string name)
+{
+	return Twine("%", name);
 }
 
 IRBuilder InMemoryIR;
@@ -91,28 +97,28 @@ void emit_ir(Obj * prog)
 				{
 					// var->name
 					arg_variable->type = VaribleKind::VAR_8;
-					arg_variable->name = std::string(var->name);
+					arg_variable->SetName(getPreName(var->name));
 					loca_table->insert(arg_variable, 0);
 					break;
 				}
 				case 2:
 				{
 					arg_variable->type = VaribleKind::VAR_16;
-					arg_variable->name = std::string(var->name);
+					arg_variable->SetName(getPreName(var->name));
 					loca_table->insert(arg_variable, 0);
 					break;
 				}
 				case 4:
 				{
 					arg_variable->type = VaribleKind::VAR_32;
-					arg_variable->name = std::string(var->name);
+					arg_variable->SetName(getPreName(var->name));
 					loca_table->insert(arg_variable, 0);
 					break;
 				}
 				case 8:
 				{
 					arg_variable->type = VaribleKind::VAR_64;
-					arg_variable->name = std::string(var->name);
+					arg_variable->SetName(getPreName(var->name));					
 					loca_table->insert(arg_variable, 0);
 					break;
 				}
@@ -246,7 +252,7 @@ static Variable * gen_variable_ir(Node *node, SymbolTablePtr table)
 			{
 				// Local variable
 				Variable * local_variable = new Variable();
-				local_variable->name = node->var->name;
+				local_variable->SetName(getPreName(node->var->name));
 				local_variable->type = VaribleKind::VAR_32;
 				if(InMemoryIR.Insert(NULL, NULL, local_variable, IROpKind::Op_Alloca, table))
 				{
@@ -266,14 +272,12 @@ static Variable * gen_variable_ir(Node *node, SymbolTablePtr table)
 		{
 			Variable * res;
 			gen_expr_ir(node->lhs, &res, table);
-			//file_out << "arrive three 10" << std::endl;
 			return NULL;
 		}
 		case ND_COMMA:
 		{
 			Variable * res;
 			gen_expr_ir(node->lhs, &res, table);
-			//file_out << "arrive three 9" << std::endl;
 			gen_variable_ir(node->rhs, table);			
 			return NULL;
 		}
@@ -299,6 +303,8 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 	switch(node->kind)
 	{
 		case ND_NUM:
+			// fix me:
+			*res = new Variable(node->val);
 			//println("  mov $%ld, %%rax", node->val);
 			return ;
 		case ND_NEG:
@@ -322,6 +328,19 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 			Variable * left = gen_variable_ir(node->lhs, table);
 			//push();
 			gen_expr_ir(node->rhs, res, table);
+			if(left != NULL){
+				if(!(*res)->isConst)
+					table->insert(left, *res, 0);
+				else
+				{
+					left->isConst = false;
+					// here need const propagation
+					left->isInitConst = true;
+					left->Fval = (*res)->Fval;
+					left->Ival = (*res)->Ival;
+					left->type = (*res)->type;
+				}
+			}
 			// need bind varibale at here
 			//store(node->ty);
 			return;
@@ -357,9 +376,11 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 
 	// there must deal rhs first
 	//file_out << "arrive three 6" << std::endl;
+	Variable **left;
 	gen_expr_ir(node->rhs, res, table);
 	//push();
 	//file_out << "arrive three 5" << std::endl;
+	Variable **right;
 	gen_expr_ir(node->lhs, res, table);
 	//file_out << "arrive three 4" << std::endl;
 	//pop("%rdi");
@@ -397,7 +418,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 						(*res) = new Variable();
 						l = new Variable(node->lhs->val);
 						r = new Variable(node->rhs->val);
-						(*res)->name = next_variable_name();
+						(*res)->SetName(next_variable_name());
 						InMemoryIR.Insert(l, r, (*res), IROpKind::Op_ADD, table);	
 						table->insert((*res), 0);			
 					}
@@ -409,14 +430,14 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 						//assert(node->lhs->var == NULL);
 						//assert(node->rhs->var != NULL);
 						if(node->rhs->var != NULL){
-							std::string s = node->rhs->var->name;
+							std::string s = getPreName(node->rhs->var->name);
 							Variable * r;
 							if(table->findVar(s, r)){
 								(*res) = new Variable();
 								//(*res)->Ival = node->lhs->val + r->Ival;
 								Variable * l;
 								l = new Variable(node->lhs->val);
-								(*res)->name = next_variable_name();
+								(*res)->SetName(next_variable_name());
 								InMemoryIR.Insert(l, r, (*res), IROpKind::Op_ADD, table);
 								table->insert((*res), 0);
 							}
@@ -426,14 +447,14 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 						//assert(node->lhs->var != NULL);
 						//assert(node->rhs->var == NULL);
 						if(node->lhs->var != NULL){
-							std::string s = node->lhs->var->name;
+							std::string s = getPreName(node->lhs->var->name);
 							Variable * l;
 							if(table->findVar(s, l)){
 								(*res) = new Variable();
 								//(*res)->Ival = l->Ival + node->rhs->val;
 								Variable * r;
 								r = new Variable(node->rhs->val);
-								(*res)->name = next_variable_name();
+								(*res)->SetName(next_variable_name());
 								InMemoryIR.Insert(l, r, (*res), IROpKind::Op_ADD, table);
 								table->insert((*res), 0);
 							}
@@ -442,14 +463,14 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 						// assert(node->lhs->var != NULL);
 						// assert(node->rhs->var != NULL);
 						if(node->lhs->var != NULL && node->rhs->var != NULL){
-							std::string s = node->lhs->var->name;
-							std::string s2 = node->rhs->var->name;
+							std::string s = getPreName(node->lhs->var->name);
+							std::string s2 = getPreName(node->rhs->var->name);
 							Variable * l , * r;
 							//file_out << "arrive three 1" << std::endl;
 							if(table->findVar(s, l) && table->findVar(s2, r)){
 								(*res) = new Variable();
 								//(*res)->Ival = l->Ival + r->Ival;
-								(*res)->name = next_variable_name();
+								(*res)->SetName(next_variable_name());
 								InMemoryIR.Insert(l, r, (*res), IROpKind::Op_ADD, table);
 								table->insert((*res), 0);
 							}
@@ -472,7 +493,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 						(*res) = new Variable();
 						l = new Variable(node->lhs->val);
 						r = new Variable(node->rhs->val);
-						(*res)->name = next_variable_name();
+						(*res)->SetName(next_variable_name());
 						InMemoryIR.Insert(l, r, (*res), IROpKind::Op_SUB, table);	
 						table->insert((*res), 0);				
 					}
@@ -482,14 +503,14 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 					if(node->lhs->kind == ND_NUM)
 					{
 						if(node->rhs->var != NULL){
-							std::string s = node->rhs->var->name;
+							std::string s = getPreName(node->rhs->var->name);
 							Variable * r;
 							if(table->findVar(s, r)){
 								(*res) = new Variable();
 								//(*res)->Ival = node->lhs->val - r->Ival;
 								Variable * l;
 								l = new Variable(node->lhs->val);
-								(*res)->name = next_variable_name();
+								(*res)->SetName(next_variable_name());
 								InMemoryIR.Insert(l, r, (*res), IROpKind::Op_SUB, table);
 								table->insert((*res), 0);
 							}
@@ -497,27 +518,27 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 					}else if(node->rhs->kind == ND_NUM)
 					{
 						if(node->lhs->var != NULL){
-							std::string s = node->lhs->var->name;
+							std::string s = getPreName(node->lhs->var->name);
 							Variable * l;
 							if(table->findVar(s, l)){
 								(*res) = new Variable();
 								//(*res)->Ival = l->Ival - node->rhs->val;
 								Variable * r;
 								r = new Variable(node->rhs->val);
-								(*res)->name = next_variable_name();
+								(*res)->SetName(next_variable_name());
 								InMemoryIR.Insert(l, r, (*res), IROpKind::Op_SUB, table);
 								table->insert((*res), 0);
 							}
 						}
 					}else{
 						if(node->lhs->var != NULL && node->rhs->var != NULL){
-							std::string s = node->lhs->var->name;
-							std::string s2 = node->rhs->var->name;
+							std::string s = getPreName(node->lhs->var->name);
+							std::string s2 = getPreName(node->rhs->var->name);
 							Variable * l, *r;
 							if(table->findVar(s, l) && table->findVar(s2, r)){
 								(*res) = new Variable();
 								//(*res)->Ival = l->Ival - r->Ival;
-								(*res)->name = next_variable_name();
+								(*res)->SetName(next_variable_name());
 								InMemoryIR.Insert(l, r, (*res), IROpKind::Op_SUB, table);
 								table->insert((*res), 0);
 							}
@@ -539,7 +560,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 						Variable * l, *r;
 						l = new Variable(node->lhs->val);
 						r = new Variable(node->rhs->val);
-						(*res)->name = next_variable_name();
+						(*res)->SetName(next_variable_name());
 						InMemoryIR.Insert(l, r, (*res), IROpKind::Op_MUL, table);
 						table->insert((*res), 0);
 					}
@@ -549,14 +570,14 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 					if(node->lhs->kind == ND_NUM)
 					{
 						if(node->rhs->var != NULL){
-							std::string s = node->rhs->var->name;
+							std::string s = getPreName(node->rhs->var->name);
 							Variable * r;
 							if(table->findVar(s, r)){
 								(*res) = new Variable();
 								//(*res)->Ival = node->lhs->val * r->Ival;
 								Variable * l;
 								l = new Variable(node->lhs->val);
-								(*res)->name = next_variable_name();
+								(*res)->SetName(next_variable_name());
 								InMemoryIR.Insert(l, r, (*res), IROpKind::Op_MUL, table);
 								table->insert((*res), 0);
 							}
@@ -564,27 +585,27 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 					}else if(node->rhs->kind == ND_NUM)
 					{
 						if(node->lhs->var != NULL){
-							std::string s = node->lhs->var->name;
+							std::string s = getPreName(node->lhs->var->name);
 							Variable * l;
 							if(table->findVar(s, l)){
 								(*res) = new Variable();
 								//(*res)->Ival = l->Ival * node->rhs->val;
 								Variable * r;
 								r = new Variable(node->rhs->val);
-								(*res)->name = next_variable_name();
+								(*res)->SetName(next_variable_name());
 								InMemoryIR.Insert(l, r, (*res), IROpKind::Op_MUL, table);
 								table->insert((*res), 0);
 							}
 						}
 					}else{
 						if(node->lhs->var != NULL && node->rhs->var != NULL){
-							std::string s = node->lhs->var->name;
-							std::string s2 = node->rhs->var->name;
+							std::string s = getPreName(node->lhs->var->name);
+							std::string s2 = getPreName(node->rhs->var->name);
 							Variable * l, *r;						
 							if(table->findVar(s, l) && table->findVar(s2, r)){
 								(*res) = new Variable();
 								//(*res)->Ival = l->Ival * r->Ival;
-								(*res)->name = next_variable_name();
+								(*res)->SetName(next_variable_name());
 								InMemoryIR.Insert(l, r, (*res), IROpKind::Op_MUL, table);
 								table->insert((*res), 0);
 							}
@@ -605,7 +626,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 						Variable * l, *r;
 						l = new Variable(node->lhs->val);
 						r = new Variable(node->rhs->val);
-						(*res)->name = next_variable_name();
+						(*res)->SetName(next_variable_name());
 						InMemoryIR.Insert(l, r, (*res), IROpKind::Op_DIV, table);
 						table->insert((*res), 0);
 					}
@@ -615,14 +636,14 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 					if(node->lhs->kind == ND_NUM)
 					{
 						if(node->rhs->var != NULL){
-							std::string s = node->rhs->var->name;
+							std::string s = getPreName(node->rhs->var->name);
 							Variable * r;
 							if(table->findVar(s, r)){
 								(*res) = new Variable();
 								//(*res)->Ival = node->lhs->val * r->Ival;
 								Variable * l;
 								l = new Variable(node->lhs->val);
-								(*res)->name = next_variable_name();
+								(*res)->SetName(next_variable_name());
 								InMemoryIR.Insert(l, r, (*res), IROpKind::Op_DIV, table);
 								table->insert((*res), 0);
 							}
@@ -630,27 +651,27 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 					}else if(node->rhs->kind == ND_NUM)
 					{
 						if(node->lhs->var != NULL){
-							std::string s = node->lhs->var->name;
+							std::string s = getPreName(node->lhs->var->name);
 							Variable * l;
 							if(table->findVar(s, l)){
 								(*res) = new Variable();
 								//(*res)->Ival = l->Ival * node->rhs->val;
 								Variable * r;
 								r = new Variable(node->rhs->val);
-								(*res)->name = next_variable_name();
+								(*res)->SetName(next_variable_name());
 								InMemoryIR.Insert(l, r, (*res), IROpKind::Op_DIV, table);
 								table->insert((*res), 0);
 							}
 						}
 					}else{
 						if(node->lhs->var != NULL && node->rhs->var != NULL){
-							std::string s = node->lhs->var->name;
-							std::string s2 = node->rhs->var->name;
+							std::string s = getPreName(node->lhs->var->name);
+							std::string s2 = getPreName(node->rhs->var->name);
 							Variable * l, *r;						
 							if(table->findVar(s, l) && table->findVar(s2, r)){
 								(*res) = new Variable();
 								//(*res)->Ival = l->Ival * r->Ival;
-								(*res)->name = next_variable_name();
+								(*res)->SetName(next_variable_name());
 								InMemoryIR.Insert(l, r, (*res), IROpKind::Op_DIV, table);
 								table->insert((*res), 0);
 							}
@@ -686,10 +707,10 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 					if(node->lhs->kind == ND_NUM)
 					{
 						if(node->lhs->var != NULL && node->rhs->var != NULL){
-							std::string s = node->rhs->var->name;
+							std::string s = getPreName(node->rhs->var->name);
 							Variable * r;
 							table->findVar(s, r);
-							std::string s2 = node->rhs->var->name;
+							std::string s2 = getPreName(node->rhs->var->name);
 							/*if(node->kind == ND_EQ)
 								(*res)->Ival = r->Ival == node->lhs->val;
 							else if(node->kind == ND_NE)
@@ -702,7 +723,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 					}else if(node->rhs->kind == ND_NUM)
 					{
 						if(node->lhs->var != NULL && node->rhs->var != NULL){
-							std::string s = node->lhs->var->name;
+							std::string s = getPreName(node->lhs->var->name);
 							Variable * l;
 							table->findVar(s, l);
 							/*if(node->kind == ND_EQ)
@@ -716,8 +737,8 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 						}
 					}else{
 						if(node->lhs->var != NULL && node->rhs->var != NULL){
-							std::string s = node->lhs->var->name;						
-							std::string s2 = node->rhs->var->name;
+							std::string s = getPreName(node->lhs->var->name);					
+							std::string s2 = getPreName(node->rhs->var->name);
 							Variable * l, * r;
 							table->findVar(s, l);
 							table->findVar(s2, r);

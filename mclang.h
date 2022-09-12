@@ -261,20 +261,27 @@ enum class VaribleKind
 
 
 class Operand {
+private:
+		std::string name;
 public:
+	std::string& GetName() { return name; }
+	void SetName(std::string name) { this->name = name; }
+	void SetName(std::string & name) { this->name = name; }
 	// SSA?
 	int Ival;
 	double Fval;
 	VaribleKind type;
-	std::string name;
+
 	int align;
 	Operand * next;
 	bool isConst;
+	bool isInitConst;
 	Operand()
 	{
 		next = NULL;
 		align = 4;
 		isConst = false;
+		isInitConst = false;
 	}
 
 	Operand(int64_t v)
@@ -284,6 +291,7 @@ public:
 		align = 8;
 		isConst = true;
 		name = std::to_string(Ival);
+		type = VaribleKind::VAR_64;
 	}	
 
 	Operand(int v)
@@ -293,6 +301,7 @@ public:
 		align = 4;
 		isConst = true;
 		name = std::to_string(Ival);
+		type = VaribleKind::VAR_32;
 	}	
 
 	Operand(double v)
@@ -302,6 +311,7 @@ public:
 		align = 8;
 		isConst = true;
 		name = std::to_string(Fval);
+		type = VaribleKind::VAR_64;
 	}	
 
 	void SetConst(double v)
@@ -311,6 +321,7 @@ public:
 		align = 8;
 		isConst = true;
 		name = std::to_string(Fval);
+		type = VaribleKind::VAR_64;
 	}	
 
 	void SetConst(int v)
@@ -320,6 +331,7 @@ public:
 		align = 4;
 		isConst = true;
 		name = std::to_string(Ival);
+		type = VaribleKind::VAR_32;
 	}	
 
 	void SetConst(int64_t v)
@@ -329,10 +341,14 @@ public:
 		align = 8;
 		isConst = true;
 		name = std::to_string(Ival);
+		type = VaribleKind::VAR_64;
 	}	
 
 	std::string CodeGen();
 };
+
+
+
 class SymbolTable;
 using Variable = Operand;
 using SymbolTablePtr = std::shared_ptr<SymbolTable>;
@@ -362,6 +378,7 @@ public:
 	}
 
 	bool insert(Variable * var,int level);
+	bool insert(Variable * var,Variable * newVar, int level);
 	// use a cache save inserted varibale, when leaving function, delete
 	// it from symbol table
 	void erase(std::string var_name,int level);
