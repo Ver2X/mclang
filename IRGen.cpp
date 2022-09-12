@@ -832,20 +832,6 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 }
 
 
-
-static void emit_data_ir(Obj * prog)
-{
-	for(Obj * fn = prog ; fn; fn = fn->next)
-	{
-		for(Obj * var = fn->locals; var; var = var->next)
-		{
-			/*offset += var->ty->size;
-			offset = align_to(offset, var->ty->align);
-			var->offset = - offset;*/
-		}
-	}
-}
-
 // emit global data
 static void emit_global_data_ir(Obj * prog)
 {
