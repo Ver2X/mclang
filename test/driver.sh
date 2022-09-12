@@ -1,5 +1,5 @@
 #!/bin/bash
-tmp=`mktemp -d /tmp/chibicc-test-XXXXX`
+tmp=`mktemp -d /tmp/mclang-test-XXXXX`
 trap 'rm -rf $tmp' INT TERM HUP EXIT
 echo > $tmp/empty.c
 
@@ -17,12 +17,12 @@ check()
 
 # -o
 rm -rf $tmp/out
-./chibicc -o $tmp/out $tmp/empty.c
+./mclang -o $tmp/out $tmp/empty.c
 [ -f $tmp/out ]
 check -o
 
 # --help
-./chibicc --help 2>&1 | grep -q chibicc
+./mclang --help 2>&1 | grep -q mclang
 check --help
 
 echo OK

@@ -17,7 +17,7 @@
 // parser.
 
 
-#include "chibicc.h"
+#include "mclang.h"
 
 // scope for local, global variable or typedefs
 typedef struct VarScope VarScope;

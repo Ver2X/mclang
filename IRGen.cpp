@@ -1,4 +1,4 @@
-#include "chibicc.h"
+#include "mclang.h"
 
 static void gen_stmt_ir(Node * node, SymbolTablePtr);
 static void gen_expr_ir(Node *node, Variable **, SymbolTablePtr);

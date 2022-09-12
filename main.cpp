@@ -1,4 +1,4 @@
-#include "chibicc.h"
+#include "mclang.h"
 
 static char * opt_o;
 
@@ -6,7 +6,7 @@ static char * input_path;
 
 static void usage(int status)
 {
-	fprintf(stderr, "chibicc [ -o <path>] <file> \n");
+	fprintf(stderr, "mclang [ -o <path>] <file> \n");
 	exit(status);
 }
 

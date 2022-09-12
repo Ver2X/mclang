@@ -25,20 +25,20 @@ TESTS=$(TEST_SRCS:.c=.exe)
 IRTEST_SRCS=$(wildcard ir/*.c)
 IRTESTS=$(IRTEST_SRCS:.c=.exe)
 
-chibicc: $(OBJS)
-	$(CXX) -o chibicc $(CPPFLAGS) $(OBJS) $(LDFLAGS)	
+mclang: $(OBJS)
+	$(CXX) -o mclang $(CPPFLAGS) $(OBJS) $(LDFLAGS)	
 
-$(OBJS): chibicc.h
+$(OBJS): mclang.h
 
 
 ir: $(IRTEST_SRCS)
-	for i in $^; do ./chibicc $$i; cat ./ir/tmp.ll ; done
+	for i in $^; do ./mclang $$i; cat ./ir/tmp.ll ; done
 
-ir/%.exe: chibicc ir/%.c
+ir/%.exe: mclang ir/%.c
 
 
-test/%.exe: chibicc test/%.c
-		$(CC) -o- -E -P -C test/$*.c | ./chibicc -o test/$*.s -
+test/%.exe: mclang test/%.c
+		$(CC) -o- -E -P -C test/$*.c | ./mclang -o test/$*.s -
 		$(CC) -o $@ test/$*.s -xc test/common
 
 test: $(TESTS)
@@ -47,7 +47,7 @@ test: $(TESTS)
 	
 
 clean:
-		rm -f chibicc tmp*  $(TESTS) test/*.s test/*.exe
+		rm -f mclang tmp*  $(TESTS) test/*.s test/*.exe
 		find * -type f '(' -name '*~' -o -name '*.o' ')' -exec rm {} ';'
 
 .PHONU: test clean

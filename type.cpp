@@ -1,4 +1,4 @@
-#include "chibicc.h"
+#include "mclang.h"
 Type type__t1 = (Type){TY_CHAR, 1, 1};
 Type *ty_char = &type__t1;
 

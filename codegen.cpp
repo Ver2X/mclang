@@ -1,4 +1,4 @@
-#include "chibicc.h"
+#include "mclang.h"
 
 static void gen_expr(Node *node);
 static void gen_stmt(Node *node);

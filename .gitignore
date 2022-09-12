@@ -51,13 +51,13 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-#for chibicc
+#for mclang
 *~
 *.o
 tmp*
 a.out
 9cc
-chibicc
+mclang
 /tmp*
 **/a.out
 /test/*.exe

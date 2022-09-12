@@ -1,4 +1,4 @@
-#include "chibicc.h"
+#include "mclang.h"
 
 
 // takes a printf-style format string and returns a formatted string.

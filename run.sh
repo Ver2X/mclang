@@ -1,2 +1,2 @@
 #!/bin/bash
-make clean && make test && ./chibicc test.c >/dev/null
+make clean && make test && ./mclang test.c >/dev/null
