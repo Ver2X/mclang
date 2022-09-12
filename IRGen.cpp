@@ -57,7 +57,7 @@ void emit_ir(Obj * prog)
 		next_variable_name_v = 0;
 		if(!fn->is_function || !fn->is_definition)
 			continue;
-		IRFunction * func = new IRFunction();
+		IRFunctionPtr func = std::make_shared<IRFunction>();
 		func->functionName = fn->name;
 
 		// prologue

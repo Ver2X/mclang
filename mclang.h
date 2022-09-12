@@ -419,7 +419,7 @@ public:
 	std::string CodeGen();
 	
 };
-
+using IRFunctionPtr = std::shared_ptr<IRFunction>; 
 
 enum class IROpKind
 {
@@ -469,7 +469,7 @@ public:
 
 	std::string CodeGen();
  };
-
+using InstructionPtr = std::shared_ptr<Instruction>;
 class IRBuilder;
 class Block;
 
@@ -482,9 +482,9 @@ class Block{
 	int label;
 	std::string name;
 	// entry blck is a special block
-	std::vector<Instruction *> allocas;
+	std::vector<InstructionPtr> allocas;
 
-	std::vector<Instruction *> instructinos;
+	std::vector<InstructionPtr> instructinos;
 public:
 	Block()
 	{
@@ -511,7 +511,7 @@ public:
 class IRBuilder{
 
 	VariablePtr globalVariable;
-	IRFunction * function;
+	IRFunctionPtr function;
 	// order by label
 	std::map<int, BlockPtr> blocks;
 	int cache_label;
@@ -529,7 +529,7 @@ public:
 	}
 	int GetNextCountSuffix() { return count_suffix++; }
 	void SetInsertPoint(int label, std::string name);
-	void SetFunc(IRFunction * func) { function = func; }
+	void SetFunc(IRFunctionPtr func) { function = func; }
 	std::string CodeGen();
 	// using label to index Blocks
 	bool Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op, int label, std::string name, SymbolTablePtr table);

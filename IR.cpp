@@ -292,12 +292,12 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 		// shouldn't change order
 		case IROpKind::Op_Alloca:
 		{
-			Instruction * inst = new Instruction(left, right, result, Op);
+			InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
 			allocas.push_back(inst);
 		}
 		case IROpKind::Op_Store:
 		{
-			Instruction * inst = new Instruction(left, right, result, Op);
+			InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
 			if(Op == IROpKind::Op_Store){
 				if(left == NULL && right == NULL){
 					if(Op == IROpKind::Op_Store)
@@ -316,8 +316,8 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 			load1->SetName(next_variable_name());
 			VariablePtr load2 = std::make_shared<Variable>();
 			load2->SetName(next_variable_name());
-			Instruction * inst1 = new Instruction(left, NULL, load1, IROpKind::Op_Load);
-			Instruction * inst2 = new Instruction(right, NULL, load2, IROpKind::Op_Load);
+			InstructionPtr inst1 = std::make_shared<Instruction>(left, nullptr, load1, IROpKind::Op_Load);
+			InstructionPtr inst2 = std::make_shared<Instruction>(right, nullptr, load2, IROpKind::Op_Load);
 			std::string s;
 			switch(Op)
 			{
@@ -340,9 +340,9 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 			s += std::to_string(buider->GetNextCountSuffix());
 			arithRes->SetName(std::move(s));
 
-			Instruction * instArith = new Instruction(load1, load2, arithRes, Op);
+			InstructionPtr instArith = std::make_shared<Instruction>(load1, load2, arithRes, Op);
 
-			Instruction * store = new Instruction(arithRes, NULL, result, IROpKind::Op_Store);
+			InstructionPtr store = std::make_shared<Instruction>(arithRes, nullptr, result, IROpKind::Op_Store);
 			instructinos.push_back(inst1);
 			instructinos.push_back(inst2);
 			instructinos.push_back(instArith);
