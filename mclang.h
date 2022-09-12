@@ -353,11 +353,13 @@ public:
 class SymbolTable;
 using Variable = Operand;
 using SymbolTablePtr = std::shared_ptr<SymbolTable>;
-using VarList = std::shared_ptr<std::vector<Variable *>>;
+using VariablePtr = std::shared_ptr<Variable>;
+using VarList = std::shared_ptr<std::vector<VariablePtr>>;
+
 class SymbolTable{
 public:
 	// std::string name;
-	// Variable * variables;
+	// VariablePtr variables;
 	int level;
 	//SymbolTable * symb_list;
 	//SymbolTable * symb_list_back_level;
@@ -378,12 +380,12 @@ public:
 		symb_list = std::make_shared<SymbolTable>();
 	}
 
-	bool insert(Variable * var,int level);
-	bool insert(Variable * var,Variable * newVar, int level);
+	bool insert(VariablePtr var,int level);
+	bool insert(VariablePtr var,VariablePtr newVar, int level);
 	// use a cache save inserted varibale, when leaving function, delete
 	// it from symbol table
 	void erase(std::string var_name,int level);
-	bool findVar(std::string & var_name, Variable * &);
+	bool findVar(std::string & var_name, VariablePtr &);
 };
 
 /*
@@ -406,9 +408,10 @@ public:
 
 
 	std::string functionName;
-	Variable * args;
+	// VariablePtr args;
+	std::vector<VariablePtr> args;
 	int argsNum;
-	Variable * ret;
+	VariablePtr ret;
 	ReturnTypeKind retTy;
 
 	std::string rename();
@@ -447,14 +450,14 @@ enum class IROpKind
 class Instruction{
 
 	IROpKind Op;
-	Variable * left;
-	Variable * right;
-	Variable * result;
-	int getAlign(Variable * left, Variable * right, Variable * result);
+	VariablePtr left;
+	VariablePtr right;
+	VariablePtr result;
+	int getAlign(VariablePtr left, VariablePtr right, VariablePtr result);
 
 public:
 	int Ival;
-	Instruction(Variable * left, Variable * right, Variable * result, IROpKind Op)
+	Instruction(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op)
 	{
 		this->Op = Op;
 		this->left = left;
@@ -495,7 +498,7 @@ public:
 	{
 		this->label = label;
 	}
-	void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, IRBuilder * buider);
+	void Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op, IRBuilder * buider);
 	void SetPred(Block *);
 	void SetSucc(Block *);
 	std::string CodeGen();
@@ -504,7 +507,7 @@ public:
 
 class IRBuilder{
 
-	Variable * globalVariable;
+	VariablePtr globalVariable;
 	IRFunction * function;
 	// order by label
 	std::map<int, Block *> blocks;
@@ -526,10 +529,10 @@ public:
 	void SetFunc(IRFunction * func) { function = func; }
 	std::string CodeGen();
 	// using label to index Blocks
-	bool Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label, std::string name, SymbolTablePtr table);
-	bool Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, SymbolTablePtr table);
-	bool Insert(Variable * dest, IROpKind Op, SymbolTablePtr table);
-	bool Insert(Variable * source, Variable * dest, IROpKind Op, SymbolTablePtr table);
+	bool Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op, int label, std::string name, SymbolTablePtr table);
+	bool Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op, SymbolTablePtr table);
+	bool Insert(VariablePtr dest, IROpKind Op, SymbolTablePtr table);
+	bool Insert(VariablePtr source, VariablePtr dest, IROpKind Op, SymbolTablePtr table);
 };
 
 

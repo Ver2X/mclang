@@ -115,7 +115,7 @@ std::string Block::AllocaCodeGen()
 	return s;
 }
 
-bool SymbolTable::insert(Variable * var,int level)
+bool SymbolTable::insert(VariablePtr var,int level)
 {
 	// down to special level
 	std::string var_name = var->GetName();
@@ -139,13 +139,13 @@ bool SymbolTable::insert(Variable * var,int level)
 		};
 		return finout(iter->second);
 	}
-	auto sVariable = std::make_shared<std::vector<Variable *>>();
+	auto sVariable = std::make_shared<std::vector<VariablePtr>>();
 	sVariable->push_back(var);
 	table[var_name] = sVariable;
 	return true;
 }
 
-bool SymbolTable::insert(Variable * var,Variable * newVar, int level)
+bool SymbolTable::insert(VariablePtr var,VariablePtr newVar, int level)
 {
 	// down to special level
 	std::string var_name = var->GetName();
@@ -179,7 +179,7 @@ void SymbolTable::erase(std::string var_name,int level)
 	}
 }
 
-bool SymbolTable::findVar(std::string & var_name, Variable * & result)
+bool SymbolTable::findVar(std::string & var_name, VariablePtr & result)
 {
 	//result = table.find(var_name)->second->back();
 	auto it = table.find(var_name);
@@ -225,11 +225,19 @@ std::string IRFunction::CodeGen()
 	s += "@";
 	s += rename();
 	s += "(";
-	Variable * head = args;
+	//VariablePtr head = args;
 	//s += "argsNum is :";
 	//s += std::to_string(argsNum);
 	//s += "\n";
-	for(int i = 0; i < argsNum; i++)
+	for(auto Begin = args.begin(), End = args.end(); Begin != End; Begin++)
+	{
+		s += (*Begin)->CodeGen();
+		if(Begin != End - 1)
+		{
+			s += ", ";
+		}
+	}
+	/*for(int i = 0; i < argsNum; i++)
 	{
 		assert(head != NULL);
 		s += head->CodeGen();
@@ -238,7 +246,7 @@ std::string IRFunction::CodeGen()
 			s += ", ";
 		}
 		head = head->next;
-	}
+	}*/
 	s += ")";
 	return s;
 }
@@ -252,12 +260,10 @@ std::string IRFunction::rename(){
 		s += "Z";
 	s += functionName;
 
-	Variable * head = args;
-	for(int i = 0; i < argsNum; i++)
+	for(auto arg_iter : args)
 	{
-		if(head->type == VaribleKind::VAR_32)
+		if(arg_iter->type == VaribleKind::VAR_32)
 			s += "i";
-		head = head->next;
 	}
 	return s;
 }
@@ -268,7 +274,7 @@ void IRFunction::AddArgs()
 }
 
 
-int Instruction::getAlign(Variable * left, Variable * right, Variable * result)
+int Instruction::getAlign(VariablePtr left, VariablePtr right, VariablePtr result)
 {
 	if(left != NULL && right != NULL)
 		return std::max(std::max(left->align, right->align), result->align);
@@ -277,7 +283,7 @@ int Instruction::getAlign(Variable * left, Variable * right, Variable * result)
 
 // fix me: alloca need insert at font
 
-void Block::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, IRBuilder * buider)
+void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op, IRBuilder * buider)
 {	
 
 	
@@ -306,9 +312,9 @@ void Block::Insert(Variable * left, Variable * right, Variable * result, IROpKin
 		case IROpKind::Op_MUL:
 		case IROpKind::Op_DIV:
 		{
-			Variable * load1 = new Variable();
+			VariablePtr load1 = std::make_shared<Variable>();
 			load1->SetName(next_variable_name());
-			Variable * load2 = new Variable();
+			VariablePtr load2 = std::make_shared<Variable>();
 			load2->SetName(next_variable_name());
 			Instruction * inst1 = new Instruction(left, NULL, load1, IROpKind::Op_Load);
 			Instruction * inst2 = new Instruction(right, NULL, load2, IROpKind::Op_Load);
@@ -330,7 +336,7 @@ void Block::Insert(Variable * left, Variable * right, Variable * result, IROpKin
 				default:
 					break;
 			}
-			Variable * arithRes = new Variable();
+			VariablePtr arithRes = std::make_shared<Variable>();
 			s += std::to_string(buider->GetNextCountSuffix());
 			arithRes->SetName(std::move(s));
 
@@ -367,7 +373,7 @@ void IRBuilder::SetInsertPoint(int label, std::string name)
 
 
 // extern SymbolTablePtr symTable;
-bool IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label, std::string name, SymbolTablePtr table)
+bool IRBuilder::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op, int label, std::string name, SymbolTablePtr table)
 {
 	if(entry_label < 0)
 		entry_label = label;
@@ -396,18 +402,18 @@ bool IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IRO
 
 // for Op_Alloca
 // 
-bool IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, SymbolTablePtr table)
+bool IRBuilder::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op, SymbolTablePtr table)
 {
 	return Insert(left, right, result, Op, cache_label, cache_name, table);
 }
 
-bool IRBuilder::Insert(Variable * result, IROpKind Op, SymbolTablePtr table)
+bool IRBuilder::Insert(VariablePtr result, IROpKind Op, SymbolTablePtr table)
 {
 	// store num
 	return Insert(NULL, NULL, result, Op, cache_label, cache_name, table);
 }
 
-bool IRBuilder::Insert(Variable * source, Variable * dest, IROpKind Op, SymbolTablePtr table)
+bool IRBuilder::Insert(VariablePtr source, VariablePtr dest, IROpKind Op, SymbolTablePtr table)
 {
 	// store identity
 	return Insert(source, NULL, dest, Op, cache_label, cache_name, table);
