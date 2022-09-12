@@ -258,6 +258,7 @@ static Variable * gen_variable_ir(Node *node, SymbolTablePtr table)
 				{
 					table->insert(local_variable, 0);
 				}
+				table->findVar(local_variable->GetName(), local_variable);
 				return local_variable;
 				
 				//println("  lea %d(%%rbp), %%rax", node->var->offset);
@@ -339,6 +340,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 					left->Fval = (*res)->Fval;
 					left->Ival = (*res)->Ival;
 					left->type = (*res)->type;
+					//file_out << "ASSIGN get value : "<< left->GetName() <<" = " << left->Ival <<" res is const?" << (*res)->isConst << std::endl;
 				}
 			}
 			// need bind varibale at here
@@ -376,12 +378,12 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 
 	// there must deal rhs first
 	//file_out << "arrive three 6" << std::endl;
-	Variable **left;
-	gen_expr_ir(node->rhs, res, table);
+	Variable *right = new Variable ();
+	gen_expr_ir(node->rhs, &right, table);
 	//push();
 	//file_out << "arrive three 5" << std::endl;
-	Variable **right;
-	gen_expr_ir(node->lhs, res, table);
+	Variable *left = new Variable();
+	gen_expr_ir(node->lhs, &left, table);
 	//file_out << "arrive three 4" << std::endl;
 	//pop("%rdi");
 
@@ -409,18 +411,23 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 				// assert(node->lhs->kind == ND_VAR || node->lhs->kind == ND_NUM);
 				//file_out << "arrive three 2" << std::endl;
 				if((node->lhs->kind == ND_NUM) && (node->rhs->kind == ND_NUM))
-				{
+				{	
 					assert(node->lhs != NULL);
 					assert(node->rhs != NULL);
 					if(node->lhs != NULL && node->rhs != NULL){
-						int constVaule = node->lhs->val + node->rhs->val;
+						// reload Variable '+/'-/'*/'/'
+						node->kind = ND_NUM;
+						*res = new Variable(left->Ival + right->Ival);
+						//*res = new Variable(left->Ival + right->Ival);
+						/*int constVaule = node->lhs->val + node->rhs->val;
 						Variable * l, *r;
 						(*res) = new Variable();
 						l = new Variable(node->lhs->val);
 						r = new Variable(node->rhs->val);
 						(*res)->SetName(next_variable_name());
 						InMemoryIR.Insert(l, r, (*res), IROpKind::Op_ADD, table);	
-						table->insert((*res), 0);			
+						table->insert((*res), 0);
+						*/		
 					}
 				}
 				else
@@ -488,14 +495,8 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 				if((node->lhs->kind == ND_NUM) && (node->rhs->kind == ND_NUM))
 				{
 					if(node->lhs != NULL && node->rhs != NULL){
-						int constVaule = node->lhs->val - node->rhs->val;
-						Variable * l, *r;
-						(*res) = new Variable();
-						l = new Variable(node->lhs->val);
-						r = new Variable(node->rhs->val);
-						(*res)->SetName(next_variable_name());
-						InMemoryIR.Insert(l, r, (*res), IROpKind::Op_SUB, table);	
-						table->insert((*res), 0);				
+						node->kind = ND_NUM;
+						*res = new Variable(left->Ival - right->Ival);			
 					}
 				}
 				else
@@ -554,15 +555,8 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 				if((node->lhs->kind == ND_NUM) && (node->rhs->kind == ND_NUM))
 				{
 					if(node->lhs != NULL && node->rhs != NULL){
-						(*res) = new Variable();
-						//(*res)->Ival = node->lhs->val * node->rhs->val;
-						int constVaule = node->lhs->val * node->rhs->val;
-						Variable * l, *r;
-						l = new Variable(node->lhs->val);
-						r = new Variable(node->rhs->val);
-						(*res)->SetName(next_variable_name());
-						InMemoryIR.Insert(l, r, (*res), IROpKind::Op_MUL, table);
-						table->insert((*res), 0);
+						node->kind = ND_NUM;
+						*res = new Variable(left->Ival * right->Ival);
 					}
 				}
 				else
@@ -620,15 +614,8 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 				if((node->lhs->kind == ND_NUM) && (node->rhs->kind == ND_NUM))
 				{
 					if(node->lhs != NULL && node->rhs != NULL){
-						(*res) = new Variable();
-						//(*res)->Ival = node->lhs->val * node->rhs->val;
-						int constVaule = node->lhs->val / node->rhs->val;
-						Variable * l, *r;
-						l = new Variable(node->lhs->val);
-						r = new Variable(node->rhs->val);
-						(*res)->SetName(next_variable_name());
-						InMemoryIR.Insert(l, r, (*res), IROpKind::Op_DIV, table);
-						table->insert((*res), 0);
+						node->kind = ND_NUM;
+						*res = new Variable(left->Ival / right->Ival);
 					}
 				}
 				else

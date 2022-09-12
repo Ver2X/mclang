@@ -5,10 +5,10 @@ int main(int kk, int h, int g)
     int c = 4;
     int d;
     t = h + g;
-    c = 5 + 4;
-    c = 5 - 4;
-    c = 5 * 4;
-    c = 5 / 4;
+    c = 54 - 7;
+    c = 55 - 2;
+    c = 75 * 4;
+    c = 50 / 4 + 5;
     d = c + a;
     d = c - a;
     d = c * a;

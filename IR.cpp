@@ -30,11 +30,14 @@ std::string Operand::CodeGen()
 	s += name;
 	return s;
 }
+#define DEBUG 1
+#define RPINT_VALUE { if(Op != IROpKind::Op_Alloca) s += ";     left:" + std::to_string(left->Ival) + " right:" + std::to_string(right->Ival) + " result:" + std::to_string(result->Ival) + "\n";}
 
 std::string Instruction::CodeGen()
 {
 	std::string s;
 	assert(result != NULL);
+
 	switch(Op)
 	{		
 		case IROpKind::Op_ADD:
@@ -43,6 +46,7 @@ std::string Instruction::CodeGen()
 			s += ", ";
 			s += right->GetName();
 			s += ", align " + std::to_string(result->align) + "\n";
+
 			break;
 		case IROpKind::Op_SUB:
 			s += "  " + result->GetName() + " = " + "sub ";
@@ -71,6 +75,9 @@ std::string Instruction::CodeGen()
 		default:
 			break;
 	}
+	#if DEBUG
+		RPINT_VALUE		
+	#endif
 	return s;
 }
 
@@ -132,6 +139,9 @@ bool SymbolTable::insert(Variable * var,Variable * newVar, int level)
 	// down to special level
 	std::string var_name = var->GetName();
 	auto iter = table.find(var_name);
+	if(iter == table.end()){
+		return false;
+	}
 	assert(iter != table.end());
 	auto finout = [=](VarList vars){
 		auto res = std::find(vars->begin(), vars->end(), newVar);
