@@ -79,28 +79,32 @@ std::string Instruction::CodeGen()
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
-			s += ", align " + std::to_string(result->align) + "\n";
+			s += "\n";
+			// s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case IROpKind::Op_SUB:
 			s += "  " + result->GetName() + " = " + "sub nsw i32 ";
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
-			s += ", align " + std::to_string(result->align) + "\n";
+			s += "\n";
+			// s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case IROpKind::Op_MUL:
 			s += "  " + result->GetName() + " = " + "mul nsw i32 ";
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
-			s += ", align " + std::to_string(result->align) + "\n";
+			s += "\n";
+			// s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case IROpKind::Op_DIV:
 			s += "  " + result->GetName() + " = " + "sdiv i32 ";
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
-			s += ", align " + std::to_string(result->align) + "\n";
+			s += "\n";
+			// s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case IROpKind::Op_Alloca:
 			s += "  " + result->GetName() + " = " + "alloca i32 " + ", align " + std::to_string(result->align) + "\n";
@@ -130,7 +134,6 @@ std::string Instruction::CodeGen()
 std::string Block::CodeGen()
 {
 	std::string s;
-	// s += name + ":\n";
 	for(const auto & ins : instructinos)
 	{
 		s += ins->CodeGen();
@@ -141,7 +144,7 @@ std::string Block::CodeGen()
 std::string Block::AllocaCodeGen()
 {
 	std::string s;
-	// s += name + ":\n";
+	s += name + ":\n";
 	for(const auto & ins : allocas)
 	{
 		s += ins->CodeGen();
