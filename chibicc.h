@@ -236,7 +236,7 @@ int align_to(int n, int align);
 
 
 
-enum ReturnTypeKind
+enum class ReturnTypeKind
 {
 	RTY_INT,
 	RTY_SHORT,
@@ -250,14 +250,14 @@ enum ReturnTypeKind
 };
 
 
-typedef enum
+enum class VaribleKind
 {
 	VAR_8,
 	VAR_16,
 	VAR_32,
 	VAR_64,
 	VAR_PRT,
-}VaribleKind;
+};
 
 
 class Operand {
@@ -400,7 +400,7 @@ public:
 };
 
 
-typedef enum
+enum class IROpKind
 {
 	Op_ADD,  		// +
 	Op_SUB,  		// -
@@ -419,7 +419,7 @@ typedef enum
 	Op_Alloca,  // allcoa
 	Op_STMT_EXPR,   // statement expression
 	Op_MEMBER,		// . (struct member access)
-}IROpKind;
+};
 
 
 
@@ -502,7 +502,6 @@ public:
 	// using label to index Blocks
 	bool Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label, std::string name, SymbolTablePtr table);
 	bool Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, SymbolTablePtr table);
-	//void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, Variable *& AllocaResult);
 };
 
 

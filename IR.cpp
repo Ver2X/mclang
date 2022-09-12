@@ -8,19 +8,19 @@ std::string Operand::CodeGen()
 	switch (type)
 	{
 		
-		case VAR_8:
+		case VaribleKind::VAR_8:
 			s += "i8 ";
 			break;
-		case VAR_16:
+		case VaribleKind::VAR_16:
 			s += "i16 ";
 			break;
-		case VAR_32:
+		case VaribleKind::VAR_32:
 			s += "i32 ";
 			break;
-		case VAR_64:
+		case VaribleKind::VAR_64:
 			s += "i64 ";
 			break;
-		case VAR_PRT:
+		case VaribleKind::VAR_PRT:
 			s += "i32* ";
 			break;
 		default:
@@ -37,7 +37,7 @@ std::string Instruction::CodeGen()
 	assert(result != NULL);
 	switch(Op)
 	{		
-		case Op_ADD:
+		case IROpKind::Op_ADD:
 			s += "  " + result->name + " = " + "add ";
 			if(left->isConst)
 				s += left->name;
@@ -50,7 +50,7 @@ std::string Instruction::CodeGen()
 				s += Twine("%", right->name);
 			s += ", align " + std::to_string(result->align) + "\n";
 			break;
-		case Op_SUB:
+		case IROpKind::Op_SUB:
 			s += "  " + result->name + " = " + "sub ";
 			if(left->isConst)
 				s += left->name;
@@ -63,7 +63,7 @@ std::string Instruction::CodeGen()
 				s += Twine("%", right->name);
 			s += ", align " + std::to_string(result->align) + "\n";
 			break;
-		case Op_MUL:
+		case IROpKind::Op_MUL:
 			s += "  " + result->name + " = " + "mul ";
 			if(left->isConst)
 				s += left->name;
@@ -76,7 +76,7 @@ std::string Instruction::CodeGen()
 				s += Twine("%", right->name);
 			s += ", align " + std::to_string(result->align) + "\n";
 			break;
-		case Op_DIV:
+		case IROpKind::Op_DIV:
 			s += "  " + result->name + " = " + "sdiv ";
 			if(left->isConst)
 				s += left->name;
@@ -89,7 +89,7 @@ std::string Instruction::CodeGen()
 				s += Twine("%", right->name);
 			s += ", align " + std::to_string(result->align) + "\n";
 			break;
-		case Op_Alloca:
+		case IROpKind::Op_Alloca:
 			s += "  %" + result->name + " = " + "alloca i32 " + ", align " + std::to_string(result->align) + "\n";
 			break;
 		default:
@@ -249,7 +249,7 @@ void Block::Insert(Variable * left, Variable * right, Variable * result, IROpKin
 {	
 
 	Instruction * inst = new Instruction(left, right, result, Op);
-	if(Op == Op_Alloca){
+	if(Op == IROpKind::Op_Alloca){
 		allocas.push_back(inst);
 	}
 	else
@@ -285,7 +285,7 @@ bool IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IRO
 		blocks.insert(std::make_pair(label, block));
 	}
 
-	if(Op == Op_Alloca){
+	if(Op == IROpKind::Op_Alloca){
 		if(!table->findVar(result->name, result)){
 			blocks[entry_label]->Insert(left, right, result, Op);	
 			return true;
