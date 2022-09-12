@@ -1,6 +1,5 @@
 #include "mclang.h"
 extern std::fstream file_out;
-
 //////////////////////////////////////////////////////////////////////////     //////////////////////////////////////////////////////////////////////////////////
 std::string Operand::CodeGen()
 {
@@ -31,7 +30,7 @@ std::string Operand::CodeGen()
 	return s;
 }
 #define DEBUG 1
-#define RPINT_VALUE { if(Op != IROpKind::Op_Alloca && Op !=  IROpKind::Op_Store) s += ";     left:" + std::to_string(left->Ival) + " right:" + std::to_string(right->Ival) + " result:" + std::to_string(result->Ival) + "\n";}
+#define RPINT_VALUE { if(Op != IROpKind::Op_Alloca && Op !=  IROpKind::Op_Store && Op != IROpKind::Op_Load) s += ";     left:" + std::to_string(left->Ival) + " right:" + std::to_string(right->Ival) + " result:" + std::to_string(result->Ival) + "\n";}
 
 std::string Instruction::CodeGen()
 {
@@ -73,8 +72,17 @@ std::string Instruction::CodeGen()
 			s += "  " + result->GetName() + " = " + "alloca i32 " + ", align " + std::to_string(result->align) + "\n";
 			break;
 		case IROpKind::Op_Store:
-			s += "  store i32 " +  std::to_string(this->Ival) + ", i32* " + result->GetName()  + ", align " + std::to_string(result->align) + "\n";
-			break;
+			{
+				if(left == NULL)
+					s += "  store i32 " +  std::to_string(this->Ival) + ", i32* " + result->GetName()  + ", align " + std::to_string(result->align) + "\n";
+				else
+					s += "  store i32 " +  left->GetName() + ", i32* " + result->GetName()  + ", align " + std::to_string(result->align) + "\n";
+				break;
+			}
+			
+		case IROpKind::Op_Load:
+			s += "  " + result->GetName() + " = load i32, " + "i32* " + left->GetName()  + ", align " + std::to_string(left->align) + "\n";
+			break;	
 		default:
 			break;
 	}
@@ -268,18 +276,78 @@ int Instruction::getAlign(Variable * left, Variable * right, Variable * result)
 }
 
 // fix me: alloca need insert at font
-void Block::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op)
+
+void Block::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, IRBuilder * buider)
 {	
 
-	Instruction * inst = new Instruction(left, right, result, Op);
-	if(Op == IROpKind::Op_Alloca){
-		allocas.push_back(inst);
-	}
-	else{
-		if(Op == IROpKind::Op_Store)
-			inst->Ival = result->Ival;
-		instructinos.push_back(inst);
-	}
+	
+	switch(Op)
+	{
+		// shouldn't change order
+		case IROpKind::Op_Alloca:
+		{
+			Instruction * inst = new Instruction(left, right, result, Op);
+			allocas.push_back(inst);
+		}
+		case IROpKind::Op_Store:
+		{
+			Instruction * inst = new Instruction(left, right, result, Op);
+			if(Op == IROpKind::Op_Store){
+				if(left == NULL && right == NULL){
+					if(Op == IROpKind::Op_Store)
+						inst->Ival = result->Ival;
+				}
+				instructinos.push_back(inst);
+			}
+			return;
+		}
+		case IROpKind::Op_ADD:
+		case IROpKind::Op_SUB:
+		case IROpKind::Op_MUL:
+		case IROpKind::Op_DIV:
+		{
+			Variable * load1 = new Variable();
+			load1->SetName(next_variable_name());
+			Variable * load2 = new Variable();
+			load2->SetName(next_variable_name());
+			Instruction * inst1 = new Instruction(left, NULL, load1, IROpKind::Op_Load);
+			Instruction * inst2 = new Instruction(right, NULL, load2, IROpKind::Op_Load);
+			std::string s;
+			switch(Op)
+			{
+				case IROpKind::Op_ADD:
+					s = "%add";
+					break;
+				case IROpKind::Op_SUB:
+					s = "%sub";
+					break;
+				case IROpKind::Op_MUL:
+					s = "%mul";
+					break;
+				case IROpKind::Op_DIV:
+					s = "%div";
+					break;
+				default:
+					break;
+			}
+			Variable * arithRes = new Variable();
+			s += std::to_string(buider->GetNextCountSuffix());
+			arithRes->SetName(std::move(s));
+
+			Instruction * instArith = new Instruction(load1, load2, arithRes, Op);
+
+			Instruction * store = new Instruction(arithRes, NULL, result, IROpKind::Op_Store);
+			instructinos.push_back(inst1);
+			instructinos.push_back(inst2);
+			instructinos.push_back(instArith);
+			instructinos.push_back(store);
+			
+
+			return;
+		}
+		default:
+			return; 
+	}		
 }
 
 void IRBuilder::SetInsertPoint(int label, std::string name)
@@ -313,19 +381,21 @@ bool IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IRO
 
 	if(Op == IROpKind::Op_Alloca){
 		if(!table->findVar(result->GetName(), result)){
-			blocks[entry_label]->Insert(left, right, result, Op);	
+			blocks[entry_label]->Insert(left, right, result, Op, this);	
 			return true;
 		}else{
 			return false;	
 		}
 	}
 	else{
-		blocks[label]->Insert(left, right, result, Op);
+		blocks[label]->Insert(left, right, result, Op, this);
 		return true;
 	}
 	// std::cout << "in ssss" << std::endl;
 }
 
+// for Op_Alloca
+// 
 bool IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, SymbolTablePtr table)
 {
 	return Insert(left, right, result, Op, cache_label, cache_name, table);
@@ -333,8 +403,17 @@ bool IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IRO
 
 bool IRBuilder::Insert(Variable * result, IROpKind Op, SymbolTablePtr table)
 {
+	// store num
 	return Insert(NULL, NULL, result, Op, cache_label, cache_name, table);
 }
+
+bool IRBuilder::Insert(Variable * source, Variable * dest, IROpKind Op, SymbolTablePtr table)
+{
+	// store identity
+	return Insert(source, NULL, dest, Op, cache_label, cache_name, table);
+}
+
+
 std::string IRBuilder::CodeGen()
 {
 	std::string s;

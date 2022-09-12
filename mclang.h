@@ -14,6 +14,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <tuple>
 #include <unordered_map>
 typedef struct Node Node;
 typedef struct Type Type;
@@ -466,6 +467,8 @@ public:
 	std::string CodeGen();
  };
 
+class IRBuilder;
+
 class Block{
 
 	Block * preds;
@@ -492,7 +495,7 @@ public:
 	{
 		this->label = label;
 	}
-	void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op);
+	void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, IRBuilder * buider);
 	void SetPred(Block *);
 	void SetSucc(Block *);
 	std::string CodeGen();
@@ -508,6 +511,7 @@ class IRBuilder{
 	int cache_label;
 	int entry_label;
 	std::string cache_name;
+	int count_suffix;
 public:
 	IRBuilder()
 	{
@@ -515,17 +519,21 @@ public:
 		entry_label = -1;
 		globalVariable = NULL;
 		function = NULL;
+		count_suffix = 1;
 	}
+	int GetNextCountSuffix() { return count_suffix++; }
 	void SetInsertPoint(int label, std::string name);
 	void SetFunc(IRFunction * func) { function = func; }
 	std::string CodeGen();
 	// using label to index Blocks
 	bool Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label, std::string name, SymbolTablePtr table);
 	bool Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, SymbolTablePtr table);
-	bool Insert(Variable * result, IROpKind Op, SymbolTablePtr table);
+	bool Insert(Variable * dest, IROpKind Op, SymbolTablePtr table);
+	bool Insert(Variable * source, Variable * dest, IROpKind Op, SymbolTablePtr table);
 };
 
 
 void emit_ir(Obj * prog);
 std::string Twine(std::string &l, std::string & r);
 std::string Twine(std::string l, std::string r);
+std::string next_variable_name();

@@ -33,7 +33,7 @@ static int next_variable_name_number()
 	return next_variable_name_v++;
 }
 
-static std::string next_variable_name()
+std::string next_variable_name()
 {
 	std::string name = Twine("%" , std::to_string(next_variable_name_number()));
 	return name;
@@ -82,8 +82,11 @@ void emit_ir(Obj * prog)
 		//int i = 0;
 		Variable * head = NULL;
 		Variable * arg_variable;
+		Variable * arg_variable_addr;
+		std::vector<std::tuple<Variable *, Variable *>> arg_variable_pair;
 		// SymbolTable * loca_table = new SymbolTable(&symTable);
 		auto loca_table = std::make_shared<SymbolTable>(symTable);
+
 		/// Cache and release variable
 		for(Obj * var = fn->params; var; var = var->next)
 		{
@@ -97,15 +100,23 @@ void emit_ir(Obj * prog)
 				{
 					// var->name
 					arg_variable->type = VaribleKind::VAR_8;
-					arg_variable->SetName(getPreName(var->name));
-					loca_table->insert(arg_variable, 0);
+					arg_variable->SetName(getPreName(var->name));					
+
+					arg_variable_addr = new Variable();
+					arg_variable_addr->SetName(Twine(getPreName(var->name), ".addr"));
+					arg_variable_pair.push_back(std::tuple<Variable *, Variable *>(arg_variable, arg_variable_addr));
+					loca_table->insert(arg_variable_addr, 0);
 					break;
 				}
 				case 2:
 				{
 					arg_variable->type = VaribleKind::VAR_16;
 					arg_variable->SetName(getPreName(var->name));
-					loca_table->insert(arg_variable, 0);
+
+					arg_variable_addr = new Variable();
+					arg_variable_addr->SetName(Twine(getPreName(var->name), ".addr"));
+					arg_variable_pair.push_back(std::tuple<Variable *, Variable *>(arg_variable, arg_variable_addr));
+					loca_table->insert(arg_variable_addr, 0);					
 					break;
 				}
 				case 4:
@@ -113,6 +124,11 @@ void emit_ir(Obj * prog)
 					arg_variable->type = VaribleKind::VAR_32;
 					arg_variable->SetName(getPreName(var->name));
 					loca_table->insert(arg_variable, 0);
+
+					arg_variable_addr = new Variable();
+					arg_variable_addr->SetName(Twine(getPreName(var->name), ".addr"));
+					arg_variable_pair.push_back(std::tuple<Variable *, Variable *>(arg_variable, arg_variable_addr));
+					loca_table->insert(arg_variable_addr, 0);
 					break;
 				}
 				case 8:
@@ -120,6 +136,11 @@ void emit_ir(Obj * prog)
 					arg_variable->type = VaribleKind::VAR_64;
 					arg_variable->SetName(getPreName(var->name));					
 					loca_table->insert(arg_variable, 0);
+
+					arg_variable_addr = new Variable();
+					arg_variable_addr->SetName(Twine(getPreName(var->name), ".addr"));
+					arg_variable_pair.push_back(std::tuple<Variable *, Variable *>(arg_variable, arg_variable_addr));
+					loca_table->insert(arg_variable_addr, 0);
 					break;
 				}
 				default:
@@ -140,6 +161,7 @@ void emit_ir(Obj * prog)
 					head = head->next;
 				}
 			}
+
 			(func->argsNum)++;
 		}
 
@@ -147,6 +169,11 @@ void emit_ir(Obj * prog)
 		// emit code
 
 		InMemoryIR.SetInsertPoint(next_variable_name_number(), "entry");
+		for(auto p : arg_variable_pair)
+		{
+			InMemoryIR.Insert(NULL, NULL, std::get<1>(p), IROpKind::Op_Alloca, symTable);
+			InMemoryIR.Insert(std::get<0>(p), NULL, std::get<1>(p), IROpKind::Op_Store, symTable);
+		}
 		////////// maybe need generate Block first
 		//file_out << "arrive three 7" << std::endl;
 		gen_stmt_ir(fn->body, loca_table);
@@ -330,8 +357,11 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 			//push();
 			gen_expr_ir(node->rhs, res, table);
 			if(left != NULL){
-				if(!(*res)->isConst)
-					table->insert(left, *res, 0);
+				if(!(*res)->isConst){
+					left->isConst = false;
+					InMemoryIR.Insert(*res, left, IROpKind::Op_Store, table);
+					// table->insert(left, *res, 0);
+				}
 				else
 				{
 					left->isConst = false;
