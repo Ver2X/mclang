@@ -1,7 +1,7 @@
 #include "chibicc.h"
 
-static void gen_stmt_ir(Node * node, SymbolTable *);
-static void gen_expr_ir(Node *node, Variable **, SymbolTable *);
+static void gen_stmt_ir(Node * node, SymbolTablePtr);
+static void gen_expr_ir(Node *node, Variable **, SymbolTablePtr);
 static void gen_func_arg_ir(Obj * var, int r, int offset, int sz);
 extern std::fstream file_out;
 extern int depth;
@@ -40,7 +40,7 @@ static std::string next_variable_name()
 }
 
 IRBuilder InMemoryIR;
-SymbolTable symTable;
+SymbolTablePtr symTable = std::make_shared<SymbolTable>();
 
 // emit IR
 void emit_ir(Obj * prog)
@@ -63,21 +63,21 @@ void emit_ir(Obj * prog)
  		switch(fn->ty->return_ty->kind)
  		{
  			case TY_INT:
- 				func->retTy = RTY_INT;
+ 				func->retTy = ReturnTypeKind::RTY_INT;
  				break;
  			case TY_CHAR:
- 				func->retTy = RTY_CHAR;
+ 				func->retTy = ReturnTypeKind::RTY_CHAR;
  				break;
  			default:
- 				func->retTy = RTY_PTR;
+ 				func->retTy = ReturnTypeKind::RTY_PTR;
  				break;
  		}
 		// save passed-by-register arguments to the stack
 		//int i = 0;
 		Variable * head = NULL;
 		Variable * arg_variable;
-		SymbolTable * loca_table = new SymbolTable(&symTable);
-
+		// SymbolTable * loca_table = new SymbolTable(&symTable);
+		auto loca_table = std::make_shared<SymbolTable>(symTable);
 		/// Cache and release variable
 		for(Obj * var = fn->params; var; var = var->next)
 		{
@@ -158,7 +158,7 @@ void emit_ir(Obj * prog)
 
 
 
-static void gen_stmt_ir(Node * node, SymbolTable * table)
+static void gen_stmt_ir(Node * node, SymbolTablePtr table)
 {
 	//println("  .loc 1 %d", node->tok->line_no);
 	switch(node->kind)
@@ -237,7 +237,7 @@ static void gen_stmt_ir(Node * node, SymbolTable * table)
 
 
 
-static Variable * gen_variable_ir(Node *node, SymbolTable * table)
+static Variable * gen_variable_ir(Node *node, SymbolTablePtr table)
 {
 	switch(node->kind)
 	{
@@ -248,10 +248,12 @@ static Variable * gen_variable_ir(Node *node, SymbolTable * table)
 				Variable * local_variable = new Variable();
 				local_variable->name = node->var->name;
 				local_variable->type = VAR_32;
-				if(table->insert(local_variable, 0))
-					InMemoryIR.Insert(NULL, NULL, local_variable, Op_Alloca);
+				if(InMemoryIR.Insert(NULL, NULL, local_variable, Op_Alloca, table))
+				{
+					table->insert(local_variable, 0);
+				}
 				return local_variable;
-				//file_out << "\nalloca a varibale !!!" << std::endl;
+				
 				//println("  lea %d(%%rbp), %%rax", node->var->offset);
 			}
 			else
@@ -288,7 +290,7 @@ static Variable * gen_variable_ir(Node *node, SymbolTable * table)
 
 
 // stack machine
-static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
+static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 {
 	//println("  .loc 1 %d", node->tok->line_no);
 	// left = ...;
@@ -396,7 +398,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 						l = new Variable(node->lhs->val);
 						r = new Variable(node->rhs->val);
 						(*res)->name = next_variable_name();
-						InMemoryIR.Insert(l, r, (*res), Op_ADD);	
+						InMemoryIR.Insert(l, r, (*res), Op_ADD, table);	
 						table->insert((*res), 0);			
 					}
 				}
@@ -415,7 +417,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 								Variable * l;
 								l = new Variable(node->lhs->val);
 								(*res)->name = next_variable_name();
-								InMemoryIR.Insert(l, r, (*res), Op_ADD);
+								InMemoryIR.Insert(l, r, (*res), Op_ADD, table);
 								table->insert((*res), 0);
 							}
 						}
@@ -432,7 +434,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 								Variable * r;
 								r = new Variable(node->rhs->val);
 								(*res)->name = next_variable_name();
-								InMemoryIR.Insert(l, r, (*res), Op_ADD);
+								InMemoryIR.Insert(l, r, (*res), Op_ADD, table);
 								table->insert((*res), 0);
 							}
 						}
@@ -448,7 +450,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 								(*res) = new Variable();
 								//(*res)->Ival = l->Ival + r->Ival;
 								(*res)->name = next_variable_name();
-								InMemoryIR.Insert(l, r, (*res), Op_ADD);
+								InMemoryIR.Insert(l, r, (*res), Op_ADD, table);
 								table->insert((*res), 0);
 							}
 						}
@@ -471,7 +473,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 						l = new Variable(node->lhs->val);
 						r = new Variable(node->rhs->val);
 						(*res)->name = next_variable_name();
-						InMemoryIR.Insert(l, r, (*res), Op_SUB);	
+						InMemoryIR.Insert(l, r, (*res), Op_SUB, table);	
 						table->insert((*res), 0);				
 					}
 				}
@@ -488,7 +490,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 								Variable * l;
 								l = new Variable(node->lhs->val);
 								(*res)->name = next_variable_name();
-								InMemoryIR.Insert(l, r, (*res), Op_SUB);
+								InMemoryIR.Insert(l, r, (*res), Op_SUB, table);
 								table->insert((*res), 0);
 							}
 						}
@@ -503,7 +505,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 								Variable * r;
 								r = new Variable(node->rhs->val);
 								(*res)->name = next_variable_name();
-								InMemoryIR.Insert(l, r, (*res), Op_SUB);
+								InMemoryIR.Insert(l, r, (*res), Op_SUB, table);
 								table->insert((*res), 0);
 							}
 						}
@@ -516,7 +518,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 								(*res) = new Variable();
 								//(*res)->Ival = l->Ival - r->Ival;
 								(*res)->name = next_variable_name();
-								InMemoryIR.Insert(l, r, (*res), Op_SUB);
+								InMemoryIR.Insert(l, r, (*res), Op_SUB, table);
 								table->insert((*res), 0);
 							}
 						}
@@ -538,7 +540,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 						l = new Variable(node->lhs->val);
 						r = new Variable(node->rhs->val);
 						(*res)->name = next_variable_name();
-						InMemoryIR.Insert(l, r, (*res), Op_MUL);
+						InMemoryIR.Insert(l, r, (*res), Op_MUL, table);
 						table->insert((*res), 0);
 					}
 				}
@@ -555,7 +557,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 								Variable * l;
 								l = new Variable(node->lhs->val);
 								(*res)->name = next_variable_name();
-								InMemoryIR.Insert(l, r, (*res), Op_MUL);
+								InMemoryIR.Insert(l, r, (*res), Op_MUL, table);
 								table->insert((*res), 0);
 							}
 						}
@@ -570,7 +572,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 								Variable * r;
 								r = new Variable(node->rhs->val);
 								(*res)->name = next_variable_name();
-								InMemoryIR.Insert(l, r, (*res), Op_MUL);
+								InMemoryIR.Insert(l, r, (*res), Op_MUL, table);
 								table->insert((*res), 0);
 							}
 						}
@@ -583,7 +585,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 								(*res) = new Variable();
 								//(*res)->Ival = l->Ival * r->Ival;
 								(*res)->name = next_variable_name();
-								InMemoryIR.Insert(l, r, (*res), Op_MUL);
+								InMemoryIR.Insert(l, r, (*res), Op_MUL, table);
 								table->insert((*res), 0);
 							}
 						}
@@ -604,7 +606,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 						l = new Variable(node->lhs->val);
 						r = new Variable(node->rhs->val);
 						(*res)->name = next_variable_name();
-						InMemoryIR.Insert(l, r, (*res), Op_DIV);
+						InMemoryIR.Insert(l, r, (*res), Op_DIV, table);
 						table->insert((*res), 0);
 					}
 				}
@@ -621,7 +623,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 								Variable * l;
 								l = new Variable(node->lhs->val);
 								(*res)->name = next_variable_name();
-								InMemoryIR.Insert(l, r, (*res), Op_DIV);
+								InMemoryIR.Insert(l, r, (*res), Op_DIV, table);
 								table->insert((*res), 0);
 							}
 						}
@@ -636,7 +638,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 								Variable * r;
 								r = new Variable(node->rhs->val);
 								(*res)->name = next_variable_name();
-								InMemoryIR.Insert(l, r, (*res), Op_DIV);
+								InMemoryIR.Insert(l, r, (*res), Op_DIV, table);
 								table->insert((*res), 0);
 							}
 						}
@@ -649,7 +651,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTable * table)
 								(*res) = new Variable();
 								//(*res)->Ival = l->Ival * r->Ival;
 								(*res)->name = next_variable_name();
-								InMemoryIR.Insert(l, r, (*res), Op_DIV);
+								InMemoryIR.Insert(l, r, (*res), Op_DIV, table);
 								table->insert((*res), 0);
 							}
 						}

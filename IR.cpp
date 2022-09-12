@@ -125,11 +125,29 @@ bool SymbolTable::insert(Variable * var,int level)
 {
 	// down to special level
 	std::string var_name = var->name;
-	if(auto iter = table.find(var_name) != table.end())
+	auto iter = table.find(var_name);
+
+	if(iter != table.end())
 	{
-		return false;
+		
+					
+		auto finout = [=](VarList vars){
+			auto res = std::find(vars->begin(), vars->end(), var);
+			if(res != vars->end())
+			{
+				return false;
+			}
+			else
+			{
+				vars->push_back(var);
+				return true;
+			}	
+		};
+		return finout(iter->second);
 	}
-	table.insert(make_pair(var_name, var));
+	auto sVariable = std::make_shared<std::vector<Variable *>>();
+	sVariable->push_back(var);
+	table[var_name] = sVariable;
 	return true;
 }
 // use a cache save inserted varibale, when leaving function, delete
@@ -145,11 +163,15 @@ void SymbolTable::erase(std::string var_name,int level)
 
 bool SymbolTable::findVar(std::string & var_name, Variable * & result)
 {
-	result = table.find(var_name)->second;
-	if(result == NULL)
+	//result = table.find(var_name)->second->back();
+	auto it = table.find(var_name);
+	if(it == table.end())
+	{
+		// shouldn't flush result !!!
+		// it will make insert alloca instruction error
 		return false;
-	else{
-		assert(result != NULL);
+	}else{
+		result = it->second->back();
 		return true;
 	}
 }
@@ -164,16 +186,16 @@ std::string IRFunction::CodeGen()
 	s += "define dso_local ";
 	switch (retTy)
 	{
-		case RTY_VOID:
+		case ReturnTypeKind::RTY_VOID:
 			s += "void ";
 			break;
-		case RTY_INT:
+		case ReturnTypeKind::RTY_INT:
 			s += "i32 ";
 			break;
-		case RTY_CHAR:
+		case ReturnTypeKind::RTY_CHAR:
 			s += "signext i8 ";
 			break;
-		case RTY_PTR:
+		case ReturnTypeKind::RTY_PTR:
 			// dump de type
 			s += "i32";
 			s+="* ";
@@ -249,7 +271,9 @@ void IRBuilder::SetInsertPoint(int label, std::string name)
 	cache_name = name;
 }
 
-void IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label, std::string name)
+
+// extern SymbolTablePtr symTable;
+bool IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label, std::string name, SymbolTablePtr table)
 {
 	if(entry_label < 0)
 		entry_label = label;
@@ -260,18 +284,29 @@ void IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IRO
 		block->SetLabel(label);
 		blocks.insert(std::make_pair(label, block));
 	}
+
 	if(Op == Op_Alloca){
-		blocks[entry_label]->Insert(left, right, result, Op);
+		if(!table->findVar(result->name, result)){
+			blocks[entry_label]->Insert(left, right, result, Op);	
+			return true;
+		}else{
+			return false;	
+		}
 	}
-	else
+	else{
 		blocks[label]->Insert(left, right, result, Op);
+		return true;
+	}
 	// std::cout << "in ssss" << std::endl;
 }
 
-void IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op)
+bool IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, SymbolTablePtr table)
 {
-	Insert(left, right, result, Op, cache_label, cache_name);
+	return Insert(left, right, result, Op, cache_label, cache_name, table);
 }
+
+/*void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, Variable * AllocaResult)
+{}*/
 
 std::string IRBuilder::CodeGen()
 {

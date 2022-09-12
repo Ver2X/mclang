@@ -1,8 +1,10 @@
 CFLAGS=-std=c17 -g -fno-common
-CPPFLAGS=-std=c++17 -g -fno-common
+STD=c++2a
+CXX=g++
+CPPFLAGS=-std=$(STD) -g -fno-common
 
-GCC_CXXFLAGS = -DMESSAGE='"Compiled with GCC"'
-CLANG_CXXFLAGS = -DMESSAGE='"Compiled with Clang"'
+GCC_CXXFLAGS = -DMESSAGE='"Compiled with G++"'
+CLANG_CXXFLAGS = -DMESSAGE='"Compiled with Clang++"'
 UNKNOWN_CXXFLAGS = -DMESSAGE='"Compiled with an unknown compiler"'
 
 ifeq ($(CXX),g++)

@@ -12,6 +12,7 @@
 #include <map>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <vector>
 #include <unordered_map>
 typedef struct Node Node;
@@ -235,7 +236,7 @@ int align_to(int n, int align);
 
 
 
-typedef enum
+enum ReturnTypeKind
 {
 	RTY_INT,
 	RTY_SHORT,
@@ -246,7 +247,7 @@ typedef enum
 	RTY_STRUCT,
 	RTY_UNION,
 	RTY_VOID,
-}ReturnTypeKind;
+};
 
 
 typedef enum
@@ -332,27 +333,32 @@ public:
 
 	std::string CodeGen();
 };
-
+class SymbolTable;
 using Variable = Operand;
-
+using SymbolTablePtr = std::shared_ptr<SymbolTable>;
+using VarList = std::shared_ptr<std::vector<Variable *>>;
 class SymbolTable{
 public:
 	// std::string name;
 	// Variable * variables;
 	int level;
-	SymbolTable * symb_list;
-	SymbolTable * symb_list_back_level;
-	std::map<std::string, Variable *> table; // global
+	//SymbolTable * symb_list;
+	//SymbolTable * symb_list_back_level;
+	
+	SymbolTablePtr symb_list;
+	SymbolTablePtr symb_list_back_level;
+	
+	std::map<std::string,  VarList > table; // global
 
 	SymbolTable()
 	{
 
 	}
 
-	SymbolTable(SymbolTable * fa)
+	SymbolTable(SymbolTablePtr fa)
 	{
 		symb_list_back_level = fa;
-		symb_list = new SymbolTable();
+		symb_list = std::make_shared<SymbolTable>();
 	}
 
 	bool insert(Variable * var,int level);
@@ -377,7 +383,7 @@ public:
 	IRFunction()
 	{
 		argsNum = 0;
-		retTy = RTY_VOID; 
+		retTy = ReturnTypeKind::RTY_VOID; 
 	}
 
 
@@ -494,8 +500,9 @@ public:
 	void SetFunc(IRFunction * func) { function = func; }
 	std::string CodeGen();
 	// using label to index Blocks
-	void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label, std::string name);
-	void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op);
+	bool Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label, std::string name, SymbolTablePtr table);
+	bool Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, SymbolTablePtr table);
+	//void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, Variable *& AllocaResult);
 };
 
 
