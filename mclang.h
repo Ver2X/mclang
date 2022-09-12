@@ -13,6 +13,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <stack>
 #include <vector>
 #include <tuple>
 #include <unordered_map>
@@ -315,35 +316,9 @@ public:
 		type = VaribleKind::VAR_64;
 	}	
 
-	void SetConst(double v)
-	{
-		Fval = v;
-		next = NULL;
-		align = 8;
-		isConst = true;
-		name = std::to_string(Fval);
-		type = VaribleKind::VAR_64;
-	}	
-
-	void SetConst(int v)
-	{
-		Ival = v;
-		next = NULL;
-		align = 4;
-		isConst = true;
-		name = std::to_string(Ival);
-		type = VaribleKind::VAR_32;
-	}	
-
-	void SetConst(int64_t v)
-	{
-		Ival = v;
-		next = NULL;
-		align = 8;
-		isConst = true;
-		name = std::to_string(Ival);
-		type = VaribleKind::VAR_64;
-	}	
+	void SetConst(double v);
+	void SetConst(int v);
+	void SetConst(int64_t v);
 
 	std::string CodeGen();
 };

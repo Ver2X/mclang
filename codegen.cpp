@@ -147,6 +147,8 @@ static void gen_expr(Node *node)
 			return ;
 		case ND_VAR:
 		case ND_MEMBER:
+			//if(node->var != NULL)
+			//	file_out << "asm local variable name :" << node->var->name << std::endl;
 			gen_addr(node);
 			load(node->ty);
 			return ;

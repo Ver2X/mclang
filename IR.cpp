@@ -1,6 +1,41 @@
 #include "mclang.h"
 extern std::fstream file_out;
 //////////////////////////////////////////////////////////////////////////     //////////////////////////////////////////////////////////////////////////////////
+
+void Operand::SetConst(double v)
+{
+	Fval = v;
+	next = NULL;
+	align = 8;
+	isConst = true;
+	name = std::to_string(Fval);
+	type = VaribleKind::VAR_64;
+}	
+
+void Operand::SetConst(int v)
+{
+	Ival = v;
+	next = NULL;
+	align = 4;
+	isConst = true;
+	name = std::to_string(Ival);
+	type = VaribleKind::VAR_32;
+}	
+
+void Operand::SetConst(int64_t v)
+{
+	Ival = v;
+	next = NULL;
+	align = 8;
+	isConst = true;
+	name = std::to_string(Ival);
+	type = VaribleKind::VAR_64;
+}	
+
+
+
+
+
 std::string Operand::CodeGen()
 {
 	std::string s;
@@ -45,7 +80,6 @@ std::string Instruction::CodeGen()
 			s += ", ";
 			s += right->GetName();
 			s += ", align " + std::to_string(result->align) + "\n";
-
 			break;
 		case IROpKind::Op_SUB:
 			s += "  " + result->GetName() + " = " + "sub nsw i32 ";
