@@ -64,7 +64,7 @@ std::string Operand::CodeGen()
 	s += name;
 	return s;
 }
-#define DEBUG 1
+#define DEBUG 0
 #define RPINT_VALUE { if(Op != IROpKind::Op_Alloca && Op !=  IROpKind::Op_Store && Op != IROpKind::Op_Load) s += ";     left:" + std::to_string(left->Ival) + " right:" + std::to_string(right->Ival) + " result:" + std::to_string(result->Ival) + "\n";}
 
 std::string Instruction::CodeGen()
@@ -326,6 +326,7 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 		// shouldn't change order
 		case IROpKind::Op_Alloca:
 		{
+			assert(left == NULL && right == NULL);
 			InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
 			allocas.push_back(inst);
 		}
@@ -346,12 +347,6 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 		case IROpKind::Op_MUL:
 		case IROpKind::Op_DIV:
 		{
-			VariablePtr load1 = std::make_shared<Variable>();
-			load1->SetName(next_variable_name());
-			VariablePtr load2 = std::make_shared<Variable>();
-			load2->SetName(next_variable_name());
-			InstructionPtr inst1 = std::make_shared<Instruction>(left, nullptr, load1, IROpKind::Op_Load);
-			InstructionPtr inst2 = std::make_shared<Instruction>(right, nullptr, load2, IROpKind::Op_Load);
 			std::string s;
 			switch(Op)
 			{
@@ -372,16 +367,55 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 			}
 			VariablePtr arithRes = std::make_shared<Variable>();
 			s += std::to_string(buider->GetNextCountSuffix());
-			arithRes->SetName(std::move(s));
+			arithRes->SetName(s);
 
-			InstructionPtr instArith = std::make_shared<Instruction>(load1, load2, arithRes, Op);
 
-			InstructionPtr store = std::make_shared<Instruction>(arithRes, nullptr, result, IROpKind::Op_Store);
-			instructinos.push_back(inst1);
-			instructinos.push_back(inst2);
-			instructinos.push_back(instArith);
-			instructinos.push_back(store);
+			VariablePtr load1;
+			VariablePtr load2;
+			InstructionPtr inst1;
+			InstructionPtr inst2;
+
+			InstructionPtr instArith;
+
+			if(!left->isConst && !right->isConst){
+				load1 = std::make_shared<Variable>();
+				load1->SetName(next_variable_name());
+
+				load2 = std::make_shared<Variable>();
+				load2->SetName(next_variable_name());
+
+				inst1 = std::make_shared<Instruction>(left, nullptr, load1, IROpKind::Op_Load);
+				instructinos.push_back(inst1);
+
+				inst2 = std::make_shared<Instruction>(right, nullptr, load2, IROpKind::Op_Load);
+				instructinos.push_back(inst2);
+
+				instArith = std::make_shared<Instruction>(load1, load2, arithRes, Op);
+				instructinos.push_back(instArith);
+			}else if(!left->isConst)
+			{
+				load1 = std::make_shared<Variable>();
+				load1->SetName(next_variable_name());
+				inst1 = std::make_shared<Instruction>(left, nullptr, load1, IROpKind::Op_Load);
+				instructinos.push_back(inst1);
+
+				instArith = std::make_shared<Instruction>(load1, right, arithRes, Op);
+				instructinos.push_back(instArith);
+			}else{
+				load2 = std::make_shared<Variable>();
+				load2->SetName(next_variable_name());
+				inst2 = std::make_shared<Instruction>(right, nullptr, load2, IROpKind::Op_Load);
+				instructinos.push_back(inst2);
+
+				instArith = std::make_shared<Instruction>(left, load2, arithRes, Op);
+				instructinos.push_back(instArith);
+			}
+
+			//InstructionPtr store = std::make_shared<Instruction>(arithRes, nullptr, result, IROpKind::Op_Store);
+
 			
+			result->SetName(std::move(s));
+			//instructinos.push_back(store);
 
 			return;
 		}

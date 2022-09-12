@@ -268,7 +268,7 @@ private:
 public:
 	std::string& GetName() { return name; }
 	void SetName(std::string name) { this->name = name; }
-	void SetName(std::string & name) { this->name = name; }
+	//void SetName(std::string & name) { this->name = name; }
 	// SSA?
 	int Ival;
 	double Fval;
