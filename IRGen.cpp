@@ -89,7 +89,7 @@ void emit_ir(Obj * prog)
 		{
 			//file_out << "func args increase 1" << std::endl;
 			arg_variable = new Variable();
-			next_variable_name_number();
+			// next_variable_name_number();
 			switch(var->ty->size)
 			{
 				
@@ -340,6 +340,7 @@ static void gen_expr_ir(Node *node, Variable ** res, SymbolTablePtr table)
 					left->Fval = (*res)->Fval;
 					left->Ival = (*res)->Ival;
 					left->type = (*res)->type;
+					InMemoryIR.Insert(left, IROpKind::Op_Store, table);
 					//file_out << "ASSIGN get value : "<< left->GetName() <<" = " << left->Ival <<" res is const?" << (*res)->isConst << std::endl;
 				}
 			}

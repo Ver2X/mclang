@@ -434,8 +434,10 @@ enum class IROpKind
 	Op_barnch,  // branch
 	Op_FUNCALL,	// function call
 	Op_Alloca,  // allcoa
+	Op_Store,   // store
+	Op_Load,    // load futher use ??
 	Op_STMT_EXPR,   // statement expression
-	Op_MEMBER,		// . (struct member access)
+	Op_MEMBER,			// . (struct member access)
 };
 
 
@@ -450,6 +452,7 @@ class Instruction{
 	int getAlign(Variable * left, Variable * right, Variable * result);
 
 public:
+	int Ival;
 	Instruction(Variable * left, Variable * right, Variable * result, IROpKind Op)
 	{
 		this->Op = Op;
@@ -519,6 +522,7 @@ public:
 	// using label to index Blocks
 	bool Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, int label, std::string name, SymbolTablePtr table);
 	bool Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, SymbolTablePtr table);
+	bool Insert(Variable * result, IROpKind Op, SymbolTablePtr table);
 };
 
 

@@ -31,7 +31,7 @@ std::string Operand::CodeGen()
 	return s;
 }
 #define DEBUG 1
-#define RPINT_VALUE { if(Op != IROpKind::Op_Alloca) s += ";     left:" + std::to_string(left->Ival) + " right:" + std::to_string(right->Ival) + " result:" + std::to_string(result->Ival) + "\n";}
+#define RPINT_VALUE { if(Op != IROpKind::Op_Alloca && Op !=  IROpKind::Op_Store) s += ";     left:" + std::to_string(left->Ival) + " right:" + std::to_string(right->Ival) + " result:" + std::to_string(result->Ival) + "\n";}
 
 std::string Instruction::CodeGen()
 {
@@ -41,7 +41,7 @@ std::string Instruction::CodeGen()
 	switch(Op)
 	{		
 		case IROpKind::Op_ADD:
-			s += "  " + result->GetName() + " = " + "add ";
+			s += "  " + result->GetName() + " = " + "add nsw i32 ";
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
@@ -49,21 +49,21 @@ std::string Instruction::CodeGen()
 
 			break;
 		case IROpKind::Op_SUB:
-			s += "  " + result->GetName() + " = " + "sub ";
+			s += "  " + result->GetName() + " = " + "sub nsw i32 ";
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
 			s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case IROpKind::Op_MUL:
-			s += "  " + result->GetName() + " = " + "mul ";
+			s += "  " + result->GetName() + " = " + "mul nsw i32 ";
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
 			s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case IROpKind::Op_DIV:
-			s += "  " + result->GetName() + " = " + "sdiv ";
+			s += "  " + result->GetName() + " = " + "sdiv i32 ";
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
@@ -71,6 +71,9 @@ std::string Instruction::CodeGen()
 			break;
 		case IROpKind::Op_Alloca:
 			s += "  " + result->GetName() + " = " + "alloca i32 " + ", align " + std::to_string(result->align) + "\n";
+			break;
+		case IROpKind::Op_Store:
+			s += "  store i32 " +  std::to_string(this->Ival) + ", i32* " + result->GetName()  + ", align " + std::to_string(result->align) + "\n";
 			break;
 		default:
 			break;
@@ -235,7 +238,20 @@ std::string IRFunction::CodeGen()
 
 
 std::string IRFunction::rename(){
-	return functionName;
+	// _ + return type + name + arg
+	std::string s = "_";
+	if(retTy == ReturnTypeKind::RTY_INT)
+		s += "Z";
+	s += functionName;
+
+	Variable * head = args;
+	for(int i = 0; i < argsNum; i++)
+	{
+		if(head->type == VaribleKind::VAR_32)
+			s += "i";
+		head = head->next;
+	}
+	return s;
 }
 void IRFunction::AddArgs()
 {
@@ -259,8 +275,11 @@ void Block::Insert(Variable * left, Variable * right, Variable * result, IROpKin
 	if(Op == IROpKind::Op_Alloca){
 		allocas.push_back(inst);
 	}
-	else
+	else{
+		if(Op == IROpKind::Op_Store)
+			inst->Ival = result->Ival;
 		instructinos.push_back(inst);
+	}
 }
 
 void IRBuilder::SetInsertPoint(int label, std::string name)
@@ -312,9 +331,10 @@ bool IRBuilder::Insert(Variable * left, Variable * right, Variable * result, IRO
 	return Insert(left, right, result, Op, cache_label, cache_name, table);
 }
 
-/*void Insert(Variable * left, Variable * right, Variable * result, IROpKind Op, Variable * AllocaResult)
-{}*/
-
+bool IRBuilder::Insert(Variable * result, IROpKind Op, SymbolTablePtr table)
+{
+	return Insert(NULL, NULL, result, Op, cache_label, cache_name, table);
+}
 std::string IRBuilder::CodeGen()
 {
 	std::string s;
