@@ -362,7 +362,7 @@ void IRBuilder::SetInsertPoint(int label, std::string name)
 		entry_label = label;
 	if(blocks.count(label) == 0)
 	{
-		Block * block = new Block();
+		BlockPtr block = std::make_shared<Block>();
 		block->SetName(name);
 		block->SetLabel(label);
 		blocks.insert(std::make_pair(label, block));
@@ -379,7 +379,7 @@ bool IRBuilder::Insert(VariablePtr left, VariablePtr right, VariablePtr result, 
 		entry_label = label;
 	if(blocks.count(label) == 0)
 	{
-		Block * block = new Block();
+		BlockPtr block = std::make_shared<Block>();
 		block->SetName(name);
 		block->SetLabel(label);
 		blocks.insert(std::make_pair(label, block));

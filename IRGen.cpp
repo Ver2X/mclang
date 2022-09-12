@@ -10,7 +10,6 @@ extern int count_diff_if;
 // use to identify diff "if" statements
 static int count()
 {
-	
 	return count_diff_if++;
 }
 

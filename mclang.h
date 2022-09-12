@@ -471,11 +471,14 @@ public:
  };
 
 class IRBuilder;
+class Block;
+
+using BlockPtr = std::shared_ptr<Block>;
 
 class Block{
 
-	Block * preds;
-	Block * succes;
+	BlockPtr preds;
+	BlockPtr succes;
 	int label;
 	std::string name;
 	// entry blck is a special block
@@ -499,8 +502,8 @@ public:
 		this->label = label;
 	}
 	void Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op, IRBuilder * buider);
-	void SetPred(Block *);
-	void SetSucc(Block *);
+	void SetPred(BlockPtr);
+	void SetSucc(BlockPtr);
 	std::string CodeGen();
 	std::string AllocaCodeGen();
 };
@@ -510,7 +513,7 @@ class IRBuilder{
 	VariablePtr globalVariable;
 	IRFunction * function;
 	// order by label
-	std::map<int, Block *> blocks;
+	std::map<int, BlockPtr> blocks;
 	int cache_label;
 	int entry_label;
 	std::string cache_name;
