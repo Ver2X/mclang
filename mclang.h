@@ -459,8 +459,9 @@ class Block{
 	// entry blck is a special block
 	std::vector<InstructionPtr> allocas;
 
-	std::vector<InstructionPtr> instructinos;
+	// std::vector<InstructionPtr> instructinos;
 public:
+	std::vector<InstructionPtr> instructinos;
 	Block()
 	{
 		preds = NULL;
@@ -468,14 +469,10 @@ public:
 		label = 0;
 	}
 
-	void SetName(std::string name)
-	{
-		this->name = name;
-	}
-	void SetLabel(int label)
-	{
-		this->label = label;
-	}
+	void SetName(std::string name) { this->name = name; }
+	std::string GetName() { return name; }
+	void SetLabel(int label) { this->label = label; }
+	int GetLabel() { return label; }
 	void Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op, IRBuilder * buider);
 	void SetPred(BlockPtr);
 	void SetSucc(BlockPtr);

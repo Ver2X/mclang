@@ -1,5 +1,6 @@
 #include "mclang.h"
 extern std::fstream file_out;
+#define DEBUG 1
 //////////////////////////////////////////////////////////////////////////     //////////////////////////////////////////////////////////////////////////////////
 
 void Operand::SetConst(double v)
@@ -64,7 +65,7 @@ std::string Operand::CodeGen()
 	s += name;
 	return s;
 }
-#define DEBUG 0
+
 #define RPINT_VALUE { if(Op != IROpKind::Op_Alloca && Op !=  IROpKind::Op_Store && Op != IROpKind::Op_Load) s += ";     left:" + std::to_string(left->Ival) + " right:" + std::to_string(right->Ival) + " result:" + std::to_string(result->Ival) + "\n";}
 
 std::string Instruction::CodeGen()
@@ -133,7 +134,12 @@ std::string Instruction::CodeGen()
 
 std::string Block::CodeGen()
 {
+	#ifdef DEBUG
+		file_out << "dumping block " << this->GetName() << std::endl;
+	#endif
 	std::string s;
+	if(this->allocas.empty())
+		s += name + ":\n";
 	for(const auto & ins : instructinos)
 	{
 		s += ins->CodeGen();
@@ -322,8 +328,9 @@ int Instruction::getAlign(VariablePtr left, VariablePtr right, VariablePtr resul
 
 void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op, IRBuilder * buider)
 {	
-
-	
+	#if DEBUG
+		file_out << "we going insert insert to blcok with name :" << this->GetName() << " label :" << this->GetLabel() << std::endl; 
+	#endif
 	switch(Op)
 	{
 		// shouldn't change order
@@ -336,13 +343,19 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 		case IROpKind::Op_Store:
 		{
 			InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
-			if(Op == IROpKind::Op_Store){
-				if(left == NULL && right == NULL){
-					if(Op == IROpKind::Op_Store)
-						inst->Ival = result->Ival;
-				}
-				instructinos.push_back(inst);
+			
+			if(left == NULL && right == NULL){				
+				inst->Ival = result->Ival;
 			}
+			instructinos.push_back(inst);	
+			return;
+		}
+		case IROpKind::Op_Load:
+		{
+			InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
+			
+			assert(right == NULL);
+			instructinos.push_back(inst);	
 			return;
 		}
 		case IROpKind::Op_ADD:
@@ -429,10 +442,15 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 
 void IRBuilder::SetInsertPoint(int label, std::string name)
 {
+	// fix me :
+	// keep pred succ right
 	if(entry_label < 0)
 		entry_label = label;
 	if(blocks.count(label) == 0)
 	{
+		#if DEBUG
+			file_out << "create a new blcok " << std::endl;
+		#endif
 		BlockPtr block = std::make_shared<Block>();
 		block->SetName(name);
 		block->SetLabel(label);
@@ -501,7 +519,9 @@ std::string IRBuilder::CodeGen()
 	s += "{\n";
 	for(const auto & blk: blocks)
 	{
-		// *blk.second;
+		#if DEBUG
+			file_out << "dump instructinos in block , name: " << blk.second->GetName() <<  "label: " << blk.second->GetLabel()  << " size :" << blk.second->instructinos.size()  << std::endl;
+		#endif
 		if(blk.first == entry_label)
 			s += blk.second->AllocaCodeGen();
 		s += blk.second->CodeGen();

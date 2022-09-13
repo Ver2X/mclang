@@ -64,7 +64,7 @@ entry:
   %mul8 = mul nsw i32 %16, 3
   store i32 %mul8, i32* %d, align 4
   %17 = load i32, i32* %c, align 4
-  %div9 = sdiv i32 %17, 3
+  %div9 = sdiv i32 %17, %c
   store i32 %div9, i32* %d, align 4
   %18 = load i32, i32* %c, align 4
   %div10 = sdiv i32 %18, 3

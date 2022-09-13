@@ -25,12 +25,39 @@ std::string Twine(std::string l, std::string r)
 	return l + r;
 }
 
+std::string Twine(std::string l, int r)
+{
+	if(r == 0)
+		return l;
+	else
+		return l + std::to_string(r);
+}
+
 static int next_variable_name_v = 0;
 static int next_variable_name_number()
 {
 
 	return next_variable_name_v++;
 }
+
+// use to count number of if, same group have the same number
+static int next_label_name_v = 0;
+static int next_label_name_number()
+{
+
+	return next_label_name_v++;
+}
+
+// numbering label, all blocks have different label
+static int next_label_num_v = 0;
+static int next_label_num_number()
+{
+
+	return next_label_num_v++;
+}
+
+
+
 
 std::string next_variable_name()
 {
@@ -43,9 +70,31 @@ static std::string getPreName(std::string name)
 {
 	return Twine("%", name);
 }
+std::vector<VariablePtr> argVariableCached;
+static std::string getRealPreName(Obj * var)
+{
+	auto checkExistInCahced = [&] (std::string name) -> bool {
+		for(auto var : argVariableCached)
+		{
+			if(var->GetName() == name)
+			{
+				return true;
+			}
+		}
+		return false;
+	};
+
+	if(checkExistInCahced(Twine(getPreName(var->name), ".addr")))
+	{
+		return Twine(getPreName(var->name), ".addr");
+	}
+	return Twine("%", var->name);
+}
 
 IRBuilder InMemoryIR;
 SymbolTablePtr symTable = std::make_shared<SymbolTable>();
+
+
 
 // emit IR
 void emit_ir(Obj * prog)
@@ -146,6 +195,7 @@ void emit_ir(Obj * prog)
 					break;
 			} // end switch
 			func->args.push_back(arg_variable);
+			argVariableCached.push_back(arg_variable);
 			/*if(func->argsNum == 0)
 			{
 				if(arg_variable != NULL){
@@ -168,7 +218,7 @@ void emit_ir(Obj * prog)
 		InMemoryIR.SetFunc(func);
 		// emit code
 
-		InMemoryIR.SetInsertPoint(next_variable_name_number(), "entry");
+		InMemoryIR.SetInsertPoint(next_label_num_number(), "entry");
 
 		for(auto p : arg_variable_pair)
 		{
@@ -178,6 +228,8 @@ void emit_ir(Obj * prog)
 			// std::get<0>(p) = arg	
 			insertRes = InMemoryIR.Insert(std::get<0>(p), nullptr, std::get<1>(p), IROpKind::Op_Store, loca_table);
 			assert(insertRes == true);
+
+
 			loca_table->insert(std::get<1>(p), 0);
 		}
 		////////// maybe need generate Block first
@@ -223,15 +275,29 @@ static void gen_stmt_ir(Node * node, SymbolTablePtr table)
 		case ND_IF:
 		{
 			int c = count();
+			int loop_id = next_label_name_number();
 			VariablePtr res;
+
+			
 			gen_expr_ir(node->cond, &res, table);
+			// insert icmp
+
+
+
 			//println("  cmp $0, %%rax");
 			//println("  je .L.else.%d", c);
+			file_out << "set new if.then" << std::endl;
+			InMemoryIR.SetInsertPoint(next_label_num_number(), Twine("if.then" , loop_id));
 			gen_stmt_ir(node->then, table);
 			//println("  jmp .L.end.%d", c);
 			//println(".L.else.%d:", c);
-			if(node->els)
+			if(node->els){
+				file_out << "set new if.else" << std::endl;
+				InMemoryIR.SetInsertPoint(next_label_num_number(), Twine("if.else" , loop_id));
 				gen_stmt_ir(node->els, table);
+			}
+			file_out << "set new if.end" << std::endl;
+			InMemoryIR.SetInsertPoint(next_label_num_number(), Twine("if.end" , loop_id));
 			//println(".L.end.%d:", c);
 			return; 
 		}
@@ -304,14 +370,44 @@ static VariablePtr gen_variable_ir(Node *node, SymbolTablePtr table)
 			{
 				// Local variable
 				VariablePtr local_variable = std::make_shared<Variable>();
-				local_variable->SetName(getPreName(node->var->name));
-				local_variable->type = VaribleKind::VAR_32;
-				
-				if(InMemoryIR.Insert(NULL, NULL, local_variable, IROpKind::Op_Alloca, table))
+				auto checkExistInCahced = [&] (std::string name) -> bool {
+					for(auto var : argVariableCached)
+					{
+						if(var->GetName() == name)
+						{
+							return true;
+						}
+					}
+					return false;
+				};
+
+				if(checkExistInCahced(Twine(getPreName(node->var->name), ".addr")))
 				{
-					table->insert(local_variable, 0);
+					local_variable->SetName(Twine(getPreName(node->var->name), ".addr"));
+					local_variable->type = VaribleKind::VAR_32;
+					assert(InMemoryIR.Insert(NULL, NULL, local_variable, IROpKind::Op_Alloca, table) == false);
+					
+					/*VariablePtr load1 = std::make_shared<Variable>();
+					load1->SetName(next_variable_name());
+
+					// inst1 = std::make_shared<Instruction>(local_variable, nullptr, load1, IROpKind::Op_Load);
+					// instructinos.push_back(inst1);
+
+
+					if(InMemoryIR.Insert(local_variable, NULL, load1, IROpKind::Op_Load, table))
+						file_out << "have successfull insert load when meeting use" << std::endl;*/
+					
+				}else{
+					local_variable->SetName(getPreName(node->var->name));
+					local_variable->type = VaribleKind::VAR_32;
+					assert(InMemoryIR.Insert(NULL, NULL, local_variable, IROpKind::Op_Alloca, table) == false);
+					
+					/*VariablePtr load1 = std::make_shared<Variable>();
+					load1->SetName(next_variable_name());
+					
+					if(InMemoryIR.Insert(local_variable, NULL, load1, IROpKind::Op_Load, table))
+						file_out << "have successfull insert load when meeting use" << std::endl;*/
 				}
-				table->findVar(local_variable->GetName(), local_variable);
 				return local_variable;
 				
 				//println("  lea %d(%%rbp), %%rax", node->var->offset);
@@ -385,14 +481,59 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 			VariablePtr left = gen_variable_ir(node->lhs, table);
 			//push();
 			gen_expr_ir(node->rhs, res, table);
+			VariablePtr local_variable;
 			if(left != NULL){
 				if(!(*res)->isConst){
 					left->isConst = false;
 					// fix me: need Store?
 					// No
-					InMemoryIR.Insert(*res, left, IROpKind::Op_Store, table);
+					
+					// insert a load for single variable assign
+					if(node->lhs->kind == ND_VAR)
+					{
+
+						file_out << "meeting a single Variable assign " << std::endl;
+						local_variable = std::make_shared<Variable>();
+
+						auto checkExistInCahced = [&] (std::string name) -> bool {
+							for(auto var : argVariableCached)
+							{
+								if(var->GetName() == name)
+								{
+									return true;
+								}
+							}
+							return false;
+						};
+
+						if(checkExistInCahced(Twine(getPreName(node->lhs->var->name), ".addr")))
+						{
+							local_variable->SetName(Twine(getPreName(node->lhs->var->name), ".addr"));
+							local_variable->type = VaribleKind::VAR_32;
+							assert(InMemoryIR.Insert(NULL, NULL, local_variable, IROpKind::Op_Alloca, table) == false);
+							
+							VariablePtr load1 = std::make_shared<Variable>();
+							load1->SetName(next_variable_name());
 
 
+							if(InMemoryIR.Insert(local_variable, NULL, load1, IROpKind::Op_Load, table))
+								file_out << "have successfull insert load when meeting use" << std::endl;
+							
+						}else{
+							local_variable->SetName(getPreName(node->lhs->var->name));
+							local_variable->type = VaribleKind::VAR_32;
+							assert(InMemoryIR.Insert(NULL, NULL, local_variable, IROpKind::Op_Alloca, table) == false);
+							
+							VariablePtr load1 = std::make_shared<Variable>();
+							load1->SetName(next_variable_name());
+							
+							if(InMemoryIR.Insert(local_variable, NULL, load1, IROpKind::Op_Load, table))
+								file_out << "have successfull insert load when meeting use" << std::endl;
+						}
+
+					}
+
+					InMemoryIR.Insert(local_variable, left, IROpKind::Op_Store, table);
 					// table->insert(left, *res, 0);
 				}
 				else
@@ -403,6 +544,9 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 					left->Fval = (*res)->Fval;
 					left->Ival = (*res)->Ival;
 					left->type = (*res)->type;
+
+
+
 					InMemoryIR.Insert(left, IROpKind::Op_Store, table);
 					//file_out << "ASSIGN get value : "<< left->GetName() <<" = " << left->Ival <<" res is const?" << (*res)->isConst << std::endl;
 				}
@@ -511,7 +655,7 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 						//assert(node->lhs->var == NULL);
 						//assert(node->rhs->var != NULL);
 						if(node->rhs->var != NULL){
-							std::string s = getPreName(node->rhs->var->name);
+							std::string s = getRealPreName(node->rhs->var);
 							VariablePtr r;
 							if(table->findVar(s, r)){
 								(*res) = std::make_shared<Variable>();
@@ -528,7 +672,7 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 						//assert(node->lhs->var != NULL);
 						//assert(node->rhs->var == NULL);
 						if(node->lhs->var != NULL){
-							std::string s = getPreName(node->lhs->var->name);
+							std::string s = getRealPreName(node->lhs->var);
 							VariablePtr l;
 							if(table->findVar(s, l)){
 								(*res) = std::make_shared<Variable>();
@@ -544,8 +688,8 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 						// assert(node->lhs->var != NULL);
 						// assert(node->rhs->var != NULL);
 						if(node->lhs->var != NULL && node->rhs->var != NULL){
-							std::string s = getPreName(node->lhs->var->name);
-							std::string s2 = getPreName(node->rhs->var->name);
+							std::string s = getRealPreName(node->lhs->var);
+							std::string s2 = getRealPreName(node->rhs->var);
 							VariablePtr l , r;
 							//file_out << "arrive three 1" << std::endl;
 							if(table->findVar(s, l) && table->findVar(s2, r)){
@@ -583,7 +727,7 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 					if(node->lhs->kind == ND_NUM)
 					{
 						if(node->rhs->var != NULL){
-							std::string s = getPreName(node->rhs->var->name);
+							std::string s = getRealPreName(node->rhs->var);
 							VariablePtr r;
 							if(table->findVar(s, r)){
 								(*res) = std::make_shared<Variable>();
@@ -598,7 +742,7 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 					}else if(node->rhs->kind == ND_NUM)
 					{
 						if(node->lhs->var != NULL){
-							std::string s = getPreName(node->lhs->var->name);
+							std::string s = getRealPreName(node->lhs->var);
 							VariablePtr l;
 							if(table->findVar(s, l)){
 								(*res) = std::make_shared<Variable>();
@@ -612,8 +756,8 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 						}
 					}else{
 						if(node->lhs->var != NULL && node->rhs->var != NULL){
-							std::string s = getPreName(node->lhs->var->name);
-							std::string s2 = getPreName(node->rhs->var->name);
+							std::string s = getRealPreName(node->lhs->var);
+							std::string s2 = getRealPreName(node->rhs->var);
 							VariablePtr l, r;
 							if(table->findVar(s, l) && table->findVar(s2, r)){
 								(*res) = std::make_shared<Variable>();
@@ -647,7 +791,7 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 					if(node->lhs->kind == ND_NUM)
 					{
 						if(node->rhs->var != NULL){
-							std::string s = getPreName(node->rhs->var->name);
+							std::string s = getRealPreName(node->rhs->var);
 							VariablePtr r;
 							if(table->findVar(s, r)){
 								(*res) = std::make_shared<Variable>();
@@ -662,7 +806,7 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 					}else if(node->rhs->kind == ND_NUM)
 					{
 						if(node->lhs->var != NULL){
-							std::string s = getPreName(node->lhs->var->name);
+							std::string s = getRealPreName(node->lhs->var);
 							VariablePtr l;
 							if(table->findVar(s, l)){
 								(*res) = std::make_shared<Variable>();
@@ -676,8 +820,8 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 						}
 					}else{
 						if(node->lhs->var != NULL && node->rhs->var != NULL){
-							std::string s = getPreName(node->lhs->var->name);
-							std::string s2 = getPreName(node->rhs->var->name);
+							std::string s = getRealPreName(node->lhs->var);
+							std::string s2 = getRealPreName(node->rhs->var);
 							VariablePtr l, r;						
 							if(table->findVar(s, l) && table->findVar(s2, r)){
 								(*res) = std::make_shared<Variable>();
@@ -710,7 +854,7 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 					if(node->lhs->kind == ND_NUM)
 					{
 						if(node->rhs->var != NULL){
-							std::string s = getPreName(node->rhs->var->name);
+							std::string s = getRealPreName(node->rhs->var);
 							VariablePtr r;
 							if(table->findVar(s, r)){
 								(*res) = std::make_shared<Variable>();
@@ -725,7 +869,7 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 					}else if(node->rhs->kind == ND_NUM)
 					{
 						if(node->lhs->var != NULL){
-							std::string s = getPreName(node->lhs->var->name);
+							std::string s = getRealPreName(node->lhs->var);
 							VariablePtr l;
 							if(table->findVar(s, l)){
 								(*res) = std::make_shared<Variable>();
@@ -739,8 +883,8 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 						}
 					}else{
 						if(node->lhs->var != NULL && node->rhs->var != NULL){
-							std::string s = getPreName(node->lhs->var->name);
-							std::string s2 = getPreName(node->rhs->var->name);
+							std::string s = getRealPreName(node->lhs->var);
+							std::string s2 = getRealPreName(node->rhs->var);
 							VariablePtr l, r;						
 							if(table->findVar(s, l) && table->findVar(s2, r)){
 								(*res) = std::make_shared<Variable>();
@@ -781,10 +925,10 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 					if(node->lhs->kind == ND_NUM)
 					{
 						if(node->lhs->var != NULL && node->rhs->var != NULL){
-							std::string s = getPreName(node->rhs->var->name);
+							std::string s = getRealPreName(node->rhs->var);
 							VariablePtr r;
 							table->findVar(s, r);
-							std::string s2 = getPreName(node->rhs->var->name);
+							std::string s2 = getRealPreName(node->rhs->var);
 							/*if(node->kind == ND_EQ)
 								(*res)->Ival = r->Ival == node->lhs->val;
 							else if(node->kind == ND_NE)
@@ -797,7 +941,7 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 					}else if(node->rhs->kind == ND_NUM)
 					{
 						if(node->lhs->var != NULL && node->rhs->var != NULL){
-							std::string s = getPreName(node->lhs->var->name);
+							std::string s = getRealPreName(node->lhs->var);
 							VariablePtr l;
 							table->findVar(s, l);
 							/*if(node->kind == ND_EQ)
@@ -811,8 +955,8 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 						}
 					}else{
 						if(node->lhs->var != NULL && node->rhs->var != NULL){
-							std::string s = getPreName(node->lhs->var->name);					
-							std::string s2 = getPreName(node->rhs->var->name);
+							std::string s = getRealPreName(node->lhs->var);					
+							std::string s2 = getRealPreName(node->rhs->var);
 							VariablePtr l, r;
 							table->findVar(s, l);
 							table->findVar(s2, r);
