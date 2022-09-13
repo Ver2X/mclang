@@ -1,6 +1,6 @@
 #include "mclang.h"
 extern std::fstream file_out;
-#define DEBUG 1
+#define DEBUG 0
 //////////////////////////////////////////////////////////////////////////     //////////////////////////////////////////////////////////////////////////////////
 
 void Operand::SetConst(double v)
@@ -71,7 +71,6 @@ std::string Operand::CodeGen()
 std::string Instruction::CodeGen()
 {
 	std::string s;
-	assert(result != NULL);
 
 	switch(Op)
 	{		
@@ -107,6 +106,13 @@ std::string Instruction::CodeGen()
 			s += "\n";
 			// s += ", align " + std::to_string(result->align) + "\n";
 			break;
+		case IROpKind::Op_Cmp:
+			s += "  " + result->GetName() + " = " + "icmp sgt ";
+			s += left->GetName();
+			s += ", ";
+			s += right->GetName();
+			s += "\n";
+			break;	
 		case IROpKind::Op_Alloca:
 			s += "  " + result->GetName() + " = " + "alloca i32 " + ", align " + std::to_string(result->align) + "\n";
 			break;
@@ -118,10 +124,30 @@ std::string Instruction::CodeGen()
 					s += "  store i32 " +  left->GetName() + ", i32* " + result->GetName()  + ", align " + std::to_string(result->align) + "\n";
 				break;
 			}
-			
 		case IROpKind::Op_Load:
 			s += "  " + result->GetName() + " = load i32, " + "i32* " + left->GetName()  + ", align " + std::to_string(left->align) + "\n";
 			break;	
+		case IROpKind::Op_Branch:
+			{	
+				s += "  br i1 " + result->GetName();
+				if(left != NULL)
+					s += ", label " + left->GetName();
+				if(right != NULL)
+					s += ", label " + right->GetName() + "\n";;
+				break;
+			}
+		case IROpKind::Op_UnConBranch:
+		{	
+			s += "  br label " + result->GetName() + "\n";
+			break;
+		}
+		case IROpKind::Op_Return:
+		{	if(result != NULL)
+				s += "  ret " + result->GetName() + "\n";
+			else
+				s += "  ret void\n";
+			break;
+		}
 		default:
 			break;
 	}
@@ -134,10 +160,12 @@ std::string Instruction::CodeGen()
 
 std::string Block::CodeGen()
 {
-	#ifdef DEBUG
-		file_out << "dumping block " << this->GetName() << std::endl;
-	#endif
+	//#ifdef DEBUG
+	//	file_out << "dumping block " << this->GetName() << std::endl;
+	//#endif
 	std::string s;
+	if(name != "entry")
+		s += "\n";
 	if(this->allocas.empty())
 		s += name + ":\n";
 	for(const auto & ins : instructinos)
@@ -338,6 +366,7 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 		{
 			assert(left == NULL && right == NULL);
 			InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
+			buider->lastResVar = result;
 			allocas.push_back(inst);
 		}
 		case IROpKind::Op_Store:
@@ -347,21 +376,50 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 			if(left == NULL && right == NULL){				
 				inst->Ival = result->Ival;
 			}
+			buider->lastResVar = result;
 			instructinos.push_back(inst);	
 			return;
 		}
 		case IROpKind::Op_Load:
 		{
 			InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
-			
+			buider->lastResVar = result;
 			assert(right == NULL);
 			instructinos.push_back(inst);	
+			return;
+		}
+		case IROpKind::Op_Branch:
+		{
+			buider->lastResVar = result;
+			assert(result != NULL);
+			InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
+			instructinos.push_back(inst);
+			return;
+		}
+		case IROpKind::Op_UnConBranch:
+		{
+			buider->lastResVar = result;
+			assert(result != NULL);
+			assert(left == NULL);
+			assert(right == NULL);
+			InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
+			instructinos.push_back(inst);
+			return;
+		}
+		case IROpKind::Op_Return:
+		{
+			buider->lastResVar = result;
+			assert(left == NULL);
+			assert(right == NULL);
+			InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
+			instructinos.push_back(inst);
 			return;
 		}
 		case IROpKind::Op_ADD:
 		case IROpKind::Op_SUB:
 		case IROpKind::Op_MUL:
 		case IROpKind::Op_DIV:
+		case IROpKind::Op_Cmp:
 		{
 			std::string s;
 			switch(Op)
@@ -378,11 +436,16 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 				case IROpKind::Op_DIV:
 					s = "%div";
 					break;
+				case IROpKind::Op_Cmp:
+					s = "%cmp";
+					break;
 				default:
 					break;
 			}
 			VariablePtr arithRes = std::make_shared<Variable>();
-			s += std::to_string(buider->GetNextCountSuffix());
+			int nextcf = buider->GetNextCountSuffix();
+			if(nextcf != 0)
+				s += std::to_string(nextcf);
 			arithRes->SetName(s);
 
 
@@ -427,6 +490,7 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 				instructinos.push_back(instArith);
 			}
 
+			buider->lastResVar = arithRes;
 			//InstructionPtr store = std::make_shared<Instruction>(arithRes, nullptr, result, IROpKind::Op_Store);
 
 			
@@ -508,6 +572,25 @@ bool IRBuilder::Insert(VariablePtr source, VariablePtr dest, IROpKind Op, Symbol
 	return Insert(source, NULL, dest, Op, cache_label, cache_name, table);
 }
 
+void IRBuilder::FixNonReturn(SymbolTablePtr table)
+{
+	BlockPtr lastBlock;
+	for(const auto & blk: blocks)
+	{
+		lastBlock = blk.second;
+	}
+	// fix no return statement
+	if(lastBlock->instructinos.empty())
+	{
+		this->Insert(NULL, NULL, NULL, IROpKind::Op_Return, table);
+	}else{
+	InstructionPtr lastInst = *(lastBlock->instructinos.end() - 1);
+	 	if(lastInst->GetOp() != IROpKind::Op_Return)
+		{
+	 			this->Insert(NULL, NULL, NULL, IROpKind::Op_Return, table);
+	 	}
+	}	
+}
 
 std::string IRBuilder::CodeGen()
 {
@@ -517,6 +600,7 @@ std::string IRBuilder::CodeGen()
 		s += function->CodeGen();
 	}
 	s += "{\n";
+	BlockPtr lastBlock;
 	for(const auto & blk: blocks)
 	{
 		#if DEBUG
@@ -525,6 +609,7 @@ std::string IRBuilder::CodeGen()
 		if(blk.first == entry_label)
 			s += blk.second->AllocaCodeGen();
 		s += blk.second->CodeGen();
+		lastBlock = blk.second;
 	}
 	s += "}\n";
 	return s;

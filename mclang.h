@@ -410,12 +410,14 @@ enum class IROpKind
 	Op_NEG,         // -, unary
 	Op_ADDR,		// &, unary
 	Op_DEREF,		// *, unary
-	Op_barnch,  // branch
+	Op_Branch,  // branch
+	Op_UnConBranch,  // uncondition branch
 	Op_FUNCALL,	// function call
 	Op_Alloca,  // allcoa
 	Op_Store,   // store
-	Op_Load,    // load futher use ??
-	Op_STMT_EXPR,   // statement expression
+	Op_Cmp,     // icmp
+	Op_Load,    // load
+	Op_Return,  // return
 	Op_MEMBER,			// . (struct member access)
 };
 
@@ -437,11 +439,12 @@ public:
 		this->Op = Op;
 		this->left = left;
 		this->right = right;
-		result->align = getAlign(left, right, result);
+		// result may null ("ret")
+		// result->align = getAlign(left, right, result);
 		this->result = result;
 
 	}
-
+	IROpKind GetOp() { return Op; }
 	std::string CodeGen();
  };
 using InstructionPtr = std::shared_ptr<Instruction>;
@@ -499,6 +502,7 @@ public:
 		function = NULL;
 		count_suffix = 1;
 	}
+	VariablePtr lastResVar;
 	int GetNextCountSuffix() { return count_suffix++; }
 	void SetInsertPoint(int label, std::string name);
 	void SetFunc(IRFunctionPtr func) { function = func; }
@@ -508,6 +512,7 @@ public:
 	bool Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op, SymbolTablePtr table);
 	bool Insert(VariablePtr dest, IROpKind Op, SymbolTablePtr table);
 	bool Insert(VariablePtr source, VariablePtr dest, IROpKind Op, SymbolTablePtr table);
+	void FixNonReturn(SymbolTablePtr table);
 };
 
 

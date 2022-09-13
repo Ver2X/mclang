@@ -164,8 +164,8 @@ static void gen_expr(Node *node)
 			push();
 			gen_expr(node->rhs);
 			store(node->ty);
-			if(node->lhs != NULL && node->lhs->kind == ND_VAR)
-				file_out << "asm: meeting a single Variable assign " << std::endl;
+			//if(node->lhs != NULL && node->lhs->kind == ND_VAR)
+			//	file_out << "asm: meeting a single Variable assign " << std::endl;
 			return;
 		case ND_STMT_EXPR:
 			for(Node * n = node->body; n; n = n->next)

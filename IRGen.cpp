@@ -260,6 +260,9 @@ void emit_ir(Obj * prog)
 		//println("  mov %%rbp, %%rsp");
 		//println("  pop %%rbp");
 		//println("  ret");
+
+		// fix no return statement
+		InMemoryIR.FixNonReturn(loca_table);
 		file_out << InMemoryIR.CodeGen() << std::endl;
 	}
 	
@@ -286,17 +289,33 @@ static void gen_stmt_ir(Node * node, SymbolTablePtr table)
 
 			//println("  cmp $0, %%rax");
 			//println("  je .L.else.%d", c);
-			file_out << "set new if.then" << std::endl;
+			//file_out << "set new if.then" << std::endl;
+
+			// br i1 %cmp, label %if.then, label %if.else
+			VariablePtr label1 = std::make_shared<Variable>();
+			label1->SetName(Twine("%if.then" , loop_id));
+			VariablePtr label2 = std::make_shared<Variable>();
+			label2->SetName(Twine("%if.else" , loop_id));
+			assert(InMemoryIR.lastResVar != NULL);
+			InMemoryIR.Insert(label1, label2, InMemoryIR.lastResVar, IROpKind::Op_Branch, table);
+
+
 			InMemoryIR.SetInsertPoint(next_label_num_number(), Twine("if.then" , loop_id));
+
 			gen_stmt_ir(node->then, table);
+
+			VariablePtr dest = std::make_shared<Variable>();
+			dest->SetName(Twine("%if.end" , loop_id));
+			InMemoryIR.Insert(NULL, NULL, dest, IROpKind::Op_UnConBranch, table);
 			//println("  jmp .L.end.%d", c);
 			//println(".L.else.%d:", c);
 			if(node->els){
-				file_out << "set new if.else" << std::endl;
+				//file_out << "set new if.else" << std::endl;
 				InMemoryIR.SetInsertPoint(next_label_num_number(), Twine("if.else" , loop_id));
 				gen_stmt_ir(node->els, table);
+				InMemoryIR.Insert(NULL, NULL, dest, IROpKind::Op_UnConBranch, table);
 			}
-			file_out << "set new if.end" << std::endl;
+			//file_out << "set new if.end" << std::endl;
 			InMemoryIR.SetInsertPoint(next_label_num_number(), Twine("if.end" , loop_id));
 			//println(".L.end.%d:", c);
 			return; 
@@ -341,6 +360,7 @@ static void gen_stmt_ir(Node * node, SymbolTablePtr table)
 		{
 			VariablePtr res;
 			gen_expr_ir(node->lhs, &res, table);
+			InMemoryIR.Insert(NULL, NULL, res, IROpKind::Op_Return, table);
 			//println("  jmp .L.return.%s", current_fn->name);
 			return;
 		}
@@ -385,7 +405,8 @@ static VariablePtr gen_variable_ir(Node *node, SymbolTablePtr table)
 				{
 					local_variable->SetName(Twine(getPreName(node->var->name), ".addr"));
 					local_variable->type = VaribleKind::VAR_32;
-					assert(InMemoryIR.Insert(NULL, NULL, local_variable, IROpKind::Op_Alloca, table) == false);
+					bool assertCheck = InMemoryIR.Insert(NULL, NULL, local_variable, IROpKind::Op_Alloca, table);
+					assert(assertCheck == false);
 					
 					/*VariablePtr load1 = std::make_shared<Variable>();
 					load1->SetName(next_variable_name());
@@ -400,7 +421,8 @@ static VariablePtr gen_variable_ir(Node *node, SymbolTablePtr table)
 				}else{
 					local_variable->SetName(getPreName(node->var->name));
 					local_variable->type = VaribleKind::VAR_32;
-					assert(InMemoryIR.Insert(NULL, NULL, local_variable, IROpKind::Op_Alloca, table) == false);
+					bool assertCheck = InMemoryIR.Insert(NULL, NULL, local_variable, IROpKind::Op_Alloca, table);
+					assert(assertCheck == false);
 					
 					/*VariablePtr load1 = std::make_shared<Variable>();
 					load1->SetName(next_variable_name());
@@ -492,7 +514,7 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 					if(node->lhs->kind == ND_VAR)
 					{
 
-						file_out << "meeting a single Variable assign " << std::endl;
+						//file_out << "meeting a single Variable assign " << std::endl;
 						local_variable = std::make_shared<Variable>();
 
 						auto checkExistInCahced = [&] (std::string name) -> bool {
@@ -510,30 +532,39 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 						{
 							local_variable->SetName(Twine(getPreName(node->lhs->var->name), ".addr"));
 							local_variable->type = VaribleKind::VAR_32;
-							assert(InMemoryIR.Insert(NULL, NULL, local_variable, IROpKind::Op_Alloca, table) == false);
+							bool assertCheck = InMemoryIR.Insert(NULL, NULL, local_variable, IROpKind::Op_Alloca, table);
+							assert(assertCheck == false);
 							
 							VariablePtr load1 = std::make_shared<Variable>();
 							load1->SetName(next_variable_name());
 
-
-							if(InMemoryIR.Insert(local_variable, NULL, load1, IROpKind::Op_Load, table))
-								file_out << "have successfull insert load when meeting use" << std::endl;
+							assertCheck = InMemoryIR.Insert(local_variable, NULL, load1, IROpKind::Op_Load, table);
+							assert(assertCheck == true);
+							//if(InMemoryIR.Insert(local_variable, NULL, load1, IROpKind::Op_Load, table))
+							//	file_out << "have successfull insert load when meeting use" << std::endl;
 							
 						}else{
 							local_variable->SetName(getPreName(node->lhs->var->name));
 							local_variable->type = VaribleKind::VAR_32;
-							assert(InMemoryIR.Insert(NULL, NULL, local_variable, IROpKind::Op_Alloca, table) == false);
+
+							bool assertCheck = InMemoryIR.Insert(NULL, NULL, local_variable, IROpKind::Op_Alloca, table);
+							assert(assertCheck == false);
 							
 							VariablePtr load1 = std::make_shared<Variable>();
 							load1->SetName(next_variable_name());
 							
-							if(InMemoryIR.Insert(local_variable, NULL, load1, IROpKind::Op_Load, table))
-								file_out << "have successfull insert load when meeting use" << std::endl;
+							assertCheck = InMemoryIR.Insert(local_variable, NULL, load1, IROpKind::Op_Load, table);
+							assert(assertCheck == true);
+							//	file_out << "have successfull insert load when meeting use" << std::endl;
 						}
 
+						// InMemoryIR.Insert(local_variable, left, IROpKind::Op_Store, table);
+						InMemoryIR.Insert(*res, left, IROpKind::Op_Store, table);
+					}else{
+						InMemoryIR.Insert(*res, left, IROpKind::Op_Store, table);
 					}
 
-					InMemoryIR.Insert(local_variable, left, IROpKind::Op_Store, table);
+					
 					// table->insert(left, *res, 0);
 				}
 				else
@@ -902,78 +933,68 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 		case ND_NE:
 		case ND_LT:
 		case ND_LE:
-			{
-				return ;
-				//(*res)->name = next_variable_name();
-				assert(node->lhs->kind == ND_VAR || node->rhs->kind == ND_NUM);
+			{				
+				// assert(node->lhs->kind == ND_VAR || node->lhs->kind == ND_NUM);
 				if((node->lhs->kind == ND_NUM) && (node->rhs->kind == ND_NUM))
 				{
-					if(node->lhs->var != NULL && node->rhs->var != NULL){
-						
-						/*if(node->kind == ND_EQ)
-							(*res)->Ival = node->lhs->val == node->rhs->val;
-						else if(node->kind == ND_NE)
-							(*res)->Ival = node->lhs->val != node->rhs->val;
-						else if(node->kind == ND_LT)
-							(*res)->Ival = node->lhs->val < node->rhs->val;
-						else if(node->kind == ND_LE)
-							(*res)->Ival = node->lhs->val <= node->rhs->val;*/
+					if(node->lhs != NULL && node->rhs != NULL){
+						node->kind = ND_NUM;
+						*res = std::make_shared<Variable>(left->Ival < right->Ival);
 					}
 				}
 				else
 				{
+					/*(*res) = std::make_shared<Variable>();
+					(*res)->SetName(next_variable_name());
+					InMemoryIR.Insert(left, right, (*res), IROpKind::Op_DIV, table);
+					table->insert((*res), 0);*/
 					if(node->lhs->kind == ND_NUM)
 					{
-						if(node->lhs->var != NULL && node->rhs->var != NULL){
+						if(node->rhs->var != NULL){
 							std::string s = getRealPreName(node->rhs->var);
 							VariablePtr r;
-							table->findVar(s, r);
-							std::string s2 = getRealPreName(node->rhs->var);
-							/*if(node->kind == ND_EQ)
-								(*res)->Ival = r->Ival == node->lhs->val;
-							else if(node->kind == ND_NE)
-								(*res)->Ival = r->Ival != node->lhs->val;
-							else if(node->kind == ND_LT)
-								(*res)->Ival = r->Ival < node->lhs->val;
-							else if(node->kind == ND_LE)
-								(*res)->Ival = r->Ival <= node->lhs->val;*/
+							if(table->findVar(s, r)){
+								(*res) = std::make_shared<Variable>();
+								//(*res)->Ival = node->lhs->val * r->Ival;
+								VariablePtr l;
+								l = std::make_shared<Variable>(node->lhs->val);
+								//(*res)->SetName(next_variable_name());
+								InMemoryIR.Insert(l, r, (*res), IROpKind::Op_Cmp, table);
+								table->insert((*res), 0);
+							}
 						}
 					}else if(node->rhs->kind == ND_NUM)
 					{
-						if(node->lhs->var != NULL && node->rhs->var != NULL){
+						if(node->lhs->var != NULL){
 							std::string s = getRealPreName(node->lhs->var);
 							VariablePtr l;
-							table->findVar(s, l);
-							/*if(node->kind == ND_EQ)
-								(*res)->Ival = l->Ival == node->rhs->val;
-							else if(node->kind == ND_NE)
-								(*res)->Ival = l->Ival != node->rhs->val;
-							else if(node->kind == ND_LT)
-								(*res)->Ival = l->Ival < node->rhs->val;
-							else if(node->kind == ND_LE)
-								(*res)->Ival = l->Ival <= node->rhs->val;*/
+							if(table->findVar(s, l)){
+								(*res) = std::make_shared<Variable>();
+								//(*res)->Ival = l->Ival * node->rhs->val;
+								VariablePtr r;
+								r = std::make_shared<Variable>(node->rhs->val);
+								//(*res)->SetName(next_variable_name());
+								InMemoryIR.Insert(l, r, (*res), IROpKind::Op_Cmp, table);
+								table->insert((*res), 0);
+							}
 						}
 					}else{
 						if(node->lhs->var != NULL && node->rhs->var != NULL){
-							std::string s = getRealPreName(node->lhs->var);					
+							std::string s = getRealPreName(node->lhs->var);
 							std::string s2 = getRealPreName(node->rhs->var);
-							VariablePtr l, r;
-							table->findVar(s, l);
-							table->findVar(s2, r);
-							/*if(node->kind == ND_EQ)
-								(*res)->Ival = l->Ival == r->Ival;
-							else if(node->kind == ND_NE)
-								(*res)->Ival = l->Ival != r->Ival;
-							else if(node->kind == ND_LT)
-								(*res)->Ival = l->Ival < r->Ival;
-							else if(node->kind == ND_LE)
-								(*res)->Ival = l->Ival <= r->Ival;*/
+							VariablePtr l, r;						
+							if(table->findVar(s, l) && table->findVar(s2, r)){
+								(*res) = std::make_shared<Variable>();
+								//(*res)->Ival = l->Ival * r->Ival;
+								//(*res)->SetName(next_variable_name());
+								InMemoryIR.Insert(l, r, (*res), IROpKind::Op_Cmp, table);
+								table->insert((*res), 0);
+							}
 						}
 					}
 				}
 				return;
 			}
-			return;
 		default:
 			return;
 	}
