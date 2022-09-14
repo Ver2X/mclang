@@ -1,6 +1,6 @@
 CFLAGS=-std=c17 -g -fno-common
 STD=c++2a
-CXX=g++
+CXX=clang++
 CPPFLAGS=-std=$(STD) -g -fno-common
 
 GCC_CXXFLAGS = -DMESSAGE='"Compiled with G++"'

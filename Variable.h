@@ -1,0 +1,75 @@
+#pragma once
+#include <ctype.h> 
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <errno.h>
+#include <stdint.h>
+#include <string>
+#include <map>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <stack>
+#include <vector>
+#include <tuple>
+#include <unordered_map>
+
+enum class ReturnTypeKind
+{
+	RTY_INT,
+	RTY_SHORT,
+	RTY_LONG,
+	RTY_PTR,
+	RTY_ARRAY,
+	RTY_CHAR,
+	RTY_STRUCT,
+	RTY_UNION,
+	RTY_VOID,
+};
+
+
+enum class VaribleKind
+{
+	VAR_8,
+	VAR_16,
+	VAR_32,
+	VAR_64,
+	VAR_PRT,
+};
+
+class Operand {
+private:
+		std::string name;
+public:
+	std::string& GetName() { return name; }
+	void SetName(std::string name) { this->name = name; }
+	//void SetName(std::string & name) { this->name = name; }
+	// SSA?
+	int Ival;
+	double Fval;
+	VaribleKind type;
+
+	int align;
+	Operand * next;
+	bool isConst;
+	bool isInitConst;
+
+	Operand();
+	Operand(int64_t v);
+	Operand(int v);
+	Operand(double v);
+
+	void SetConst(double v);
+	void SetConst(int v);
+	void SetConst(int64_t v);
+
+	std::string CodeGen();
+};
+
+using Variable = Operand;
+using VariablePtr = std::shared_ptr<Variable>;
+using VarList = std::shared_ptr<std::vector<VariablePtr>>;

@@ -1,5 +1,6 @@
 #include "mclang.h"
-
+#include "IRBuilder.h"
+#include "SymbolTable.h"
 static void gen_stmt_ir(Node * node, SymbolTablePtr);
 static void gen_expr_ir(Node *node, VariablePtr*, SymbolTablePtr);
 static void gen_func_arg_ir(Obj * var, int r, int offset, int sz);

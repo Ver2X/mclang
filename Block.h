@@ -1,0 +1,52 @@
+#pragma once
+#include "Instruction.h"
+
+#include <ctype.h> 
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <errno.h>
+#include <stdint.h>
+#include <string>
+#include <map>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <stack>
+#include <vector>
+#include <tuple>
+#include <unordered_map>
+class Block;
+class IRBuilder;
+using BlockPtr = std::shared_ptr<Block>;
+
+class Block{
+
+	std::vector<BlockPtr> preds;
+	std::vector<BlockPtr> succes;
+	int label;
+	std::string name;
+	// entry blck is a special block
+	std::vector<InstructionPtr> allocas;
+friend class IRBuilder;
+	// std::vector<InstructionPtr> instructinos;
+public:
+	std::vector<InstructionPtr> instructinos;
+	Block()
+	{
+		label = 0;
+	}
+
+	void SetName(std::string name) { this->name = name; }
+	std::string GetName() { return name; }
+	void SetLabel(int label) { this->label = label; }
+	int GetLabel() { return label; }
+	void Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op, IRBuilder * buider);
+	void SetPred(BlockPtr);
+	void SetSucc(BlockPtr);
+	std::string CodeGen();
+	std::string AllocaCodeGen();
+};
