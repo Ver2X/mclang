@@ -37,8 +37,9 @@ ir: $(IRTEST_SRCS)
 ir/%.exe: mclang ir/%.c
 
 
-test/%.exe: mclang test/%.c
-		$(CC) -o- -E -P -C test/$*.c | ./mclang -o test/$*.s -
+#test/%.exe: mclang test/%.c
+test/%.exe: test/%.c	
+		$(CC) -o- -E -P -C test/$*.c | ./build/mclang -o test/$*.s -
 		$(CC) -o $@ test/$*.s -xc test/common
 
 test: $(TESTS)

@@ -17,12 +17,12 @@ check()
 
 # -o
 rm -rf $tmp/out
-./mclang -o $tmp/out $tmp/empty.c
+./build/mclang -o $tmp/out $tmp/empty.c
 [ -f $tmp/out ]
 check -o
 
 # --help
-./mclang --help 2>&1 | grep -q mclang
+./build/mclang --help 2>&1 | grep -q mclang
 check --help
 
 echo OK

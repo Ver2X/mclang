@@ -422,7 +422,7 @@ static void emit_text(Obj * prog)
 
 
 
-
+void emit_ir(Obj * prog);
 
 void codegen(Obj * prog, FILE *out)
 {
