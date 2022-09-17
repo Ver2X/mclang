@@ -63,3 +63,5 @@ mclang
 /test/*.exe
 /test/*.s
 core*
+
+.cache*
