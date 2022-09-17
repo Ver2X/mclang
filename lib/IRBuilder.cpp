@@ -1,5 +1,8 @@
 #include "IRBuilder.h"
 #include "Instruction.h"
+#include "Variable.h"
+#include <cassert>
+#include <memory>
 void IRBuilder::SetInsertPoint(int label, std::string name)
 {
 	if(entry_label < 0)
@@ -17,6 +20,24 @@ void IRBuilder::SetInsertPoint(int label, std::string name)
 		}
 		cache_label = label;
 		cache_name = name;
+	}
+	
+}
+
+void IRBuilder::SetInsertPoint(BlockPtr insertPoint)
+{
+	if(entry_label < 0)
+		entry_label = insertPoint->GetLabel();
+	if(cache_label != insertPoint->GetLabel()){	
+		if(blocks.count(insertPoint->GetLabel()) == 0)
+		{
+			#if DEBUG
+				file_out << "create a new blcok " << std::endl;
+			#endif
+			blocks.insert(std::make_pair(insertPoint->GetLabel(), insertPoint));
+		}
+		cache_label = insertPoint->GetLabel();
+		cache_name = insertPoint->GetName();
 	}
 	
 }
@@ -88,10 +109,26 @@ bool IRBuilder::Insert(VariablePtr result, IROpKind Op, SymbolTablePtr table)
 	return Insert(NULL, NULL, result, Op, cache_label, cache_name, table);
 }
 
+
 bool IRBuilder::Insert(VariablePtr source, VariablePtr dest, IROpKind Op, SymbolTablePtr table)
 {
 	// store identity
 	return Insert(source, NULL, dest, Op, cache_label, cache_name, table);
+}
+bool IRBuilder::Insert(VariablePtr indicateVariable, BlockPtr targetOne, BlockPtr targetTwo, IROpKind Op, SymbolTablePtr table)
+{
+	if(entry_label < 0)
+		entry_label = cache_label;
+	if(blocks.count(cache_label) == 0)
+	{
+		BlockPtr block = std::make_shared<Block>();
+		block->SetName(cache_name);
+		block->SetLabel(cache_label);
+		blocks.insert(std::make_pair(cache_label, block));
+	}
+	assert(Op == IROpKind::Op_Branch || Op == IROpKind::Op_UnConBranch);
+	blocks[cache_label]->Insert(indicateVariable, targetOne, targetTwo, Op, this);
+	return true;
 }
 
 void IRBuilder::FixNonReturn(SymbolTablePtr table)
@@ -104,12 +141,12 @@ void IRBuilder::FixNonReturn(SymbolTablePtr table)
 	// fix no return statement
 	if(lastBlock->instructinos.empty())
 	{
-		this->Insert(NULL, NULL, NULL, IROpKind::Op_Return, table);
+		this->Insert(std::make_shared<Variable>(NULL), std::make_shared<Variable>(NULL), std::make_shared<Variable>(NULL), IROpKind::Op_Return, table);
 	}else{
-	InstructionPtr lastInst = *(lastBlock->instructinos.end() - 1);
-	 	if(lastInst->GetOp() != IROpKind::Op_Return)
+		InstructionPtr lastInst = *(lastBlock->instructinos.end() - 1);
+	 	if(auto d = std::dynamic_pointer_cast<ReturnInst>(lastInst); d == nullptr)
 		{
-	 			this->Insert(NULL, NULL, NULL, IROpKind::Op_Return, table);
+	 			this->Insert(std::make_shared<Variable>(NULL), std::make_shared<Variable>(NULL), std::make_shared<Variable>(NULL), IROpKind::Op_Return, table);
 	 	}
 	}	
 }

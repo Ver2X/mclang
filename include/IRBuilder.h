@@ -44,11 +44,13 @@ public:
 	VariablePtr lastResVar;
 	int GetNextCountSuffix() { return count_suffix++; }
 	void SetInsertPoint(int label, std::string name);
+	void SetInsertPoint(BlockPtr insertPoint);
 	void SetFunc(IRFunctionPtr func) { function = func; }
 	std::string CodeGen();
 	// using label to index Blocks
 	bool Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op, int label, std::string name, SymbolTablePtr table);
 	bool Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op, SymbolTablePtr table);
+	bool Insert(VariablePtr indicateVariable, BlockPtr targetOne, BlockPtr targetTwo, IROpKind Op, SymbolTablePtr table);
 	bool Insert(VariablePtr dest, IROpKind Op, SymbolTablePtr table);
 	bool Insert(VariablePtr source, VariablePtr dest, IROpKind Op, SymbolTablePtr table);
 	void FixNonReturn(SymbolTablePtr table);

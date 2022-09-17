@@ -1,6 +1,9 @@
+#include "Instruction.h"
 #include "mclang.h"
 #include "IRBuilder.h"
 #include "SymbolTable.h"
+#include <cassert>
+#include <memory>
 static void gen_stmt_ir(Node * node, SymbolTablePtr);
 static void gen_expr_ir(Node *node, VariablePtr*, SymbolTablePtr);
 static void gen_func_arg_ir(Obj * var, int r, int offset, int sz);
@@ -93,6 +96,7 @@ static std::string getRealPreName(Obj * var)
 }
 
 IRBuilder InMemoryIR;
+//std::shared_ptr<IRBuilder> InMemoryIR;
 SymbolTablePtr symTable = std::make_shared<SymbolTable>();
 
 
@@ -293,31 +297,32 @@ static void gen_stmt_ir(Node * node, SymbolTablePtr table)
 			//file_out << "set new if.then" << std::endl;
 
 			// br i1 %cmp, label %if.then, label %if.else
-			VariablePtr label1 = std::make_shared<Variable>();
-			label1->SetName(Twine("%if.then" , loop_id));
-			VariablePtr label2 = std::make_shared<Variable>();
-			label2->SetName(Twine("%if.else" , loop_id));
+			BlockPtr label1 = std::make_shared<Block>(next_label_num_number(), Twine("%if.then" , loop_id));
+
+			BlockPtr label2 = std::make_shared<Block>(next_label_num_number(), Twine("%if.else" , loop_id));
+
 			assert(InMemoryIR.lastResVar != NULL);
-			InMemoryIR.Insert(label1, label2, InMemoryIR.lastResVar, IROpKind::Op_Branch, table);
+			
+			InMemoryIR.Insert(InMemoryIR.lastResVar, label1, label2, IROpKind::Op_Branch, table);
 
 
-			InMemoryIR.SetInsertPoint(next_label_num_number(), Twine("if.then" , loop_id));
+			InMemoryIR.SetInsertPoint(label1);
 
 			gen_stmt_ir(node->then, table);
 
-			VariablePtr dest = std::make_shared<Variable>();
-			dest->SetName(Twine("%if.end" , loop_id));
-			InMemoryIR.Insert(NULL, NULL, dest, IROpKind::Op_UnConBranch, table);
+			BlockPtr dest = std::make_shared<Block>(next_label_num_number(), Twine("%if.end" , loop_id));
+
+			InMemoryIR.Insert(NULL, dest, NULL, IROpKind::Op_UnConBranch, table);
 			//println("  jmp .L.end.%d", c);
 			//println(".L.else.%d:", c);
 			if(node->els){
 				//file_out << "set new if.else" << std::endl;
-				InMemoryIR.SetInsertPoint(next_label_num_number(), Twine("if.else" , loop_id));
+				InMemoryIR.SetInsertPoint(label2);
 				gen_stmt_ir(node->els, table);
-				InMemoryIR.Insert(NULL, NULL, dest, IROpKind::Op_UnConBranch, table);
+				InMemoryIR.Insert(NULL, dest, NULL, IROpKind::Op_UnConBranch, table);
 			}
 			//file_out << "set new if.end" << std::endl;
-			InMemoryIR.SetInsertPoint(next_label_num_number(), Twine("if.end" , loop_id));
+			InMemoryIR.SetInsertPoint(dest);
 			//println(".L.end.%d:", c);
 			return; 
 		}
@@ -578,8 +583,11 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 					left->type = (*res)->type;
 
 
-
+					// fix me
+					// assert(false);
 					InMemoryIR.Insert(left, IROpKind::Op_Store, table);
+					
+					
 					//file_out << "ASSIGN get value : "<< left->GetName() <<" = " << left->Ival <<" res is const?" << (*res)->isConst << std::endl;
 				}
 			}

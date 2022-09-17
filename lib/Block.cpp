@@ -3,11 +3,32 @@
 #include "Variable.h"
 #include "Instruction.h"
 #include "Block.h"
+#include <cassert>
+#include <memory>
 
 
 extern std::string next_variable_name();
 
-
+void Block::Insert(VariablePtr indicateVariable, BlockPtr targetOne, BlockPtr targetTwo, IROpKind Op, IRBuilder * buider)
+{
+	if(Op == IROpKind::Op_Branch)
+	{
+		buider->lastResVar = indicateVariable;
+		assert(indicateVariable != NULL);
+		auto branchInst = std::make_shared<BranchInst>(indicateVariable, targetOne, targetTwo, Op);
+		instructinos.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
+		return;
+	}else{
+		assert(Op == IROpKind::Op_UnConBranch);
+		// buider->lastResVar = indicateVariable;
+		assert(indicateVariable == NULL);
+		assert(targetOne != NULL);
+		assert(targetTwo == NULL);
+		auto branchInst = std::make_shared<BranchInst>(targetOne, Op);
+		instructinos.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
+		return;
+	}
+}
 void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op, IRBuilder * buider)
 {	
 	#if DEBUG
@@ -19,54 +40,58 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 		case IROpKind::Op_Alloca:
 		{
 			assert(left == NULL && right == NULL);
-			InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
-			buider->lastResVar = result;
-			allocas.push_back(inst);
+			auto allocaInst = std::make_shared<AllocaInst>(result);
+			// InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
+			buider->lastResVar = result;			
+			allocas.push_back(std::dynamic_pointer_cast<Instruction>(allocaInst));
 		}
 		case IROpKind::Op_Store:
 		{
-			InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
+			auto storeInst = std::make_shared<StoreInst>(left, result);
 			
 			if(left == NULL && right == NULL){				
-				inst->Ival = result->Ival;
+				storeInst->Ival = result->Ival;
 			}
 			buider->lastResVar = result;
-			instructinos.push_back(inst);	
+			instructinos.push_back(std::dynamic_pointer_cast<Instruction>(storeInst));	
 			return;
 		}
 		case IROpKind::Op_Load:
 		{
-			InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
+			auto loadInst = std::make_shared<LoadInst>(left,result);
 			buider->lastResVar = result;
 			assert(right == NULL);
-			instructinos.push_back(inst);	
+			instructinos.push_back(std::dynamic_pointer_cast<Instruction>(loadInst));	
 			return;
 		}
-		case IROpKind::Op_Branch:
+		/*case IROpKind::Op_Branch:
 		{
+			assert(false);
 			buider->lastResVar = result;
 			assert(result != NULL);
-			InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
-			instructinos.push_back(inst);
+			auto branchInst = std::make_shared<BranchInst>(result, left, right, Op);
+			instructinos.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
 			return;
 		}
 		case IROpKind::Op_UnConBranch:
 		{
+			assert(false);
 			buider->lastResVar = result;
 			assert(result != NULL);
 			assert(left == NULL);
 			assert(right == NULL);
-			InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
-			instructinos.push_back(inst);
+			auto branchInst = std::make_shared<BranchInst>(left, result, Op);
+			instructinos.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
 			return;
-		}
+		}*/
 		case IROpKind::Op_Return:
 		{
 			buider->lastResVar = result;
-			assert(left == NULL);
-			assert(right == NULL);
-			InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
-			instructinos.push_back(inst);
+			// fix me: should not generate temp variable
+			// assert(left == NULL); 
+			// assert(right == NULL);
+			auto returnInst = std::make_shared<ReturnInst>(result);
+			instructinos.push_back(std::dynamic_pointer_cast<Instruction>(returnInst));
 			return;
 		}
 		case IROpKind::Op_ADD:
@@ -105,10 +130,6 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 
 			VariablePtr load1;
 			VariablePtr load2;
-			InstructionPtr inst1;
-			InstructionPtr inst2;
-
-			InstructionPtr instArith;
 
 			if(!left->isConst && !right->isConst){
 				load1 = std::make_shared<Variable>();
@@ -117,31 +138,31 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 				load2 = std::make_shared<Variable>();
 				load2->SetName(next_variable_name());
 
-				inst1 = std::make_shared<Instruction>(left, nullptr, load1, IROpKind::Op_Load);
-				instructinos.push_back(inst1);
+				auto inst1 = std::make_shared<LoadInst>(left, load1);
+				instructinos.push_back(std::dynamic_pointer_cast<Instruction>(inst1));
 
-				inst2 = std::make_shared<Instruction>(right, nullptr, load2, IROpKind::Op_Load);
-				instructinos.push_back(inst2);
+				auto inst2 = std::make_shared<LoadInst>(right, load2);
+				instructinos.push_back(std::dynamic_pointer_cast<Instruction>(inst2));
 
-				instArith = std::make_shared<Instruction>(load1, load2, arithRes, Op);
-				instructinos.push_back(instArith);
+				auto instArith = std::make_shared<BinaryOperator>(load1, load2, arithRes, Op);
+				instructinos.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
 			}else if(!left->isConst)
 			{
 				load1 = std::make_shared<Variable>();
 				load1->SetName(next_variable_name());
-				inst1 = std::make_shared<Instruction>(left, nullptr, load1, IROpKind::Op_Load);
-				instructinos.push_back(inst1);
+				auto inst1 = std::make_shared<LoadInst>(left, load1);
+				instructinos.push_back(std::dynamic_pointer_cast<Instruction>(inst1));
 
-				instArith = std::make_shared<Instruction>(load1, right, arithRes, Op);
-				instructinos.push_back(instArith);
+				auto instArith = std::make_shared<BinaryOperator>(load1, right, arithRes, Op);
+				instructinos.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
 			}else{
 				load2 = std::make_shared<Variable>();
 				load2->SetName(next_variable_name());
-				inst2 = std::make_shared<Instruction>(right, nullptr, load2, IROpKind::Op_Load);
-				instructinos.push_back(inst2);
+				auto inst2 = std::make_shared<LoadInst>(right,load2);
+				instructinos.push_back(std::dynamic_pointer_cast<Instruction>(inst2));
 
-				instArith = std::make_shared<Instruction>(left, load2, arithRes, Op);
-				instructinos.push_back(instArith);
+				auto instArith = std::make_shared<BinaryOperator>(left, load2, arithRes, Op);
+				instructinos.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
 			}
 
 			buider->lastResVar = arithRes;
@@ -153,8 +174,9 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 
 			return;
 		}
-		default:
-			return; 
+		default:{
+			assert(false);
+		}
 	}		
 }
 

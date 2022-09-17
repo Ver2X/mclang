@@ -39,12 +39,13 @@ public:
 	{
 		label = 0;
 	}
-
+	Block(int label, std::string name) : label(label), name(name) {}
 	void SetName(std::string name) { this->name = name; }
 	std::string GetName() { return name; }
 	void SetLabel(int label) { this->label = label; }
 	int GetLabel() { return label; }
 	void Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROpKind Op, IRBuilder * buider);
+	void Insert(VariablePtr indicateVariable, BlockPtr targetOne, BlockPtr targetTwo, IROpKind Op, IRBuilder * buider);
 	void SetPred(BlockPtr);
 	void SetSucc(BlockPtr);
 	std::string CodeGen();

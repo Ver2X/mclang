@@ -1,4 +1,6 @@
 #include "Instruction.h"
+#include "Block.h"
+#include <string>
 
 
 
@@ -8,6 +10,106 @@ int Instruction::getAlign(VariablePtr left, VariablePtr right, VariablePtr resul
 		return std::max(std::max(left->align, right->align), result->align);
 	return result->align;
 }
+
+
+
+std::string BinaryOperator::CodeGen()
+{
+	std::string s;
+
+	switch(Op)
+	{		
+		case IROpKind::Op_ADD:
+			s += "  " + result->GetName() + " = " + "add nsw i32 ";
+			s += left->GetName();
+			s += ", ";
+			s += right->GetName();
+			s += "\n";
+			// s += ", align " + std::to_string(result->align) + "\n";
+			break;
+		case IROpKind::Op_SUB:
+			s += "  " + result->GetName() + " = " + "sub nsw i32 ";
+			s += left->GetName();
+			s += ", ";
+			s += right->GetName();
+			s += "\n";
+			// s += ", align " + std::to_string(result->align) + "\n";
+			break;
+		case IROpKind::Op_MUL:
+			s += "  " + result->GetName() + " = " + "mul nsw i32 ";
+			s += left->GetName();
+			s += ", ";
+			s += right->GetName();
+			s += "\n";
+			// s += ", align " + std::to_string(result->align) + "\n";
+			break;
+		case IROpKind::Op_DIV:
+			s += "  " + result->GetName() + " = " + "sdiv i32 ";
+			s += left->GetName();
+			s += ", ";
+			s += right->GetName();
+			s += "\n";
+			// s += ", align " + std::to_string(result->align) + "\n";
+			break;
+		case IROpKind::Op_Cmp:
+			s += "  " + result->GetName() + " = " + "icmp sgt ";
+			s += left->GetName();
+			s += ", ";
+			s += right->GetName();
+			s += "\n";
+			break;	
+		default:
+			break;
+	}
+	return s;
+}
+
+
+std::string StoreInst::CodeGen()
+{
+
+	if(source == NULL)
+		return "  store i32 " +  std::to_string(this->Ival) + ", i32* " + dest->GetName()  + ", align " + std::to_string(dest->align) + "\n";
+	else
+		return "  store i32 " +  source->GetName() + ", i32* " + dest->GetName()  + ", align " + std::to_string(dest->align) + "\n";
+			
+}
+
+std::string LoadInst::CodeGen()
+{
+	return "  " + dest->GetName() + " = load i32, " + "i32* " + source->GetName()  + ", align " + std::to_string(source->align) + "\n";
+}
+
+std::string AllocaInst::CodeGen()
+{
+	return "  " + dest->GetName() + " = " + "alloca i32 " + ", align " + std::to_string(dest->align) + "\n";
+}
+
+std::string BranchInst::CodeGen()
+{
+	if(Op == IROpKind::Op_Branch)
+	{	
+		std::string s;
+		s += "  br i1 " + indicateVariable->GetName();
+		if(targetFirst != NULL)
+			s += ", label " + targetFirst->GetName();
+		if(targetSecond != NULL)
+			s += ", label " + targetSecond->GetName() + "\n";
+		return s;
+	}else{
+		return "  br label " + targetFirst->GetName() + "\n";
+	}	
+}
+
+std::string ReturnInst::CodeGen()
+{
+	if(returnValue != NULL)
+		return "  ret " + returnValue->GetName() + "\n";
+	else
+		return "  ret void\n";
+}
+
+/*
 std::string Instruction::CodeGen()
 {
 	std::string s;
@@ -82,7 +184,8 @@ std::string Instruction::CodeGen()
 			break;
 		}
 		case IROpKind::Op_Return:
-		{	if(result != NULL)
+		{	
+			if(result != NULL)
 				s += "  ret " + result->GetName() + "\n";
 			else
 				s += "  ret void\n";
@@ -96,3 +199,4 @@ std::string Instruction::CodeGen()
 	#endif
 	return s;
 }
+*/
