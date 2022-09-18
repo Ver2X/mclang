@@ -57,6 +57,7 @@ public:
 	Operand * next;
 	bool isConst;
 	bool isInitConst;
+	bool isGlobal;
 
 	Operand();
 	Operand(int64_t v);
@@ -66,6 +67,7 @@ public:
 	void SetConst(double v);
 	void SetConst(int v);
 	void SetConst(int64_t v);
+	void SetGlobal();
 
 	std::string CodeGen();
 };

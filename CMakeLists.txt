@@ -23,6 +23,7 @@ add_library(libs SHARED
     lib/tokenize.cpp
     lib/type.cpp
     lib/IRBuilder.cpp
+    lib/Module.cpp
 )
 
 # include_directories(include)

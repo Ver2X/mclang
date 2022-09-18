@@ -238,6 +238,7 @@ int align_to(int n, int align);
 
 
 void emit_ir(Obj * prog);
+void emit_global_data_ir(Obj * prog);
 std::string Twine(std::string &l, std::string & r);
 std::string Twine(std::string l, std::string r);
 std::string next_variable_name();

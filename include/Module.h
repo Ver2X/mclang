@@ -9,8 +9,11 @@
 class Module
 {
 public:
-    
-private:
+    Module() {}
+    void InsertGlobalVariable(VariablePtr global);
+    std::string GlobalVariableCodeGen();
+
     std::vector<VariablePtr>  globalVariables;
+private:
     std::vector<IRFunctionPtr> Functions;
 };

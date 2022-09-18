@@ -434,6 +434,7 @@ void codegen(Obj * prog, FILE *out)
 	assign_lvar_offsets(prog);
 	emit_data(prog);
 	emit_text(prog);
+	emit_global_data_ir(prog);
 	emit_ir(prog);
 	
 }

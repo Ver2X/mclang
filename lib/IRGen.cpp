@@ -1,7 +1,10 @@
 #include "Instruction.h"
+#include "Variable.h"
 #include "mclang.h"
 #include "IRBuilder.h"
 #include "SymbolTable.h"
+#include "Module.h"
+#include <bits/types/FILE.h>
 #include <cassert>
 #include <memory>
 static void gen_stmt_ir(Node * node, SymbolTablePtr);
@@ -98,7 +101,7 @@ static std::string getRealPreName(Obj * var)
 //IRBuilder InMemoryIR;
 std::shared_ptr<IRBuilder> InMemoryIR;// = std::make_shared<IRBuilder>();
 SymbolTablePtr symTable;// = std::make_shared<SymbolTable>();
-
+std::shared_ptr<Module> ProgramModule = std::make_shared<Module>();
 
 
 // emit IR
@@ -268,6 +271,10 @@ void emit_ir(Obj * prog)
 
 		// fix no return statement
 		InMemoryIR->FixNonReturn(loca_table);
+		// file_out << "begin global: " << std::endl;
+		// file_out << "ProgramModule size: "<< ProgramModule->globalVariables.size() << std::endl;
+		file_out << ProgramModule->GlobalVariableCodeGen() << std::endl;
+		// file_out << "end global" << std::endl;
 		file_out << InMemoryIR->CodeGen() << std::endl;
 	}
 	
@@ -1203,12 +1210,28 @@ static void gen_expr_ir(Node *node, VariablePtr* res, SymbolTablePtr table)
 
 
 // emit global data
-static void emit_global_data_ir(Obj * prog)
+void emit_global_data_ir(Obj * prog)
 {
 	for(Obj * var = prog; var; var = var->next)
 	{
 		if(var->is_function)
 			continue;
+		if(var->init_data)
+		{
+			VariablePtr Zero = std::make_shared<Variable>(var->init_data[0]);
+			Zero->SetGlobal();
+			Zero->SetName(var->name);
+			ProgramModule->InsertGlobalVariable(Zero);
+			//for(int i = 0; i < var->ty->size;i++)
+			//	println("  .byte %d", var->init_data[i]);
+		} 
+		else{
+			VariablePtr Zero = std::make_shared<Variable>(0);
+			Zero->SetGlobal();
+			Zero->SetName(var->name);
+			ProgramModule->InsertGlobalVariable(Zero);
+			//println("  .zero %d", var->ty->size);
+		}
 		/*println("  .data");
 		println("  .globl %s", var->name);
 		println("%s:",var->name);
