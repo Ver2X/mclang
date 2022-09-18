@@ -98,7 +98,12 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 		case IROpKind::Op_SUB:
 		case IROpKind::Op_MUL:
 		case IROpKind::Op_DIV:
-		case IROpKind::Op_Cmp:
+		case IROpKind::Op_SLE:
+		case IROpKind::Op_SLT:
+		case IROpKind::Op_SGE:
+		case IROpKind::Op_SGT:
+		case IROpKind::Op_NE:
+		case IROpKind::Op_EQ:
 		{
 			std::string s;
 			switch(Op)
@@ -115,7 +120,10 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 				case IROpKind::Op_DIV:
 					s = "%div";
 					break;
-				case IROpKind::Op_Cmp:
+				case IROpKind::Op_SLE:
+				case IROpKind::Op_SLT:
+				case IROpKind::Op_SGE:
+				case IROpKind::Op_SGT:
 					s = "%cmp";
 					break;
 				default:

@@ -20,7 +20,7 @@
 #include <tuple>
 #include <unordered_map>
 
-
+// < : slt, > : sgt, <= : sle, >= : sge 
 enum class IROpKind
 {
 	Op_ADD,  		// +
@@ -29,8 +29,10 @@ enum class IROpKind
 	Op_DIV,  		// /
 	Op_EQ, 	 		// ==
 	Op_NE,   		// !=
-	Op_LT,   		// <
-	Op_LE,   		// <=
+	Op_SLT,   		// <
+	Op_SLE,   		// <=
+	Op_SGT,   		// >
+	Op_SGE,   		// >=
 	Op_COMMA,		// ,
 	Op_NEG,         // -, unary
 	Op_ADDR,		// &, unary
@@ -40,7 +42,7 @@ enum class IROpKind
 	Op_FUNCALL,	// function call
 	Op_Alloca,  // allcoa
 	Op_Store,   // store
-	Op_Cmp,     // icmp
+	// Op_Cmp,     // icmp
 	Op_Load,    // load
 	Op_Return,  // return
 	Op_MEMBER,	// . (struct member access)

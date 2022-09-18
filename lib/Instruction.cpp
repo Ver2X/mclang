@@ -51,13 +51,48 @@ std::string BinaryOperator::CodeGen()
 			s += "\n";
 			// s += ", align " + std::to_string(result->align) + "\n";
 			break;
-		case IROpKind::Op_Cmp:
-			s += "  " + result->GetName() + " = " + "icmp sgt ";
+		case IROpKind::Op_SLE:
+			s += "  " + result->GetName() + " = " + "icmp sle ";
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
 			s += "\n";
 			break;	
+		case IROpKind::Op_SLT:
+			s += "  " + result->GetName() + " = " + "icmp slt ";
+			s += left->GetName();
+			s += ", ";
+			s += right->GetName();
+			s += "\n";
+			break;
+		case IROpKind::Op_SGE:
+			s += "  " + result->GetName() + " = " + "icmp gle ";
+			s += left->GetName();
+			s += ", ";
+			s += right->GetName();
+			s += "\n";
+			break;
+		case IROpKind::Op_SGT:
+			s += "  " + result->GetName() + " = " + "icmp glt ";
+			s += left->GetName();
+			s += ", ";
+			s += right->GetName();
+			s += "\n";
+			break;
+		case IROpKind::Op_EQ:
+			s += "  " + result->GetName() + " = " + "icmp eq ";
+			s += left->GetName();
+			s += ", ";
+			s += right->GetName();
+			s += "\n";
+			break;
+		case IROpKind::Op_NE:
+			s += "  " + result->GetName() + " = " + "icmp ne ";
+			s += left->GetName();
+			s += ", ";
+			s += right->GetName();
+			s += "\n";
+			break;
 		default:
 			break;
 	}
