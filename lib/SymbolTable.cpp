@@ -7,9 +7,7 @@ bool SymbolTable::insert(VariablePtr var,int level)
 	auto iter = table.find(var_name);
 
 	if(iter != table.end())
-	{
-		
-					
+	{		
 		auto finout = [=](VarList vars){
 			auto res = std::find(vars->begin(), vars->end(), var);
 			if(res != vars->end())

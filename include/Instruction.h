@@ -20,7 +20,6 @@
 #include <tuple>
 #include <unordered_map>
 
-// < : slt, > : sgt, <= : sle, >= : sge 
 enum class IROpKind
 {
 	Op_ADD,  		// +
@@ -37,15 +36,16 @@ enum class IROpKind
 	Op_NEG,         // -, unary
 	Op_ADDR,		// &, unary
 	Op_DEREF,		// *, unary
-	Op_Branch,  // branch
-	Op_UnConBranch,  // uncondition branch
-	Op_FUNCALL,	// function call
-	Op_Alloca,  // allcoa
-	Op_Store,   // store
-	// Op_Cmp,     // icmp
-	Op_Load,    // load
-	Op_Return,  // return
-	Op_MEMBER,	// . (struct member access)
+	Op_Branch,  	// branch
+	Op_UnConBranch, // uncondition branch
+	Op_FUNCALL,		// function call
+	Op_Alloca,  	// allcoa
+	Op_Store,   	// store
+	// Op_Cmp,    	// icmp
+	Op_Load,    	// load
+	Op_Return,  	// return
+	Op_MEMBER,		// . (struct member access)
+	Op_RESERVED,	// reserve for error
 };
 
 class Instruction;
