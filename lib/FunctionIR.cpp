@@ -48,7 +48,7 @@ std::string IRFunction::CodeGen()
 	}
 	/*for(int i = 0; i < argsNum; i++)
 	{
-		assert(head != NULL);
+		assert(head != nullptr);
 		s += head->CodeGen();
 		if(i != argsNum - 1)
 		{

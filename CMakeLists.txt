@@ -10,7 +10,6 @@ set(CMAKE_BUILD_TYPE Debug CACHE STRING "Set Build Type to Debug")
 
 include_directories(include)
 add_library(libs SHARED 
-    lib/IRBuilder.cpp  
     lib/Block.cpp 
     lib/FunctionIR.cpp 
     lib/IR.cpp 
@@ -23,6 +22,7 @@ add_library(libs SHARED
     lib/strings.cpp
     lib/tokenize.cpp
     lib/type.cpp
+    lib/IRBuilder.cpp
 )
 
 # include_directories(include)

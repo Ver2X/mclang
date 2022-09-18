@@ -14,16 +14,16 @@ void Block::Insert(VariablePtr indicateVariable, BlockPtr targetOne, BlockPtr ta
 	if(Op == IROpKind::Op_Branch)
 	{
 		buider->lastResVar = indicateVariable;
-		assert(indicateVariable != NULL);
+		assert(indicateVariable != nullptr);
 		auto branchInst = std::make_shared<BranchInst>(indicateVariable, targetOne, targetTwo, Op);
 		instructinos.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
 		return;
 	}else{
 		assert(Op == IROpKind::Op_UnConBranch);
 		// buider->lastResVar = indicateVariable;
-		assert(indicateVariable == NULL);
-		assert(targetOne != NULL);
-		assert(targetTwo == NULL);
+		assert(indicateVariable == nullptr);
+		assert(targetOne != nullptr);
+		assert(targetTwo == nullptr);
 		auto branchInst = std::make_shared<BranchInst>(targetOne, Op);
 		instructinos.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
 		return;
@@ -39,7 +39,7 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 		// shouldn't change order
 		case IROpKind::Op_Alloca:
 		{
-			assert(left == NULL && right == NULL);
+			assert(left == nullptr && right == nullptr);
 			auto allocaInst = std::make_shared<AllocaInst>(result);
 			// InstructionPtr inst = std::make_shared<Instruction>(left, right, result, Op);
 			buider->lastResVar = result;			
@@ -49,7 +49,7 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 		{
 			auto storeInst = std::make_shared<StoreInst>(left, result);
 			
-			if(left == NULL && right == NULL){				
+			if(left == nullptr && right == nullptr){				
 				storeInst->Ival = result->Ival;
 			}
 			buider->lastResVar = result;
@@ -60,7 +60,7 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 		{
 			auto loadInst = std::make_shared<LoadInst>(left,result);
 			buider->lastResVar = result;
-			assert(right == NULL);
+			assert(right == nullptr);
 			instructinos.push_back(std::dynamic_pointer_cast<Instruction>(loadInst));	
 			return;
 		}
@@ -68,7 +68,7 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 		{
 			assert(false);
 			buider->lastResVar = result;
-			assert(result != NULL);
+			assert(result != nullptr);
 			auto branchInst = std::make_shared<BranchInst>(result, left, right, Op);
 			instructinos.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
 			return;
@@ -77,19 +77,24 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result, IROp
 		{
 			assert(false);
 			buider->lastResVar = result;
-			assert(result != NULL);
-			assert(left == NULL);
-			assert(right == NULL);
+			assert(result != nullptr);
+			assert(left == nullptr);
+			assert(right == nullptr);
 			auto branchInst = std::make_shared<BranchInst>(left, result, Op);
 			instructinos.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
 			return;
 		}*/
 		case IROpKind::Op_Return:
 		{
-			buider->lastResVar = result;
+			// buider->lastResVar = result;
+			
 			// fix me: should not generate temp variable
-			// assert(left == NULL); 
-			// assert(right == NULL);
+			// assert(left == nullptr); 
+			// assert(right == nullptr);
+			//std::shared_ptr<ReturnInst> returnInst;
+			// if(result == nullptr)
+			//	returnInst = std::make_shared<ReturnInst>(buider->lastResVar);
+			//else
 			auto returnInst = std::make_shared<ReturnInst>(result);
 			instructinos.push_back(std::dynamic_pointer_cast<Instruction>(returnInst));
 			return;

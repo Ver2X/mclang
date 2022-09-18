@@ -106,7 +106,7 @@ static VarScope * find_var(Token * tok)
 			if(equal(tok, sc2->name))
 				return sc2;
 	}
-	return NULL;
+	return nullptr;
 }
 
 static Type * find_tag(Token *tok)
@@ -120,7 +120,7 @@ static Type * find_tag(Token *tok)
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -248,7 +248,7 @@ static Type *find_typedef(Token *tok)
 		if(sc)
 			return sc->type_def;
 	}
-	return NULL;
+	return nullptr;
 }
 
 
@@ -398,7 +398,7 @@ static Type * func_params(Token **rest, Token*tok, Type * ty)
 			tok = skip(tok, ",");			
 		}
 
-		Type * basety = declspec(&tok, tok, NULL);
+		Type * basety = declspec(&tok, tok, nullptr);
 		Type * ty = declarator(&tok, tok, basety);
 		cur = cur->next = copy_type(ty);
 	}
@@ -480,7 +480,7 @@ static Type *abastract_declarator(Token **rest, Token *tok, Type *ty)
 // type-name = declspec abstract-declarator
 static Type * type_name(Token **rest, Token *tok)
 {
-	Type * ty = declspec(&tok, tok, NULL);
+	Type * ty = declspec(&tok, tok, nullptr);
 	return abastract_declarator(rest, tok, ty);
 }
 
@@ -556,7 +556,7 @@ static Node * stmt(Token ** rest, Token * tok)
 
 		node->init = expr_stmt(&tok, tok);	
 
-		// here use !equal to judge whether cond is null, e.x. for(init; ; inc)
+		// here use !equal to judge whether cond is nullptr, e.x. for(init; ; inc)
 		if(!equal(tok, ";"))
 			node->cond = expr(&tok, tok);
 		tok = skip(tok, ";");
@@ -628,7 +628,7 @@ static Node * compound_stmt(Token ** rest, Token * tok)
 	return node;
 }
 
-// must expr_stmt could be NULL, for support for init , e.x. for(; ; ;)
+// must expr_stmt could be nullptr, for support for init , e.x. for(; ; ;)
 // expr_stmt       = expr? ";"
 static Node * expr_stmt(Token ** rest, Token * tok)
 {
@@ -803,7 +803,7 @@ static Node * new_sub(Node *lhs, Node *rhs, Token *tok)
 
 	error_tok(tok, "invalid operands");
 
-	return NULL; // unreachable
+	return nullptr; // unreachable
 }
 
 
@@ -888,7 +888,7 @@ static void struct_members(Token **rest, Token * tok, Type *ty)
 
 	while(!equal(tok, "}"))
 	{
-		Type * basety = declspec(&tok, tok, NULL);
+		Type * basety = declspec(&tok, tok, nullptr);
 		int i = 0;
 
 		while(!consume(&tok, tok, ";"))
@@ -911,7 +911,7 @@ static void struct_members(Token **rest, Token * tok, Type *ty)
 static Type * struct_union_decl(Token **rest, Token *tok)
 {
 	// read a tag
-	Token * tag = NULL;
+	Token * tag = nullptr;
 	if(tok->kind == TK_IDENT)
 	{
 		tag = tok;
@@ -1007,7 +1007,7 @@ static Member * get_struct_member(Type *ty, Token * tok)
 
 	error_tok(tok, "no such member");
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -1169,7 +1169,7 @@ static Node *primary(Token ** rest, Token * tok)
 
 	error_tok(tok, "expected an expression");
 
-	return NULL;
+	return nullptr;
 }
 
 static Token *parse_typedef(Token *tok, Type * basety)
@@ -1212,7 +1212,7 @@ static Token * function(Token *tok, Type *basety)
 
 	if(!fn->is_definition)
 		return tok;
-	locals = NULL;
+	locals = nullptr;
 
 	enter_scope();
 
@@ -1257,7 +1257,7 @@ static bool	is_function(Token * tok)
 // program = (typedef | function-definition | global-variable)*
 Obj * parse(Token * tok)
 {
-	globals = NULL;
+	globals = nullptr;
 
 
 	while(tok->kind != TK_EOF){

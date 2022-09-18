@@ -147,7 +147,7 @@ static void gen_expr(Node *node)
 			return ;
 		case ND_VAR:
 		case ND_MEMBER:
-			//if(node->var != NULL)
+			//if(node->var != nullptr)
 			//	file_out << "asm local variable name :" << node->var->name << std::endl;
 			gen_addr(node);
 			load(node->ty);
@@ -164,7 +164,7 @@ static void gen_expr(Node *node)
 			push();
 			gen_expr(node->rhs);
 			store(node->ty);
-			//if(node->lhs != NULL && node->lhs->kind == ND_VAR)
+			//if(node->lhs != nullptr && node->lhs->kind == ND_VAR)
 			//	file_out << "asm: meeting a single Variable assign " << std::endl;
 			return;
 		case ND_STMT_EXPR:
@@ -194,6 +194,8 @@ static void gen_expr(Node *node)
 				println("  call %s", node->funcname);
 				return;
 			}
+		default:
+			break;
 	}
 
 	// there must deal rhs first

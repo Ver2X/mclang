@@ -6,7 +6,7 @@
 
 int Instruction::getAlign(VariablePtr left, VariablePtr right, VariablePtr result)
 {
-	if(left != NULL && right != NULL)
+	if(left != nullptr && right != nullptr)
 		return std::max(std::max(left->align, right->align), result->align);
 	return result->align;
 }
@@ -103,7 +103,7 @@ std::string BinaryOperator::CodeGen()
 std::string StoreInst::CodeGen()
 {
 
-	if(source == NULL)
+	if(source == nullptr)
 		return "  store i32 " +  std::to_string(this->Ival) + ", i32* " + dest->GetName()  + ", align " + std::to_string(dest->align) + "\n";
 	else
 		return "  store i32 " +  source->GetName() + ", i32* " + dest->GetName()  + ", align " + std::to_string(dest->align) + "\n";
@@ -126,9 +126,9 @@ std::string BranchInst::CodeGen()
 	{	
 		std::string s;
 		s += "  br i1 " + indicateVariable->GetName();
-		if(targetFirst != NULL)
+		if(targetFirst != nullptr)
 			s += ", label " + targetFirst->GetName();
-		if(targetSecond != NULL)
+		if(targetSecond != nullptr)
 			s += ", label " + targetSecond->GetName() + "\n";
 		return s;
 	}else{
@@ -138,7 +138,7 @@ std::string BranchInst::CodeGen()
 
 std::string ReturnInst::CodeGen()
 {
-	if(returnValue != NULL)
+	if(returnValue != nullptr)
 		return "  ret " + returnValue->GetName() + "\n";
 	else
 		return "  ret void\n";
@@ -195,7 +195,7 @@ std::string Instruction::CodeGen()
 			break;
 		case IROpKind::Op_Store:
 			{
-				if(left == NULL)
+				if(left == nullptr)
 					s += "  store i32 " +  std::to_string(this->Ival) + ", i32* " + result->GetName()  + ", align " + std::to_string(result->align) + "\n";
 				else
 					s += "  store i32 " +  left->GetName() + ", i32* " + result->GetName()  + ", align " + std::to_string(result->align) + "\n";
@@ -207,9 +207,9 @@ std::string Instruction::CodeGen()
 		case IROpKind::Op_Branch:
 			{	
 				s += "  br i1 " + result->GetName();
-				if(left != NULL)
+				if(left != nullptr)
 					s += ", label " + left->GetName();
-				if(right != NULL)
+				if(right != nullptr)
 					s += ", label " + right->GetName() + "\n";;
 				break;
 			}
@@ -220,7 +220,7 @@ std::string Instruction::CodeGen()
 		}
 		case IROpKind::Op_Return:
 		{	
-			if(result != NULL)
+			if(result != nullptr)
 				s += "  ret " + result->GetName() + "\n";
 			else
 				s += "  ret void\n";

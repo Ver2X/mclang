@@ -100,6 +100,7 @@ private:
 class ReturnInst : public Instruction{
 public:
 	ReturnInst(VariablePtr rv) :returnValue(rv) {}
+	ReturnInst() {}
 	std::string CodeGen();
 private:
 	VariablePtr returnValue;

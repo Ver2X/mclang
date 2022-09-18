@@ -106,14 +106,14 @@ bool IRBuilder::Insert(VariablePtr left, VariablePtr right, VariablePtr result, 
 bool IRBuilder::Insert(VariablePtr result, IROpKind Op, SymbolTablePtr table)
 {
 	// store num
-	return Insert(NULL, NULL, result, Op, cache_label, cache_name, table);
+	return Insert(nullptr, nullptr, result, Op, cache_label, cache_name, table);
 }
 
 
 bool IRBuilder::Insert(VariablePtr source, VariablePtr dest, IROpKind Op, SymbolTablePtr table)
 {
 	// store identity
-	return Insert(source, NULL, dest, Op, cache_label, cache_name, table);
+	return Insert(source, nullptr, dest, Op, cache_label, cache_name, table);
 }
 bool IRBuilder::Insert(VariablePtr indicateVariable, BlockPtr targetOne, BlockPtr targetTwo, IROpKind Op, SymbolTablePtr table)
 {
@@ -141,12 +141,38 @@ void IRBuilder::FixNonReturn(SymbolTablePtr table)
 	// fix no return statement
 	if(lastBlock->instructinos.empty())
 	{
-		this->Insert(std::make_shared<Variable>(NULL), std::make_shared<Variable>(NULL), std::make_shared<Variable>(NULL), IROpKind::Op_Return, table);
+		if(function->retTy == ReturnTypeKind::RTY_VOID){
+			// fix me: remove temp variables
+			VariablePtr tempRetVoid = std::make_shared<Variable>();
+			tempRetVoid->SetName("void");
+			auto t1 = std::make_shared<Variable>();
+			auto t2 = std::make_shared<Variable>();
+			this->Insert(t1, t2, tempRetVoid, IROpKind::Op_Return, table);
+			//this->Insert(std::make_shared<Variable>(), std::make_shared<Variable>(), tempRetVoid, IROpKind::Op_Return, table);
+		}
+		else{
+			auto t1 = std::make_shared<Variable>();
+			auto t2 = std::make_shared<Variable>();
+			this->Insert(t1, t2, lastResVar, IROpKind::Op_Return, table);
+			//this->Insert(std::make_shared<Variable>(), std::make_shared<Variable>(), std::make_shared<Variable>(lastResVar), IROpKind::Op_Return, table);
+		}
+			
 	}else{
 		InstructionPtr lastInst = *(lastBlock->instructinos.end() - 1);
 	 	if(auto d = std::dynamic_pointer_cast<ReturnInst>(lastInst); d == nullptr)
 		{
-	 			this->Insert(std::make_shared<Variable>(NULL), std::make_shared<Variable>(NULL), std::make_shared<Variable>(NULL), IROpKind::Op_Return, table);
+	 		if(function->retTy == ReturnTypeKind::RTY_VOID){
+				// fix me: remove temp variable
+				VariablePtr tempRetVoid = std::make_shared<Variable>();
+				tempRetVoid->SetName("void");
+				auto t1 = std::make_shared<Variable>();
+				auto t2 = std::make_shared<Variable>();
+				this->Insert(t1, t2, tempRetVoid, IROpKind::Op_Return, table);
+			}else{
+				auto t1 = std::make_shared<Variable>();
+				auto t2 = std::make_shared<Variable>();
+				this->Insert(t1, t2, lastResVar, IROpKind::Op_Return, table);
+			}
 	 	}
 	}	
 }
@@ -154,7 +180,7 @@ void IRBuilder::FixNonReturn(SymbolTablePtr table)
 std::string IRBuilder::CodeGen()
 {
 	std::string s;
-	if(function != NULL)
+	if(function != nullptr)
 	{
 		s += function->CodeGen();
 	}

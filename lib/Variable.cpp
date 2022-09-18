@@ -2,7 +2,7 @@
 Operand::Operand()
 {
 	Ival = 0;
-	next = NULL;
+	next = nullptr;
 	align = 4;
 	isConst = false;
 	type = VaribleKind::VAR_32;
@@ -10,7 +10,7 @@ Operand::Operand()
 Operand::Operand(int64_t v)
 {
 	Ival = v;
-	next = NULL;
+	next = nullptr;
 	align = 8;
 	isConst = true;
 	name = std::to_string(Ival);
@@ -20,7 +20,7 @@ Operand::Operand(int64_t v)
 Operand::Operand(int v)
 {
 	Ival = v;
-	next = NULL;
+	next = nullptr;
 	align = 4;
 	isConst = true;
 	name = std::to_string(Ival);
@@ -30,7 +30,7 @@ Operand::Operand(int v)
 Operand::Operand(double v)
 {
 	Fval = v;
-	next = NULL;
+	next = nullptr;
 	align = 8;
 	isConst = true;
 	name = std::to_string(Fval);
@@ -40,7 +40,7 @@ Operand::Operand(double v)
 void Operand::SetConst(double v)
 {
 	Fval = v;
-	next = NULL;
+	next = nullptr;
 	align = 8;
 	isConst = true;
 	name = std::to_string(Fval);
@@ -50,7 +50,7 @@ void Operand::SetConst(double v)
 void Operand::SetConst(int v)
 {
 	Ival = v;
-	next = NULL;
+	next = nullptr;
 	align = 4;
 	isConst = true;
 	name = std::to_string(Ival);
@@ -60,7 +60,7 @@ void Operand::SetConst(int v)
 void Operand::SetConst(int64_t v)
 {
 	Ival = v;
-	next = NULL;
+	next = nullptr;
 	align = 8;
 	isConst = true;
 	name = std::to_string(Ival);

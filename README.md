@@ -477,9 +477,9 @@ case ND_NUM:
 
 
 
-### Step 18 : Support  null argument function call, don't support function define
+### Step 18 : Support  nullptr argument function call, don't support function define
 
-To support function call, first we need change parser, notice temp argument list is null
+To support function call, first we need change parser, notice temp argument list is nullptr
 
 ```c++
 // before: primary =  "(" expr ")" | ident | num 
@@ -585,7 +585,7 @@ for parser, before we only could declaration a varibale, now we also could decla
 // declarator = "*"* ident type-suffix
 // type-suffix = ("(" func-params ")")?
 //
-// for now, func-params = NULL
+// for now, func-params = nullptr
 ```
 
 besides, now we should parser function first, not statements
@@ -599,7 +599,7 @@ static Function * function(Token * tok)
 	Type * ty = declspec(&tok, tok);
 	ty = declarator(&tok, tok, ty);
 
-	locals = NULL;
+	locals = nullptr;
 
 	Function *fn = calloc(1, sizeof(Function));
 	fn->name = get_ident(ty->name);
@@ -947,7 +947,7 @@ for parser deal global varibale
 // program = (function-definition | global-variable)*
 Obj * parse(Token * tok)
 {
-	globals = NULL;
+	globals = nullptr;
 
 
 	while(tok->kind != TK_EOF){
@@ -1431,7 +1431,7 @@ static Obj * find_var(Token * tok)
 			if(equal(tok, sc2->name))
 				return sc2->var;
 	}
-	return NULL;
+	return nullptr;
 }
 
 static void enter_scope(void)
@@ -1622,7 +1622,7 @@ static Type * struct_decl(Token **rest, Token *tok)
 {
 	// read a truct tag
 	// define
-	Token * tag = NULL;
+	Token * tag = nullptr;
 	if(tok->kind == TK_IDENT)
 	{
 		tag = tok;

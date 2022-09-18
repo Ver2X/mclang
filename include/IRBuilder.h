@@ -37,8 +37,8 @@ public:
 	{
 		cache_label = -1;
 		entry_label = -1;
-		globalVariable = NULL;
-		function = NULL;
+		globalVariable = nullptr;
+		function = nullptr;
 		count_suffix = 1;
 	}
 	VariablePtr lastResVar;
