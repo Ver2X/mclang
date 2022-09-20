@@ -24,7 +24,7 @@ std::string BinaryOperator::CodeGen()
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
-			s += "\n";
+			// s += "\n";
 			// s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case IROpKind::Op_SUB:
@@ -32,7 +32,7 @@ std::string BinaryOperator::CodeGen()
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
-			s += "\n";
+			// s += "\n";
 			// s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case IROpKind::Op_MUL:
@@ -40,7 +40,7 @@ std::string BinaryOperator::CodeGen()
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
-			s += "\n";
+			// s += "\n";
 			// s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case IROpKind::Op_DIV:
@@ -48,7 +48,7 @@ std::string BinaryOperator::CodeGen()
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
-			s += "\n";
+			// s += "\n";
 			// s += ", align " + std::to_string(result->align) + "\n";
 			break;
 		case IROpKind::Op_SLE:
@@ -56,42 +56,42 @@ std::string BinaryOperator::CodeGen()
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
-			s += "\n";
+			// s += "\n";
 			break;	
 		case IROpKind::Op_SLT:
 			s += "  " + result->GetName() + " = " + "icmp slt ";
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
-			s += "\n";
+			// s += "\n";
 			break;
 		case IROpKind::Op_SGE:
 			s += "  " + result->GetName() + " = " + "icmp gle ";
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
-			s += "\n";
+			// s += "\n";
 			break;
 		case IROpKind::Op_SGT:
 			s += "  " + result->GetName() + " = " + "icmp glt ";
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
-			s += "\n";
+			// s += "\n";
 			break;
 		case IROpKind::Op_EQ:
 			s += "  " + result->GetName() + " = " + "icmp eq ";
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
-			s += "\n";
+			// s += "\n";
 			break;
 		case IROpKind::Op_NE:
 			s += "  " + result->GetName() + " = " + "icmp ne ";
 			s += left->GetName();
 			s += ", ";
 			s += right->GetName();
-			s += "\n";
+			// s += "\n";
 			break;
 		default:
 			break;
@@ -104,20 +104,20 @@ std::string StoreInst::CodeGen()
 {
 
 	if(source == nullptr)
-		return "  store i32 " +  std::to_string(this->Ival) + ", i32* " + dest->GetName()  + ", align " + std::to_string(dest->align) + "\n";
+		return "  store i32 " +  std::to_string(this->Ival) + ", i32* " + dest->GetName()  + ", align " + std::to_string(dest->align);// + "\n";
 	else
-		return "  store i32 " +  source->GetName() + ", i32* " + dest->GetName()  + ", align " + std::to_string(dest->align) + "\n";
+		return "  store i32 " +  source->GetName() + ", i32* " + dest->GetName()  + ", align " + std::to_string(dest->align);// + "\n";
 			
 }
 
 std::string LoadInst::CodeGen()
 {
-	return "  " + dest->GetName() + " = load i32, " + "i32* " + source->GetName()  + ", align " + std::to_string(source->align) + "\n";
+	return "  " + dest->GetName() + " = load i32, " + "i32* " + source->GetName()  + ", align " + std::to_string(source->align);// + "\n";
 }
 
 std::string AllocaInst::CodeGen()
 {
-	return "  " + dest->GetName() + " = " + "alloca i32 " + ", align " + std::to_string(dest->align) + "\n";
+	return "  " + dest->GetName() + " = " + "alloca i32 " + ", align " + std::to_string(dest->align);// + "\n";
 }
 
 std::string BranchInst::CodeGen()
@@ -129,17 +129,17 @@ std::string BranchInst::CodeGen()
 		if(targetFirst != nullptr)
 			s += ", label " + targetFirst->GetName();
 		if(targetSecond != nullptr)
-			s += ", label " + targetSecond->GetName() + "\n";
+			s += ", label " + targetSecond->GetName();// + "\n";
 		return s;
 	}else{
-		return "  br label " + targetFirst->GetName() + "\n";
+		return "  br label " + targetFirst->GetName();// + "\n";
 	}	
 }
 
 std::string ReturnInst::CodeGen()
 {
 	if(returnValue != nullptr)
-		return "  ret " + returnValue->GetName() + "\n";
+		return "  ret " + returnValue->GetName();// + "\n";
 	else
 		return "  ret void\n";
 }

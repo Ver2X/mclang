@@ -1,15 +1,17 @@
-cmake_minimum_required(VERSION 3.6.0)
+cmake_minimum_required(VERSION 3.24.2)
 project(mclang LANGUAGES CXX)
 
 SET(CMAKE_CXX_COMPILER /home/zyy/files/llvm-project/build_llvm14/bin/clang++)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 list(APPEND CMAKE_CXX_FLAGS "-fno-common")
+list(APPEND CXX_FLAGS "-O3")
 message("C++ compiler flags: ${CMAKE_CXX_FLAGS}")
 set(CMAKE_BUILD_TYPE Debug CACHE STRING "Set Build Type to Debug")
 
 include_directories(include)
 add_library(libs SHARED 
+    lib/Rope.cpp
     lib/Block.cpp 
     lib/FunctionIR.cpp 
     lib/IR.cpp 

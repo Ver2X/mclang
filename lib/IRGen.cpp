@@ -295,6 +295,10 @@ void emit_ir(Obj * prog)
 		file_out << ProgramModule->GlobalVariableCodeGen() << std::endl;
 		// file_out << "end global" << std::endl;
 		file_out << InMemoryIR->CodeGen() << std::endl;
+		InMemoryIR->SetPredAndSuccNum();
+		file_out << "===================================== dumping CFG =====================================" << std::endl;
+		file_out << InMemoryIR->DumpCFG();
+		file_out << "===================================== dumped =====================================" << std::endl;
 	}
 	
 }
@@ -323,9 +327,17 @@ static void gen_stmt_ir(Node * node, SymbolTablePtr table)
 			//file_out << "set new if.then" << std::endl;
 
 			// br i1 %cmp, label %if.then, label %if.else
-			BlockPtr label1 = std::make_shared<Block>(next_label_num_number(), Twine("%if.then" , loop_id));
+			BlockPtr before = InMemoryIR->GetCurrentBlock();
 
+			BlockPtr label1 = std::make_shared<Block>(next_label_num_number(), Twine("%if.then" , loop_id));
 			BlockPtr label2 = std::make_shared<Block>(next_label_num_number(), Twine("%if.else" , loop_id));
+
+			before->SetSucc(label1);
+			before->SetSucc(label2);
+			label1->SetPred(before);
+			label2->SetPred(before);
+
+
 
 			assert(InMemoryIR->lastResVar != nullptr);
 			
@@ -337,6 +349,12 @@ static void gen_stmt_ir(Node * node, SymbolTablePtr table)
 			gen_stmt_ir(node->then, table);
 
 			BlockPtr dest = std::make_shared<Block>(next_label_num_number(), Twine("%if.end" , loop_id));
+			
+			label1->SetSucc(dest);
+			label2->SetSucc(dest);
+			dest->SetPred(label1);
+			dest->SetPred(label2);
+
 
 			InMemoryIR->Insert(nullptr, dest, nullptr, IROpKind::Op_UnConBranch, table);
 			//println("  jmp .L.end.%d", c);
@@ -350,7 +368,7 @@ static void gen_stmt_ir(Node * node, SymbolTablePtr table)
 			//file_out << "set new if.end" << std::endl;
 			InMemoryIR->SetInsertPoint(dest);
 			//println(".L.end.%d:", c);
-			return; 
+			return;
 		}
 		case ND_FOR: // or while
 		{

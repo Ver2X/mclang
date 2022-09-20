@@ -28,10 +28,16 @@ class IRBuilder{
 	IRFunctionPtr function;
 	// order by label
 	std::map<int, BlockPtr> blocks;
+	std::map<Edge, EdgeKind> EdgeKinds;
+	std::map<BlockPtr, int> PreNum;
+	std::map<BlockPtr, int> PostNum;
+	std::map< int, BlockPtr> PreNumToBlock;
+	std::map<int, BlockPtr> PostNumToBlock;
 	int cache_label;
 	int entry_label;
 	std::string cache_name;
 	int count_suffix;
+	int numofblock;
 public:
 	IRBuilder()
 	{
@@ -55,4 +61,8 @@ public:
 	bool Insert(VariablePtr source, VariablePtr dest, IROpKind Op, SymbolTablePtr table);
 	void FixNonReturn(SymbolTablePtr table);
 	void InsertBasicBlock(int label, std::string name, int pred);
+	BlockPtr GetCurrentBlock();
+	void DepthFirstSearchPP(int&, int&, std::map<BlockPtr, bool>&, std::vector<BlockPtr>&, BlockPtr);
+	void SetPredAndSuccNum();
+	std::string DumpCFG();
 };

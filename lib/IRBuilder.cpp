@@ -3,6 +3,7 @@
 #include "Variable.h"
 #include <cassert>
 #include <memory>
+#include <string>
 void IRBuilder::SetInsertPoint(int label, std::string name)
 {
 	if(entry_label < 0)
@@ -197,5 +198,85 @@ std::string IRBuilder::CodeGen()
 		lastBlock = blk.second;
 	}
 	s += "}\n";
+	return s;
+}
+
+BlockPtr IRBuilder::GetCurrentBlock()
+{
+	if(cache_label == -1)
+		return nullptr;
+	return blocks[cache_label];
+}
+
+void IRBuilder::SetPredAndSuccNum()
+{
+	std::map<BlockPtr, bool> Visit;
+	BlockPtr current;
+	for(auto pr : blocks)
+	{
+		current = pr.second;
+		Visit[current] = false;
+	}
+	int i, j;
+	i = 0;
+	j = 0;
+	DepthFirstSearchPP(i, j, Visit, blocks[entry_label]->succes, blocks[entry_label]);
+	assert(i == j);
+	numofblock = i;
+}
+
+void IRBuilder::DepthFirstSearchPP(int& i, int& j, std::map<BlockPtr, bool>& Visit, std::vector<BlockPtr>& succ,  BlockPtr x)
+{
+	// BlockPtr y;
+	Visit[x] = true;
+	PreNum[x] = j;
+	PreNumToBlock[j] = x;
+	j++;
+	for(auto y : succ)
+	{
+		if(!Visit[y]){
+			DepthFirstSearchPP(i, j, Visit, y->succes, y);
+			EdgeKinds[std::make_pair(x, y)] = EdgeKind::TreeEdge;
+		}else if(PreNum[x] < PreNum[y]){
+			EdgeKinds[std::make_pair(x, y)] = EdgeKind::ForwardEdge;
+		}else if(PostNum[y] == 0){
+			EdgeKinds[std::make_pair(x, y)] = EdgeKind::BackEdge;
+		}else{
+			EdgeKinds[std::make_pair(x, y)] = EdgeKind::CrossEdge;
+		}
+	}
+	PostNum[x] = i;
+	PostNumToBlock[i] = x;
+	i++;
+}
+
+std::string IRBuilder::DumpCFG()
+{
+/*
+digraph CFG {
+	0 -> 1-> 2
+	1 -> 3;
+	0 [shape=polygon,sides=5,peripheries=3,color=lightblue,style=filled];
+	2 [shape=polygon,sides=4,label="hello world"]
+	3 [shape=invtriangle];
+	4 [shape=polygon,sides=4,distortion=.7];
+}
+*/
+	std::string s = "digraph CFG {\n";
+	for(auto edge : EdgeKinds)
+	{
+		auto From = edge.first.first;
+		auto To = edge.first.second;
+		s += "  " + std::to_string(PreNum[From]) + " -> " + std::to_string(PreNum[To]) + ";\n";
+	}
+	for(int i = 0; i < numofblock; i++)
+	{
+		s += "\n";
+		if(i != 0)
+			s += "  " + std::to_string(i) + " [shape = polygon, label = \" " + PreNumToBlock[i]->CodeGenCFG() + "\" ];";
+		else
+		 	s += "  " + std::to_string(i) + " [shape = polygon, label = \" " + PreNumToBlock[i]->EntryCodeGenCFG() + "\" ];";
+	}
+	s += "\n}\n";
 	return s;
 }

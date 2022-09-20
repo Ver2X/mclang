@@ -205,7 +205,7 @@ std::string Block::CodeGen()
 		s += name + ":\n";
 	for(const auto & ins : instructinos)
 	{
-		s += ins->CodeGen();
+		s += ins->CodeGen() + "\n";
 	}
 	return s;
 }
@@ -216,7 +216,43 @@ std::string Block::AllocaCodeGen()
 	s += name + ":\n";
 	for(const auto & ins : allocas)
 	{
-		s += ins->CodeGen();
+		s += ins->CodeGen() + "\n";
 	}
 	return s;
+}
+
+std::string Block::EntryCodeGenCFG()
+{
+	std::string s;
+	s += name + ":\\l";
+	for(const auto & ins : allocas)
+	{
+		s += ins->CodeGen() + "\\l";
+	}
+	for(const auto & ins : instructinos)
+	{
+		s += ins->CodeGen() + "\\l";
+	}
+	return s;
+}
+
+std::string Block::CodeGenCFG()
+{
+	std::string s;
+	s += name + ":\\l";
+	for(const auto & ins : instructinos)
+	{
+		s += ins->CodeGen() + "\\l";
+	}
+	return s;
+}
+
+void Block::SetPred(BlockPtr pred)
+{
+	preds.push_back(pred);
+}
+
+void Block::SetSucc(BlockPtr succ)
+{
+	succes.push_back(succ);
 }

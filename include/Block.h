@@ -22,6 +22,14 @@
 class Block;
 class IRBuilder;
 using BlockPtr = std::shared_ptr<Block>;
+using Edge = std::pair<BlockPtr, BlockPtr>;
+
+enum class EdgeKind{
+	ForwardEdge,
+	BackEdge,
+	CrossEdge,
+	TreeEdge,
+};
 
 class Block{
 
@@ -49,5 +57,7 @@ public:
 	void SetPred(BlockPtr);
 	void SetSucc(BlockPtr);
 	std::string CodeGen();
+	std::string CodeGenCFG();
 	std::string AllocaCodeGen();
+	std::string EntryCodeGenCFG();
 };
