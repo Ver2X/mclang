@@ -3,6 +3,7 @@
 #include "FunctionIR.h"
 #include "SymbolTable.h"
 #include "Block.h"
+#include "DominTree.h"
 
 #include <ctype.h> 
 #include <stdarg.h>
@@ -33,6 +34,8 @@ class IRBuilder{
 	std::map<BlockPtr, int> PostNum;
 	std::map< int, BlockPtr> PreNumToBlock;
 	std::map<int, BlockPtr> PostNumToBlock;
+	std::shared_ptr<DominTree> Domin;
+	std::shared_ptr<DominTree> PostDomin;
 	int cache_label;
 	int entry_label;
 	std::string cache_name;
