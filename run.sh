@@ -1,4 +1,13 @@
 #!/bin/bash
+
+# 默认情况下禁用 ASan
+ENABLE_ASAN=OFF
+
+# 检查命令行参数，如果传递了 "--asan" 参数，则启用 ASan
+if [[ "$1" == "--asan" ]]; then
+  ENABLE_ASAN=ON
+fi
+
 if ! command -v cmake >/dev/null 2>&1; then
     echo "CMake is not installed"
 fi
@@ -12,7 +21,7 @@ if [ ! -d build ]; then
   mkdir build
 fi
 cd build
-cmake -G Ninja ..
+cmake -DENABLE_ASAN=${ENABLE_ASAN} -G Ninja ..
 cmake --build .
 cd ..
 make clean 
