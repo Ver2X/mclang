@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24.2)
 project(mclang LANGUAGES CXX)
 
-SET(CMAKE_CXX_COMPILER /home/zyy/files/llvm-project/build_llvm14/bin/clang++)
+SET(CMAKE_CXX_COMPILER clang++)
 
 set(CMAKE_CXX_STANDARD 23)
 list(APPEND CMAKE_CXX_FLAGS "-fno-common")

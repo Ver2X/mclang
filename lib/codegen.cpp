@@ -5,85 +5,68 @@ static void gen_stmt(Node *node);
 
 std::fstream file_out;
 
-
-static FILE * output_file;
+static FILE *output_file;
 int depth;
-static const char * argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
-static const char * argreg16[] = {"%di", "%si", "%dx", "%cx", "%r8w", "%r9w"};
-static const char * argreg32[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
-static const char * argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+static const char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
+static const char *argreg16[] = {"%di", "%si", "%dx", "%cx", "%r8w", "%r9w"};
+static const char *argreg32[] = {"%edi", "%esi", "%edx",
+                                 "%ecx", "%r8d", "%r9d"};
+static const char *argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 
-static Obj * current_fn;
+static Obj *current_fn;
 
 static void println(const char *fmt, ...) {
-	va_list ap;
-	va_start(ap, fmt);
-	vfprintf(output_file, fmt, ap);
-	va_end(ap);
-	fprintf(output_file, "\n");
+  va_list ap;
+  va_start(ap, fmt);
+  vfprintf(output_file, fmt, ap);
+  va_end(ap);
+  fprintf(output_file, "\n");
 }
-
 
 int count_diff_if = 1;
 // use to identify diff "if" statements
-static int count()
-{
-	
-	return count_diff_if++;
+static int count() { return count_diff_if++; }
+
+static void push(void) {
+  println("  push %%rax");
+  depth++;
 }
 
-
-static void push(void)
-{
-	println("  push %%rax");
-	depth++;
-}
-
-static void pop(const char * arg)
-{
-	println("  pop %s", arg);
-	depth--;
+static void pop(const char *arg) {
+  println("  pop %s", arg);
+  depth--;
 }
 
 // round up
-int align_to(int n, int align)
-{
-	return (n + align - 1)/ align * align;
-}
+int align_to(int n, int align) { return (n + align - 1) / align * align; }
 
+static void gen_addr(Node *node) {
+  switch (node->kind) {
+  case ND_VAR:
+    if (node->var->is_local) {
+      // Local variable
+      println("  lea %d(%%rbp), %%rax", node->var->offset);
+    } else {
+      // Global variable
+      println("  lea %s(%%rip), %%rax", node->var->name);
+    }
+    return;
+  case ND_DEREF:
+    gen_expr(node->lhs);
+    return;
+  case ND_COMMA:
+    gen_expr(node->lhs);
+    gen_addr(node->rhs);
+    return;
+  case ND_MEMBER:
+    gen_addr(node->lhs);
+    println("  add $%d, %%rax", node->member->offset);
+    return;
+  default:
+    return;
+  }
 
-static void gen_addr(Node *node)
-{
-	switch(node->kind)
-	{
-		case ND_VAR:
-			if(node->var->is_local)
-			{
-				// Local variable
-				println("  lea %d(%%rbp), %%rax", node->var->offset);
-			}
-			else
-			{
-				// Global variable
-				println("  lea %s(%%rip), %%rax", node->var->name);
-			}
-			return;
-		case ND_DEREF:
-			gen_expr(node->lhs);
-			return;
-		case ND_COMMA:
-			gen_expr(node->lhs);
-			gen_addr(node->rhs);
-			return;
-		case ND_MEMBER:
-			gen_addr(node->lhs);
-			println("  add $%d, %%rax", node->member->offset);
-			return;
-		default:
-			return;
-	}
-
-	error("not an lvalue");
+  error("not an lvalue");
 }
 
 // Lfad a value from where %rax is pointing to.
@@ -98,343 +81,306 @@ static void load(Type *ty) {
     return;
   }
 
-  if(ty->size == 1)
-  	println("  movsbq (%%rax), %%rax");
-  else if(ty->size == 2)
-  	println("  movswq (%%rax), %%rax");
-  else if(ty->size == 4)
-  	println("  movsxd (%%rax), %%rax");
+  if (ty->size == 1)
+    println("  movsbq (%%rax), %%rax");
+  else if (ty->size == 2)
+    println("  movswq (%%rax), %%rax");
+  else if (ty->size == 4)
+    println("  movsxd (%%rax), %%rax");
   else
-  	println("  mov (%%rax), %%rax");
+    println("  mov (%%rax), %%rax");
 }
 
 // store %rax to an address that the stack top is pointing to.
-static void store(Type * ty) {
+static void store(Type *ty) {
   pop("%rdi");
-  if(ty->kind == TY_STRUCT || ty->kind == TY_UNION)
-  {
-  	for(int i = 0; i < ty->size; i++)
-  	{
-  		println("  mov %d(%%rax), %%r8b", i);
-  		println("  mov %%r8b, %d(%%rdi)", i);
-  	}
-  	return;
+  if (ty->kind == TY_STRUCT || ty->kind == TY_UNION) {
+    for (int i = 0; i < ty->size; i++) {
+      println("  mov %d(%%rax), %%r8b", i);
+      println("  mov %%r8b, %d(%%rdi)", i);
+    }
+    return;
   }
 
-  if(ty->size == 1)
-  	println("  mov %%al, (%%rdi)");
-  else if(ty->size == 2)
-  	println("  mov %%ax, (%%rdi)");
-  else if(ty->size == 4)
-  	println("  mov %%eax, (%%rdi)");
+  if (ty->size == 1)
+    println("  mov %%al, (%%rdi)");
+  else if (ty->size == 2)
+    println("  mov %%ax, (%%rdi)");
+  else if (ty->size == 4)
+    println("  mov %%eax, (%%rdi)");
   else
-  	println("  mov %%rax, (%%rdi)");
+    println("  mov %%rax, (%%rdi)");
 }
-
 
 // stack machine
-static void gen_expr(Node *node)
-{
-	println("  .loc 1 %d", node->tok->line_no);
-	switch(node->kind)
-	{
-		case ND_NUM:
-			println("  mov $%ld, %%rax", node->val);
-			return ;
-		case ND_NEG:
-			gen_expr(node->lhs);
-			println("  neg %%rax");
-			return ;
-		case ND_VAR:
-		case ND_MEMBER:
-			//if(node->var != nullptr)
-			//	file_out << "asm local variable name :" << node->var->name << std::endl;
-			gen_addr(node);
-			load(node->ty);
-			return ;
-		case ND_DEREF:
-			gen_expr(node->lhs);
-			load(node->ty);
-			return;
-		case ND_ADDR:
-			gen_addr(node->lhs);
-			return;
-		case ND_ASSIGN:
-			gen_addr(node->lhs);
-			push();
-			gen_expr(node->rhs);
-			store(node->ty);
-			//if(node->lhs != nullptr && node->lhs->kind == ND_VAR)
-			//	file_out << "asm: meeting a single Variable assign " << std::endl;
-			return;
-		case ND_STMT_EXPR:
-			for(Node * n = node->body; n; n = n->next)
-			{
-				gen_stmt(n);
-			}
-			return;
-		case ND_COMMA:
-			gen_expr(node->lhs);
-			gen_expr(node->rhs);
-			return;
-		case ND_FUNCALL:
-			{
-				int nargs = 0;
-				for(Node *arg = node->args; arg; arg = arg->next)
-				{
-					gen_expr(arg);
-					push();
-					nargs++;
-				}
+static void gen_expr(Node *node) {
+  println("  .loc 1 %d", node->tok->line_no);
+  switch (node->kind) {
+  case ND_NUM:
+    println("  mov $%ld, %%rax", node->val);
+    return;
+  case ND_NEG:
+    gen_expr(node->lhs);
+    println("  neg %%rax");
+    return;
+  case ND_VAR:
+  case ND_MEMBER:
+    // if(node->var != nullptr)
+    //	file_out << "asm local variable name :" << node->var->name << std::endl;
+    gen_addr(node);
+    load(node->ty);
+    return;
+  case ND_DEREF:
+    gen_expr(node->lhs);
+    load(node->ty);
+    return;
+  case ND_ADDR:
+    gen_addr(node->lhs);
+    return;
+  case ND_ASSIGN:
+    gen_addr(node->lhs);
+    push();
+    gen_expr(node->rhs);
+    store(node->ty);
+    // if(node->lhs != nullptr && node->lhs->kind == ND_VAR)
+    //	file_out << "asm: meeting a single Variable assign " << std::endl;
+    return;
+  case ND_STMT_EXPR:
+    for (Node *n = node->body; n; n = n->next) {
+      gen_stmt(n);
+    }
+    return;
+  case ND_COMMA:
+    gen_expr(node->lhs);
+    gen_expr(node->rhs);
+    return;
+  case ND_FUNCALL: {
+    int nargs = 0;
+    for (Node *arg = node->args; arg; arg = arg->next) {
+      gen_expr(arg);
+      push();
+      nargs++;
+    }
 
-				for(int i = nargs - 1; i >= 0; i--)
-					pop(argreg64[i]);
+    for (int i = nargs - 1; i >= 0; i--)
+      pop(argreg64[i]);
 
-				println("  mov $0, %%rax");
-				println("  call %s", node->funcname);
-				return;
-			}
-		default:
-			break;
-	}
+    println("  mov $0, %%rax");
+    println("  call %s", node->funcname);
+    return;
+  }
+  default:
+    break;
+  }
 
-	// there must deal rhs first
-	gen_expr(node->rhs);
-	push();
-	gen_expr(node->lhs);
-	pop("%rdi");
+  // there must deal rhs first
+  gen_expr(node->rhs);
+  push();
+  gen_expr(node->lhs);
+  pop("%rdi");
 
-	const char * ax, *di;
-	if(node->lhs->ty->kind == TY_LONG || node->lhs->ty->base)
-	{
-		ax = "%rax";
-		di = "%rdi";
-	}
-	else
-	{
-		ax = "%eax";
-		di = "%edi";
-	}
-	//file_out << "arrive three 3s" << std::endl;
-	switch(node->kind)
-	{
-		case ND_ADD:
-			//file_out << "arrive three 2s" << std::endl;
-			println("  add %s, %s", di, ax);
-			return;
-		case ND_SUB:
-			println("  sub %s, %s", di, ax);
-			return;
-		case ND_MUL:
-			println("  imul %s, %s", di, ax);
-			return;
-		case ND_DIV:
-			if(node->lhs->ty->size == 8)
-				println("  cqo");
-			else
-				println("  cdq");
-			println("idiv %s", di);
-			return;
-		case ND_EQ:
-		case ND_NE:
-		case ND_LT:
-		case ND_LE:
-			println("  cmp %s, %s", di, ax);
+  const char *ax, *di;
+  if (node->lhs->ty->kind == TY_LONG || node->lhs->ty->base) {
+    ax = "%rax";
+    di = "%rdi";
+  } else {
+    ax = "%eax";
+    di = "%edi";
+  }
+  // file_out << "arrive three 3s" << std::endl;
+  switch (node->kind) {
+  case ND_ADD:
+    // file_out << "arrive three 2s" << std::endl;
+    println("  add %s, %s", di, ax);
+    return;
+  case ND_SUB:
+    println("  sub %s, %s", di, ax);
+    return;
+  case ND_MUL:
+    println("  imul %s, %s", di, ax);
+    return;
+  case ND_DIV:
+    if (node->lhs->ty->size == 8)
+      println("  cqo");
+    else
+      println("  cdq");
+    println("idiv %s", di);
+    return;
+  case ND_EQ:
+  case ND_NE:
+  case ND_LT:
+  case ND_LE:
+    println("  cmp %s, %s", di, ax);
 
-			if(node->kind == ND_EQ)
-				println("  sete %%al");
-			else if(node->kind == ND_NE)
-				println("  setne %%al");
-			else if(node->kind == ND_LT)
-				println("  setl %%al");
-			else if(node->kind == ND_LE)
-				println("  setle %%al");
-			
-			println("  movzb %%al, %%rax");
-			return;
-		default:
-			return;
-	}
+    if (node->kind == ND_EQ)
+      println("  sete %%al");
+    else if (node->kind == ND_NE)
+      println("  setne %%al");
+    else if (node->kind == ND_LT)
+      println("  setl %%al");
+    else if (node->kind == ND_LE)
+      println("  setle %%al");
 
-	error("invalid expression");
+    println("  movzb %%al, %%rax");
+    return;
+  default:
+    return;
+  }
+
+  error("invalid expression");
 }
 
-static void gen_stmt(Node * node)
-{
-	println("  .loc 1 %d", node->tok->line_no);
-	switch(node->kind )
-	{	
-		case ND_IF:
-		{
-			int c = count();
-			gen_expr(node->cond);
-			println("  cmp $0, %%rax");
-			println("  je .L.else.%d", c);
-			gen_stmt(node->then);
-			println("  jmp .L.end.%d", c);
-			println(".L.else.%d:", c);
-			if(node->els)
-				gen_stmt(node->els);
-			println(".L.end.%d:", c);
-			return; 
-		}
-		case ND_FOR: // or while
-		{
-			int c = count();
+static void gen_stmt(Node *node) {
+  println("  .loc 1 %d", node->tok->line_no);
+  switch (node->kind) {
+  case ND_IF: {
+    int c = count();
+    gen_expr(node->cond);
+    println("  cmp $0, %%rax");
+    println("  je .L.else.%d", c);
+    gen_stmt(node->then);
+    println("  jmp .L.end.%d", c);
+    println(".L.else.%d:", c);
+    if (node->els)
+      gen_stmt(node->els);
+    println(".L.end.%d:", c);
+    return;
+  }
+  case ND_FOR: // or while
+  {
+    int c = count();
 
-			// for handle while
-			if(node->init)
-				gen_stmt(node->init);
-			println(".L.begin.%d:", c);
-			if(node->cond)
-			{
-				gen_expr(node->cond);
-				println("  cmp $0, %%rax");
-				println("  je .L.end.%d", c);
-			}
-			gen_stmt(node->then);
+    // for handle while
+    if (node->init)
+      gen_stmt(node->init);
+    println(".L.begin.%d:", c);
+    if (node->cond) {
+      gen_expr(node->cond);
+      println("  cmp $0, %%rax");
+      println("  je .L.end.%d", c);
+    }
+    gen_stmt(node->then);
 
-			if(node->inc)
-				gen_expr(node->inc);
+    if (node->inc)
+      gen_expr(node->inc);
 
-			println("  jmp .L.begin.%d", c);
-			println(".L.end.%d:", c);
-			return; 
-		}
-		case ND_BLOCK:
-			for(Node * n = node->body; n; n = n->next)
-				gen_stmt(n);
-			return;
-		case ND_RETURN:
-			gen_expr(node->lhs);
-			println("  jmp .L.return.%s", current_fn->name);
-			return;
-		case ND_EXPR_STMT:
-			gen_expr(node->lhs);
-			return;
-		default:
-			return;
-	}
+    println("  jmp .L.begin.%d", c);
+    println(".L.end.%d:", c);
+    return;
+  }
+  case ND_BLOCK:
+    for (Node *n = node->body; n; n = n->next)
+      gen_stmt(n);
+    return;
+  case ND_RETURN:
+    gen_expr(node->lhs);
+    println("  jmp .L.return.%s", current_fn->name);
+    return;
+  case ND_EXPR_STMT:
+    gen_expr(node->lhs);
+    return;
+  default:
+    return;
+  }
 
-	error("invalid statement");
+  error("invalid statement");
 }
 
 // assign offsets to local variables.
-static void assign_lvar_offsets(Obj * prog)
-{
-	
-	for(Obj * fn = prog ; fn; fn = fn->next)
-	{
-		if(!fn->is_function)
-			continue;
+static void assign_lvar_offsets(Obj *prog) {
 
-		int offset = 0;
-		for(Obj * var = fn->locals; var; var = var->next)
-		{
-			offset += var->ty->size;
-			offset = align_to(offset, var->ty->align);
-			var->offset = - offset;
-		}
-		
-		fn->stack_size = align_to(offset, 16);
-	}
-	
+  for (Obj *fn = prog; fn; fn = fn->next) {
+    if (!fn->is_function)
+      continue;
+
+    int offset = 0;
+    for (Obj *var = fn->locals; var; var = var->next) {
+      offset += var->ty->size;
+      offset = align_to(offset, var->ty->align);
+      var->offset = -offset;
+    }
+
+    fn->stack_size = align_to(offset, 16);
+  }
 }
 
 // emit global data
-static void emit_data(Obj * prog)
-{
-	for(Obj * var = prog; var; var = var->next)
-	{
-		if(var->is_function)
-			continue;
-		println("  .data");
-		println("  .globl %s", var->name);
-		println("%s:",var->name);
-		if(var->init_data)
-		{
-			for(int i = 0; i < var->ty->size;i++)
-				println("  .byte %d", var->init_data[i]);
-		}
-		else{
-			println("  .zero %d", var->ty->size);
-		}
-		
-	}
+static void emit_data(Obj *prog) {
+  for (Obj *var = prog; var; var = var->next) {
+    if (var->is_function)
+      continue;
+    println("  .data");
+    println("  .globl %s", var->name);
+    println("%s:", var->name);
+    if (var->init_data) {
+      for (int i = 0; i < var->ty->size; i++)
+        println("  .byte %d", var->init_data[i]);
+    } else {
+      println("  .zero %d", var->ty->size);
+    }
+  }
 }
 
-static void store_gp(int r, int offset, int sz)
-{
-	switch(sz)
-	{
-		case 1:
-			println("  mov %s, %d(%%rbp)", argreg8[r], offset);
-			return;
-		case 2:
-			println("  mov %s, %d(%%rbp)", argreg16[r], offset);
-			return;
-		case 4:
-			println("  mov %s, %d(%%rbp)", argreg32[r], offset);
-			return;
-		case 8:
-			println("  mov %s, %d(%%rbp)", argreg64[r], offset);
-			return;
-	}
+static void store_gp(int r, int offset, int sz) {
+  switch (sz) {
+  case 1:
+    println("  mov %s, %d(%%rbp)", argreg8[r], offset);
+    return;
+  case 2:
+    println("  mov %s, %d(%%rbp)", argreg16[r], offset);
+    return;
+  case 4:
+    println("  mov %s, %d(%%rbp)", argreg32[r], offset);
+    return;
+  case 8:
+    println("  mov %s, %d(%%rbp)", argreg64[r], offset);
+    return;
+  }
 
-	unreachable();
+  unreachable();
 }
 
 // emit text
-static void emit_text(Obj * prog)
-{
-	for(Obj * fn = prog; fn; fn = fn->next)
-	{
-		if(!fn->is_function || !fn->is_definition)
-			continue;
+static void emit_text(Obj *prog) {
+  for (Obj *fn = prog; fn; fn = fn->next) {
+    if (!fn->is_function || !fn->is_definition)
+      continue;
 
-		println("  .globl %s", fn->name);
-		println("  .text");
-		println("%s:", fn->name);
-		current_fn = fn;
+    println("  .globl %s", fn->name);
+    println("  .text");
+    println("%s:", fn->name);
+    current_fn = fn;
 
+    // prologue
+    println("  push %%rbp");
+    println("  mov %%rsp, %%rbp");
+    println("  sub $%d, %%rsp", fn->stack_size);
 
-		// prologue
-		println("  push %%rbp");
-		println("  mov %%rsp, %%rbp");
-		println("  sub $%d, %%rsp", fn->stack_size);
+    // save passed-by-register arguments to the stack
+    int i = 0;
+    for (Obj *var = fn->params; var; var = var->next) {
+      store_gp(i++, var->offset, var->ty->size);
+    }
 
-		// save passed-by-register arguments to the stack
-		int i = 0;
-		for(Obj * var = fn->params; var; var = var->next)
-		{
-			store_gp(i++, var->offset, var->ty->size);
-		}
+    // emit code
+    gen_stmt(fn->body);
+    assert(depth == 0);
 
-		// emit code
-		gen_stmt(fn->body);
-		assert(depth == 0);
-
-		// Epilogue
-		println(".L.return.%s:", fn->name);
-		println("  mov %%rbp, %%rsp");
-		println("  pop %%rbp");
-		println("  ret");
-	}
+    // Epilogue
+    println(".L.return.%s:", fn->name);
+    println("  mov %%rbp, %%rsp");
+    println("  pop %%rbp");
+    println("  ret");
+  }
 }
 
-
-
-
-
-void codegen(Obj * prog, FILE *out)
-{
-	file_out.open("./tmp.ll", std::ios_base::app);
-	output_file = out;
-	// first setup offset
-	assign_lvar_offsets(prog);
-	emit_data(prog);
-	emit_text(prog);
-	emit_global_data_ir(prog);
-	emit_ir(prog);
-	
+void codegen(Obj *prog, FILE *out) {
+  file_out.open("./tmp.ll", std::ios_base::app);
+  output_file = out;
+  // first setup offset
+  assign_lvar_offsets(prog);
+  emit_data(prog);
+  emit_text(prog);
+  emit_global_data_ir(prog);
+  emit_ir(prog);
 }

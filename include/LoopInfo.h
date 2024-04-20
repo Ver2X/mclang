@@ -1,16 +1,14 @@
 #include "Block.h"
 #include "Instruction.h"
 
-class LoopInfo
-{
+class LoopInfo {
 public:
-    BlockPtr Guard;
+  BlockPtr Guard;
 
-    BlockPtr Header; 
-    BlockPtr PreHeader;
-    BlockPtr Batch;
+  BlockPtr Header;
+  BlockPtr PreHeader;
+  BlockPtr Batch;
 
-    BlockPtr Exit;
-    BlockPtr Exiting;
-
+  BlockPtr Exit;
+  BlockPtr Exiting;
 };
