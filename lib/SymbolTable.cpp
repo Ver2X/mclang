@@ -51,7 +51,20 @@ void SymbolTable::erase(std::string var_name, int level) {
   }
 }
 
-bool SymbolTable::findVar(std::string &var_name, VariablePtr &result) {
+// bool SymbolTable::findVar(std::string &var_name, VariablePtr &result) {
+//   // result = table.find(var_name)->second->back();
+//   auto it = table.find(var_name);
+//   if (it == table.end()) {
+//     // shouldn't flush result !!!
+//     // it will make insert alloca instruction error
+//     return false;
+//   } else {
+//     result = it->second->back();
+//     return true;
+//   }
+// }
+
+bool SymbolTable::findVar(std::string var_name, VariablePtr &result) {
   // result = table.find(var_name)->second->back();
   auto it = table.find(var_name);
   if (it == table.end()) {

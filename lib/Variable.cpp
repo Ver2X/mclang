@@ -1,11 +1,12 @@
 #include "Variable.h"
 #include <string>
 Operand::Operand() {
-  Ival = 0;
+  Ival = INT_MIN;
   next = nullptr;
   align = 4;
   isConst = false;
   isGlobal = false;
+  varIsArg = false;
   type = VaribleKind::VAR_32;
 }
 Operand::Operand(int64_t v) {
@@ -14,6 +15,7 @@ Operand::Operand(int64_t v) {
   align = 8;
   isConst = true;
   isGlobal = false;
+  varIsArg = false;
   name = std::to_string(Ival);
   type = VaribleKind::VAR_64;
 }
@@ -24,6 +26,7 @@ Operand::Operand(int v) {
   align = 4;
   isConst = true;
   isGlobal = false;
+  varIsArg = false;
   name = std::to_string(Ival);
   type = VaribleKind::VAR_32;
 }
@@ -34,9 +37,16 @@ Operand::Operand(double v) {
   align = 8;
   isConst = true;
   isGlobal = false;
+  varIsArg = false;
   name = std::to_string(Fval);
   type = VaribleKind::VAR_64;
 }
+
+bool Operand::isArg() { return varIsArg; }
+
+void Operand::SetAddr(VariablePtr _Addr) { Addr = _Addr; }
+
+VariablePtr Operand::GetAddr() { return Addr; }
 
 void Operand::SetConst(double v) {
   Fval = v;
@@ -44,6 +54,7 @@ void Operand::SetConst(double v) {
   align = 8;
   isConst = true;
   isGlobal = false;
+  varIsArg = false;
   name = std::to_string(Fval);
   type = VaribleKind::VAR_64;
 }
@@ -54,6 +65,7 @@ void Operand::SetConst(int v) {
   align = 4;
   isConst = true;
   isGlobal = false;
+  varIsArg = false;
   name = std::to_string(Ival);
   type = VaribleKind::VAR_32;
 }
@@ -64,11 +76,14 @@ void Operand::SetConst(int64_t v) {
   align = 8;
   isConst = true;
   isGlobal = false;
+  varIsArg = false;
   name = std::to_string(Ival);
   type = VaribleKind::VAR_64;
 }
 
 void Operand::SetGlobal() { isGlobal = true; }
+
+void Operand::SetArg() { varIsArg = true; }
 
 std::string Operand::CodeGen() {
   std::string s;

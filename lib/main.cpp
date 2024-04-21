@@ -46,9 +46,18 @@ static FILE *open_file(char *path) {
   return out;
 }
 
+std::string removeExtension(const std::string &filename) {
+  size_t lastDotPos = filename.find_last_of(".");
+  if (lastDotPos != std::string::npos) {
+    return filename.substr(0, lastDotPos);
+  }
+  return filename;
+}
+
 int main(int argc, char **argv) {
   parse_args(argc, argv);
   std::string file_name(input_path);
+  file_name = removeExtension(file_name);
   TokenPtr tok = tokenize_file(input_path);
   Obj *prog = parse(tok);
 

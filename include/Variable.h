@@ -38,13 +38,16 @@ enum class VaribleKind {
   VAR_PRT,
 };
 
+class Operand;
+using Variable = Operand;
+using VariablePtr = std::shared_ptr<Variable>;
+using VarList = std::shared_ptr<std::vector<VariablePtr>>;
+
 class Operand {
 private:
   std::string name;
 
 public:
-  std::string &GetName() { return name; }
-  void SetName(std::string name) { this->name = name; }
   // void SetName(std::string & name) { this->name = name; }
   //  SSA?
   int Ival;
@@ -56,20 +59,24 @@ public:
   bool isConst;
   bool isInitConst;
   bool isGlobal;
-
+  bool varIsArg;
+  VariablePtr Addr;
   Operand();
   Operand(int64_t v);
   Operand(int v);
   Operand(double v);
 
+  std::string &GetName() { return name; }
+  void SetName(std::string name) { this->name = name; }
+
   void SetConst(double v);
   void SetConst(int v);
   void SetConst(int64_t v);
   void SetGlobal();
+  void SetArg();
+  void SetAddr(VariablePtr _Addr);
+  VariablePtr GetAddr();
+  bool isArg();
 
   std::string CodeGen();
 };
-
-using Variable = Operand;
-using VariablePtr = std::shared_ptr<Variable>;
-using VarList = std::shared_ptr<std::vector<VariablePtr>>;

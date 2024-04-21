@@ -1,0 +1,32 @@
+@a = dso_local global i32 0, align 4 @c = dso_local global i32 0,
+                                     align 4 @jj = dso_local global i32 0,
+                                     align 4
+
+    define dso_local i32 @if_test(int, int)(i32 % a, i32 % b) {
+entry:
+  % a.addr = alloca i32, align 4 % b.addr = alloca i32,
+    align 4 % c = alloca i32, align 4 % t = alloca i32, align 4 store i32 % a,
+    i32 * % a.addr, align 4 store i32 % b, i32 * % b.addr, align 4 store i32 1,
+    i32 * % t, align 4 % 0 = load i32, i32 * % t,
+    align 4 % cmp = icmp sgt i32 % 0, 3 br i1 % cmp, label % if.then,
+    label %
+        if.else
+
+        if.then : %
+                  1 = load i32,
+    i32 * % a.addr, align 4 store i32 % 1, i32 * % c,
+    align 4 br label %
+        if.end
+
+        if.else : %
+                  2 = load i32,
+    i32 * % b.addr, align 4 store i32 % 2, i32 * % c,
+    align 4 br label %
+        if.end
+
+        if.end : %
+                 3 = load i32,
+    i32 * % a.addr, align 4 ret i32 % 3
+}
+
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1

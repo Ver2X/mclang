@@ -61,7 +61,7 @@ protected:
 public:
   int Ival;
   Instruction(int _Ival) : Ival(_Ival) {}
-  Instruction() : Ival(0) {}
+  Instruction() : Ival(INT_MAX) {}
   IROpKind GetOp() { return Op; }
   virtual std::string CodeGen() = 0;
 };

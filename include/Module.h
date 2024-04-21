@@ -1,7 +1,7 @@
 #pragma once
 #include "FunctionIR.h"
-#include "Variable.h"
 #include "Twine.h"
+#include "Variable.h"
 
 #include <vector>
 
@@ -10,7 +10,7 @@ public:
   Module() {}
   void InsertGlobalVariable(VariablePtr global);
   std::string GlobalVariableCodeGen();
-  std::string GetName() { return Name;}
+  std::string GetName() { return Name; }
   void SetName(std::string _Name) { Name = _Name; }
   std::vector<VariablePtr> globalVariables;
 

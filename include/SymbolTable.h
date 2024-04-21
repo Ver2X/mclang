@@ -49,5 +49,6 @@ public:
   // use a cache save inserted varibale, when leaving function, delete
   // it from symbol table
   void erase(std::string var_name, int level);
-  bool findVar(std::string &var_name, VariablePtr &);
+  // bool findVar(std::string &var_name, VariablePtr &);
+  bool findVar(std::string var_name, VariablePtr &);
 };

@@ -42,6 +42,7 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result,
     // Op);
     buider->lastResVar = result;
     allocas.push_back(std::dynamic_pointer_cast<Instruction>(allocaInst));
+    return;
   }
   case IROpKind::Op_Store: {
     auto storeInst = std::make_shared<StoreInst>(left, result);
@@ -193,10 +194,14 @@ std::string Block::CodeGen() {
   //	file_out << "dumping block " << this->GetName() << std::endl;
   // #endif
   std::string s;
-  if (name != "entry")
+  std::string LabelName = name;
+  if (!name.empty() && name[0] == '%') {
+    LabelName = name.substr(1);
+  }
+  if (LabelName != "entry")
     s += "\n";
   if (this->allocas.empty())
-    s += name + ":\n";
+    s += LabelName + ":\n";
   for (const auto &ins : instructinos) {
     s += ins->CodeGen() + "\n";
   }
