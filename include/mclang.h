@@ -21,6 +21,9 @@
 typedef struct Node Node;
 typedef struct Type Type;
 typedef struct Member Member;
+typedef struct Token Token;
+using TokenPtr = std::shared_ptr<Token>;
+using TypePtr = std::shared_ptr<Type>;
 
 // kinds of token
 typedef enum {
@@ -32,15 +35,13 @@ typedef enum {
   TK_STR,
 } TokenKind;
 
-typedef struct Token Token;
-
 struct Token {
   TokenKind kind;
-  Token *next;
+  TokenPtr next;
   int64_t val; // if kind == TK_NUM, val is the number
   char *loc;   // token location
   int len;     // token len
-  Type *ty;    // used if TK_STR
+  TypePtr ty;  // used if TK_STR
   char *str;   // string literal contents including terminating '\0'
 
   int line_no; // line number
@@ -48,11 +49,11 @@ struct Token {
 
 void error(const char *fmt, ...);
 void error_at(char *loc, const char *fmt, ...);
-void error_tok(Token *tok, const char *fmt, ...);
-bool equal(Token *tok, const char *op);
-Token *skip(Token *tok, const char *op);
-Token *tokenize_file(char *filename);
-bool consume(Token **rest, Token *tok, const char *str);
+void error_tok(TokenPtr tok, const char *fmt, ...);
+bool equal(TokenPtr tok, const char *op);
+TokenPtr skip(TokenPtr tok, const char *op);
+TokenPtr tokenize_file(char *filename);
+bool consume(TokenPtr *rest, TokenPtr tok, const char *str);
 
 #define unreachable() error("internal error at %s:%d", __FILE__, __LINE__)
 
@@ -65,7 +66,7 @@ struct Obj {
 
   char *name;
   bool is_local; // local or global/function
-  Type *ty;      // Type
+  TypePtr ty;    // Type
 
   // Local variable
   int offset; // from rbp
@@ -120,8 +121,8 @@ struct Node {
   Node *lhs;
   Node *rhs;
   Node *next;
-  Type *ty;   // Type of AST varible node
-  Token *tok; // representative token
+  TypePtr ty;   // Type of AST varible node
+  TokenPtr tok; // representative token
 
   // "if" or "for" statement
   Node *cond;
@@ -143,7 +144,7 @@ struct Node {
   Node *args;
 };
 
-Obj *parse(Token *tok);
+Obj *parse(TokenPtr tok);
 
 typedef enum {
   TY_INT,
@@ -159,6 +160,9 @@ typedef enum {
 } TypeKind;
 
 struct Type {
+  Type(TypeKind _kind, int _size, int _align)
+      : kind(_kind), size(_size), align(_align) {}
+  Type() = default;
   TypeKind kind;
 
   int size; // sizeof() value
@@ -173,10 +177,10 @@ struct Type {
   // pointer or not. That means in many contexts "array of T" is
   // naturally handled as if it were "pointer to T", as required by
   // the C spec.
-  Type *base;
+  TypePtr base;
 
   // declaration
-  Token *name;
+  TokenPtr name;
 
   // array
   int array_len;
@@ -185,37 +189,37 @@ struct Type {
   Member *members;
 
   // Function type
-  Type *return_ty;
-  Type *params;
-  Type *next;
+  TypePtr return_ty;
+  TypePtr params;
+  TypePtr next;
 };
 
 // struct member
 struct Member {
   Member *next;
-  Type *ty;
-  Token *name;
+  TypePtr ty;
+  TokenPtr name;
   int offset;
 };
 
-extern Type *ty_char;
-extern Type *ty_short;
-extern Type *ty_int;
-extern Type *ty_long;
+extern TypePtr ty_char;
+extern TypePtr ty_short;
+extern TypePtr ty_int;
+extern TypePtr ty_long;
 
-extern Type *ty_void;
+extern TypePtr ty_void;
 
-bool is_integer(Type *ty);
+bool is_integer(TypePtr ty);
 void add_type(Node *node);
-Type *pointer_to(Type *base);
-Type *func_type(Type *return_ty);
-Type *copy_type(Type *ty);
-Type *array_of(Type *base, int size);
+TypePtr pointer_to(TypePtr base);
+TypePtr func_type(TypePtr return_ty);
+TypePtr copy_type(TypePtr ty);
+TypePtr array_of(TypePtr base, int size);
 
-void codegen(Obj *prog, FILE *out);
+void codegen(Obj *prog, FILE *out, std::string file);
 int align_to(int n, int align);
 
-void emit_ir(Obj *prog);
+void emit_ir(Obj *prog, std::string file_name);
 void emit_global_data_ir(Obj *prog);
 std::string Twine(std::string &l, std::string &r);
 std::string Twine(std::string l, std::string r);

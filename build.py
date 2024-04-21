@@ -52,7 +52,7 @@ subprocess.run(["cmake", "--build", "."], check=True)
 os.chdir("..")
 
 # Clean previous build results
-subprocess.run(["make", "clean"])
+# subprocess.run(["make", "clean"])
 
 # Run the compiled executable
 subprocess.run(["./build/mclang", "std/loop.c"], stdout=subprocess.DEVNULL)

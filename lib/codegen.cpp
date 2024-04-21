@@ -70,7 +70,7 @@ static void gen_addr(Node *node) {
 }
 
 // Lfad a value from where %rax is pointing to.
-static void load(Type *ty) {
+static void load(TypePtr ty) {
   if (ty->kind == TY_ARRAY || ty->kind == TY_STRUCT || ty->kind == TY_UNION) {
     // if it is an array, do not attempt to load a value to the
     // register because in general we can't load an entire array to a
@@ -92,7 +92,7 @@ static void load(Type *ty) {
 }
 
 // store %rax to an address that the stack top is pointing to.
-static void store(Type *ty) {
+static void store(TypePtr ty) {
   pop("%rdi");
   if (ty->kind == TY_STRUCT || ty->kind == TY_UNION) {
     for (int i = 0; i < ty->size; i++) {
@@ -374,13 +374,14 @@ static void emit_text(Obj *prog) {
   }
 }
 
-void codegen(Obj *prog, FILE *out) {
-  file_out.open("./tmp.ll", std::ios_base::app);
+void codegen(Obj *prog, FILE *out, std::string file) {
+  file_out.open(file+".ll", std::ios_base::app);
   output_file = out;
   // first setup offset
   assign_lvar_offsets(prog);
-  emit_data(prog);
-  emit_text(prog);
-  emit_global_data_ir(prog);
-  emit_ir(prog);
+	// emit_data(prog);
+	// emit_text(prog);
+  // printf("before emit_global_data_ir:\n");
+  
+  emit_ir(prog,file);
 }

@@ -48,12 +48,12 @@ static FILE *open_file(char *path) {
 
 int main(int argc, char **argv) {
   parse_args(argc, argv);
-
-  Token *tok = tokenize_file(input_path);
+  std::string file_name(input_path);
+  TokenPtr tok = tokenize_file(input_path);
   Obj *prog = parse(tok);
 
   FILE *out = open_file(opt_o);
-  fprintf(out, ".file 1 \"%s\"\n", input_path);
-  codegen(prog, out);
+  // fprintf(out, ".file 1 \"%s\"\n", input_path);
+  codegen(prog, out, file_name);
   return 0;
 }

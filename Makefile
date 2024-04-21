@@ -50,5 +50,7 @@ test: $(TESTS)
 clean:
 		rm -f mclang tmp*  $(TESTS) test/*.s test/*.exe
 		find * -type f '(' -name '*~' -o -name '*.o' ')' -exec rm {} ';'
+		find * -type f '(' -name '*~' -o -name '*.ll' ')' -exec rm {} ';'
+		find * -type f '(' -name '*~' -o -name '*.dot' ')' -exec rm {} ';'
 
 .PHONU: test clean

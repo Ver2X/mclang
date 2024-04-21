@@ -23,23 +23,25 @@ class SymbolTable;
 using SymbolTablePtr = std::shared_ptr<SymbolTable>;
 
 class SymbolTable {
-public:
   // std::string name;
   // VariablePtr variables;
   int level;
-  // SymbolTable * symb_list;
-  // SymbolTable * symb_list_back_level;
 
-  SymbolTablePtr symb_list;
-  SymbolTablePtr symb_list_back_level;
+  // SymbolTablePtr symb_list;
+  SymbolTablePtr prev_level;
+  SymbolTablePtr next_level;
 
   std::map<std::string, VarList> table; // global
-
-  SymbolTable() {}
+public:
+  SymbolTable() {
+    prev_level = nullptr;
+    next_level = nullptr;
+  }
 
   SymbolTable(SymbolTablePtr fa) {
-    symb_list_back_level = fa;
-    symb_list = std::make_shared<SymbolTable>();
+    // symb_list = std::make_shared<SymbolTable>();
+    prev_level = fa;
+    // fa->next_level = this; ???
   }
 
   bool insert(VariablePtr var, int level);

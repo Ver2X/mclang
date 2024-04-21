@@ -52,29 +52,31 @@ void error_at(char *loc, const char *fmt, ...) {
   }
   va_list ap;
   va_start(ap, fmt);
+  // assert(false);
   verror_at(line_no, loc, fmt, ap);
 }
 
-void error_tok(Token *tok, const char *fmt, ...) {
+void error_tok(TokenPtr tok, const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
+  // assert(false);
   verror_at(tok->line_no, tok->loc, fmt, ap);
 }
 
 // Consumes the current token if it matches `op`.
-bool equal(Token *tok, const char *op) {
+bool equal(TokenPtr tok, const char *op) {
   return memcmp(tok->loc, op, tok->len) == 0 && op[tok->len] == '\0';
 }
 
 // Ensure that the current token is `op`.
-Token *skip(Token *tok, const char *op) {
+TokenPtr skip(TokenPtr tok, const char *op) {
   if (!equal(tok, op)) {
     error_tok(tok, "expected '%s'", op);
   }
   return tok->next;
 }
 
-bool consume(Token **rest, Token *tok, const char *str) {
+bool consume(TokenPtr *rest, TokenPtr tok, const char *str) {
   if (equal(tok, str)) {
     *rest = tok->next;
     return true;
@@ -84,8 +86,8 @@ bool consume(Token **rest, Token *tok, const char *str) {
 }
 
 // Create a new token.
-static Token *new_token(TokenKind kind, char *start, char *end) {
-  Token *tok = (Token *)calloc(1, sizeof(Token));
+static TokenPtr new_token(TokenKind kind, char *start, char *end) {
+  TokenPtr tok = std::make_shared<Token>();
   tok->kind = kind;
   tok->loc = start;
   tok->len = end - start;
@@ -148,7 +150,7 @@ static int read_punct2(char *p) {
 }
 
 // aux fuction , judge keywords
-static bool is_keyword(Token *tok) {
+static bool is_keyword(TokenPtr tok) {
   static const char *kw[] = {"return", "if",     "else", "for",    "while",
                              "int",    "sizeof", "char", "struct", "union",
                              "short",  "long",   "void", "typedef"};
@@ -233,7 +235,7 @@ static char *string_literal_end(char *p) {
   return p;
 }
 
-static Token *read_string_literal(char *start) {
+static TokenPtr read_string_literal(char *start) {
   char *end = string_literal_end(start + 1);
   char *buf = (char *)calloc(1, end - start);
   int len = 0;
@@ -246,22 +248,22 @@ static Token *read_string_literal(char *start) {
     }
   }
 
-  Token *tok = new_token(TK_STR, start, end + 1);
+  TokenPtr tok = new_token(TK_STR, start, end + 1);
   tok->ty = array_of(ty_char, len + 1);
   tok->str = buf;
   return tok;
 }
 
 // travel again , convert idents to keywords
-static void convert_keywords(Token *tok) {
-  for (Token *t = tok; t->kind != TK_EOF; t = t->next) {
+static void convert_keywords(TokenPtr tok) {
+  for (auto t = tok; t->kind != TK_EOF; t = t->next) {
     if (is_keyword(t))
       t->kind = TK_KEYWORD;
   }
 }
 
 // initialize line info for all tokens
-static void add_line_numbers(Token *tok) {
+static void add_line_numbers(TokenPtr tok) {
   char *p = current_input;
   int n = 1;
   do {
@@ -275,12 +277,13 @@ static void add_line_numbers(Token *tok) {
 }
 
 // Tokenize `current_input` and returns new tokens.
-Token *tokenize(char *filename, char *p) {
+TokenPtr tokenize(char *filename, char *p, size_t &buflen) {
   current_filename = filename;
   current_input = p;
-  Token head = {};
-  Token *cur = &head;
-
+  TokenPtr head = std::make_shared<Token>();
+  TokenPtr cur = head;
+  // char * file_end = p + buflen;
+  // printf("bufflen: %d\n", buflen);
   while (*p) {
     // skip line comments
     if (startswith(p, "//")) {
@@ -342,14 +345,14 @@ Token *tokenize(char *filename, char *p) {
   }
 
   cur = cur->next = new_token(TK_EOF, p, p);
-  add_line_numbers(head.next);
+  add_line_numbers(head->next);
   // convert identify to keyword
-  convert_keywords(head.next);
-  return head.next;
+  convert_keywords(head->next);
+  return head->next;
 }
 
 // return the contens of a given file
-static char *read_file(char *path) {
+static char *read_file(char *path, size_t &buflen) {
   FILE *fp;
   if (strcmp(path, "-") == 0) {
     // by convention, read from stdin if a given filename is "-".
@@ -362,7 +365,7 @@ static char *read_file(char *path) {
   }
 
   char *buf;
-  size_t buflen;
+  // size_t buflen;
   FILE *out = open_memstream(&buf, &buflen);
 
   // read the entire file.
@@ -387,4 +390,7 @@ static char *read_file(char *path) {
   return buf;
 }
 
-Token *tokenize_file(char *path) { return tokenize(path, read_file(path)); }
+TokenPtr tokenize_file(char *path) {
+  size_t buflen;
+  return tokenize(path, read_file(path, buflen), buflen);
+}

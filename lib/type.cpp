@@ -1,21 +1,17 @@
 #include "mclang.h"
-Type type__t1 = (Type){TY_CHAR, 1, 1};
-Type *ty_char = &type__t1;
 
-Type type__t2 = (Type){TY_SHORT, 2, 2};
-Type *ty_short = &type__t2;
+TypePtr ty_char = std::make_shared<Type>(TY_CHAR, 1, 1);
 
-Type type__t3 = (Type){TY_INT, 4, 4};
-Type *ty_int = &type__t3;
+TypePtr ty_short = std::make_shared<Type>(TY_SHORT, 2, 2);
 
-Type type__t4 = (Type){TY_LONG, 8, 8};
-Type *ty_long = &type__t4;
+TypePtr ty_int = std::make_shared<Type>(TY_INT, 4, 4);
 
-Type type__t5 = (Type){TY_VOID, 1, 1};
-Type *ty_void = &type__t5;
+TypePtr ty_long = std::make_shared<Type>(TY_LONG, 8, 8);
 
-static Type *new_type(TypeKind kind, int size, int align) {
-  Type *ty = (Type *)calloc(1, sizeof(Type));
+TypePtr ty_void = std::make_shared<Type>(TY_VOID, 1, 1);
+
+static TypePtr new_type(TypeKind kind, int size, int align) {
+  TypePtr ty = std::make_shared<Type>();
   ty->kind = kind;
   ty->size = size;
   ty->align = align;
@@ -24,34 +20,34 @@ static Type *new_type(TypeKind kind, int size, int align) {
 
 /*! judge type
  */
-bool is_integer(Type *ty) {
+bool is_integer(TypePtr ty) {
   return ty->kind == TY_CHAR || ty->kind == TY_SHORT || ty->kind == TY_INT ||
          ty->kind == TY_LONG;
 }
 
 /*! create a pointer of type, with base type
  * */
-Type *pointer_to(Type *base) {
-  Type *ty = new_type(TY_PTR, 8, 8);
+TypePtr pointer_to(TypePtr base) {
+  TypePtr ty = new_type(TY_PTR, 8, 8);
   ty->base = base;
   return ty;
 }
 
-Type *func_type(Type *return_ty) {
-  Type *ty = (Type *)calloc(1, sizeof(Type));
+TypePtr func_type(TypePtr return_ty) {
+  TypePtr ty = std::make_shared<Type>();
   ty->kind = TY_FUNC;
   ty->return_ty = return_ty;
   return ty;
 }
 
-Type *copy_type(Type *ty) {
-  Type *ret = (Type *)calloc(1, sizeof(Type));
+TypePtr copy_type(TypePtr ty) {
+  TypePtr ret = std::make_shared<Type>();
   *ret = *ty;
   return ret;
 }
 
-Type *array_of(Type *base, int len) {
-  Type *ty = new_type(TY_ARRAY, base->size * len, base->align);
+TypePtr array_of(TypePtr base, int len) {
+  TypePtr ty = new_type(TY_ARRAY, base->size * len, base->align);
   ty->base = base;
   ty->array_len = len;
   return ty;

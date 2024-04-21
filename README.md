@@ -343,16 +343,16 @@ struct Obj
 	Obj * next;
 	char * name;
 	int offset; 	// from rbp
-	Type *ty;		// Type of local variable ,  new add
+	TypePtr ty;		// Type of local variable ,  new add
 };
 
 struct Type
 {
 	TypeKind kind;
-	Type * base;
+	TypePtr  base;
 
 	// declaration
-	Token * name;  // new add
+	TokenPtr  name;  // new add
 };
 
 ```
@@ -387,9 +387,9 @@ after ",",  >= 0 or more times, before >= 1 times
 
 ```c++
 // declaration = declspec (declarator ("=" expr)? ("," declarator  ("=" expr)?)* )? ;
-static Node * declaration(Token **rest, Token *tok)
+static Node * declaration(TokenPtr *rest, TokenPtr tok)
 {
-	Type * basety = declspec(&tok, tok);
+	TypePtr  basety = declspec(&tok, tok);
 
 	Node head = {};
 	Node * cur = &head;
@@ -402,7 +402,7 @@ static Node * declaration(Token **rest, Token *tok)
 			tok = skip(tok, ",");
 
 		// define but not used, add it to variable list
-		Type * ty = declarator(&tok, tok, basety);
+		TypePtr  ty = declarator(&tok, tok, basety);
 		Obj * var = new_lvar(get_ident(ty->name), ty);
 
 		if(!equal(tok, "="))
@@ -427,7 +427,7 @@ and
 ```c++
 	
 // => primary =  "(" expr ")" | ident | num 
-static Node *primary(Token ** rest, Token * tok)
+static Node *primary(TokenPtr * rest, TokenPtr  tok)
     ...
 if(tok->kind == TK_IDENT)
 	{
@@ -563,13 +563,13 @@ typedef enum
 struct Type
 {
 	TypeKind kind;
-	Type * base;
+	TypePtr  base;
 
 	// declaration
-	Token * name;
+	TokenPtr  name;
 
 	// Function type
-	Type * return_ty;
+	TypePtr  return_ty;
 };
 
 ```
@@ -594,9 +594,9 @@ but for function definition. function also need a independent variable list
 
 ```c++
 // function_declaration = declspec declarator "{" compound_stmt "}"
-static Function * function(Token * tok)
+static Function * function(TokenPtr  tok)
 {
-	Type * ty = declspec(&tok, tok);
+	TypePtr  ty = declspec(&tok, tok);
 	ty = declarator(&tok, tok, ty);
 
 	locals = nullptr;
@@ -629,15 +629,15 @@ struct Function
 struct Type
 {
 	TypeKind kind;
-	Type * base;
+	TypePtr  base;
 
 	// declaration
-	Token * name;
+	TokenPtr  name;
 
 	// Function type
-	Type * return_ty;
-	Type *params;
-  	Type *next;
+	TypePtr  return_ty;
+	TypePtr params;
+  	TypePtr next;
 };
 ```
 
@@ -656,7 +656,7 @@ for parser
 notice the sequence  of varibale created
 
 ```c++
-static void create_param_lvars(Type * param)
+static void create_param_lvars(TypePtr  param)
 {
 	if(param)
 	{
@@ -739,18 +739,18 @@ struct Type
 	// pointer or not. That means in many contexts "array of T" is
 	// naturally handled as if it were "pointer to T", as required by
 	// the C spec.
-	Type * base;
+	TypePtr  base;
 
 	// declaration
-	Token * name;
+	TokenPtr  name;
 
 	// array
 	int array_len;
 
 	// Function type
-	Type * return_ty;
-	Type *params;
-  	Type *next;
+	TypePtr  return_ty;
+	TypePtr params;
+  	TypePtr next;
 };
 ```
 
@@ -763,10 +763,10 @@ we need to change the parser make it support "[ num ]", besides make int => size
 ```c++
 // func-params = (param ("," param)*)? ")"
 // param       = declspec declarator
-static Type * func_params(Token **rest, Token*tok, Type * ty)
+static TypePtr  func_params(TokenPtr *rest, Token*tok, TypePtr  ty)
 {
 	Type head = {};
-	Type * cur = &head;
+	TypePtr  cur = &head;
 
 	while(!equal(tok, ")"))
 	{
@@ -775,8 +775,8 @@ static Type * func_params(Token **rest, Token*tok, Type * ty)
 			tok = skip(tok, ",");			
 		}
 
-		Type * basety = declspec(&tok, tok);
-		Type * ty = declarator(&tok, tok, basety);
+		TypePtr  basety = declspec(&tok, tok);
+		TypePtr  ty = declarator(&tok, tok, basety);
 		cur = cur->next = copy_type(ty);
 	}
 
@@ -789,7 +789,7 @@ static Type * func_params(Token **rest, Token*tok, Type * ty)
 //             | "[" num "]"
 //             | ε
 
-static Type * type_suffix(Token ** rest, Token *tok, Type *ty)
+static TypePtr  type_suffix(TokenPtr * rest, TokenPtr tok, TypePtr ty)
 {
 	if(equal(tok, "("))
 		return func_params(rest, tok->next, ty);
@@ -820,7 +820,7 @@ because before we have add  "size" int Type, change parser just return the corre
 // to
 //
 // primary = "(" expr ")" | "sizeof" unary | ident func-args? | num
-static Node *primary(Token ** rest, Token * tok)
+static Node *primary(TokenPtr * rest, TokenPtr  tok)
 {
     // ...
     if(equal(tok, "sizeof"))
@@ -843,7 +843,7 @@ recursive parser
 // type-suffix = "(" func-params
 //             | "[" num "]" type-suffix
 //             | ε
-static Type * type_suffix(Token ** rest, Token *tok, Type *ty)
+static TypePtr  type_suffix(TokenPtr * rest, TokenPtr tok, TypePtr ty)
 {
 	if(equal(tok, "("))
 		return func_params(rest, tok->next, ty);
@@ -870,7 +870,7 @@ it is a post operator, just change parser
 ```c++
 // unary   = ("+" | "-" | "&" | "*")? unary
 //         | postfix
-static Node* unary(Token ** rest, Token * tok)
+static Node* unary(TokenPtr * rest, TokenPtr  tok)
 {
 	if(equal(tok, "+"))
 		return unary(rest, tok->next);
@@ -888,14 +888,14 @@ static Node* unary(Token ** rest, Token * tok)
 }
 
 // postfix = primary ("[" expr "]")*
-static Node *postfix(Token **rest, Token * tok)
+static Node *postfix(TokenPtr *rest, TokenPtr  tok)
 {
 	Node * node = primary(&tok, tok);
 
 	while(equal(tok, "["))
 	{
 		// x[y] ==> *(x+y)
-		Token * start = tok;
+		TokenPtr  start = tok;
 		Node * idx = expr(&tok, tok->next);
 		tok = skip(tok, "]");
 		node = new_unary(ND_DEREF, new_add(node, idx, start), start);
@@ -919,7 +919,7 @@ struct Obj
 	Obj * next;
 	char * name;
 	int offset; 	// from rbp
-	Type *ty;		// Type of local variable
+	TypePtr ty;		// Type of local variable
 -};
 
 -// function
@@ -945,13 +945,13 @@ for parser deal global varibale
 
 ```c++
 // program = (function-definition | global-variable)*
-Obj * parse(Token * tok)
+Obj * parse(TokenPtr  tok)
 {
 	globals = nullptr;
 
 
 	while(tok->kind != TK_EOF){
-		Type *basety = declspec(&tok, tok);
+		TypePtr basety = declspec(&tok, tok);
 
 		// function 
 		if(is_function(tok))
@@ -993,7 +993,7 @@ for now, use think char is integer
 
 ```c++
 // declspec = "char" | "int"
-static Type * declspec(Token ** rest, Token *tok)
+static TypePtr  declspec(TokenPtr * rest, TokenPtr tok)
 {
 	if(equal(tok, "char"))
 	{
@@ -1060,7 +1060,7 @@ for lexcer
 struct Token
 {
 	// ...
-	Type * ty;				// used if TK_STR
+	TypePtr  ty;				// used if TK_STR
 	char * str;				// string literal contents including terminating '\0'
 };
 
@@ -1090,12 +1090,12 @@ static char * new_unique_name(void)
 	return buf;
 }
 
-static Obj * new_anon_gvar(Type * ty)
+static Obj * new_anon_gvar(TypePtr  ty)
 {
 	return new_gvar(new_unique_name(), ty);
 }
 
-static Obj * new_string_literal(char * p, Type * ty)
+static Obj * new_string_literal(char * p, TypePtr  ty)
 {
 	Obj * var = new_anon_gvar(ty);
 	var->init_data = p;
@@ -1223,7 +1223,7 @@ change parser and codegen and type add_type() function
 //         | ident func-args?
 //         | str
 //         | num
-static Node *primary(Token ** rest, Token * tok)
+static Node *primary(TokenPtr * rest, TokenPtr  tok)
 {
 
 	if(equal(tok, "(") && equal(tok->next, "{"))
@@ -1423,7 +1423,7 @@ struct Scope{
   VarScope * vars;
 };
 
-static Obj * find_var(Token * tok)
+static Obj * find_var(TokenPtr  tok)
 {
 	for(Scope * sc = scope; sc; sc = sc->next)
 	{
@@ -1531,7 +1531,7 @@ which return a mutable variable
 
 ```c++
 // expr       = assign ("," expr)
-static Node * expr(Token ** rest, Token * tok)
+static Node * expr(TokenPtr * rest, TokenPtr  tok)
 {
 	Node * node = assign(&tok, tok);
 	if(equal(tok, ","))
@@ -1577,8 +1577,8 @@ struct Type {
 // Struct member
 struct Member {
   Member *next;
-  Type *ty;
-  Token *name;
+  TypePtr ty;
+  TokenPtr name;
   int offset;
 };
 
@@ -1618,11 +1618,11 @@ offset = align_to(offset, var->ty->align);
 //
 // to
 // struct-decl = ident? ("{" struct-members)?
-static Type * struct_decl(Token **rest, Token *tok)
+static TypePtr  struct_decl(TokenPtr *rest, TokenPtr tok)
 {
 	// read a truct tag
 	// define
-	Token * tag = nullptr;
+	TokenPtr  tag = nullptr;
 	if(tok->kind == TK_IDENT)
 	{
 		tag = tok;
@@ -1632,7 +1632,7 @@ static Type * struct_decl(Token **rest, Token *tok)
 	// use to define a struct variable
 	if(tag && !equal(tok, "{"))
 	{
-		Type * ty = find_tag(tag);
+		TypePtr  ty = find_tag(tag);
 		if(!ty)
 			error_tok(tag, "unknown struct type");
 		*rest = tok;
@@ -1642,7 +1642,7 @@ static Type * struct_decl(Token **rest, Token *tok)
 
 
 	// construct a struct object
-	Type * ty = calloc(1, sizeof(Type));
+	TypePtr  ty = calloc(1, sizeof(Type));
 	ty->kind = TY_STRUCT;
 	struct_members(rest, tok->next, ty);	// skip "}"
 	ty->align = 1;
@@ -1697,9 +1697,9 @@ all variable share the space
 ```c++
 // struct-union-decl = ident? ("{" struct-members)?
 // union-decl = struct-union-decl
-static Type * union_decl(Token **rest, Token *tok)
+static TypePtr  union_decl(TokenPtr *rest, TokenPtr tok)
 {
-	Type * ty = struct_union_decl(rest, tok);
+	TypePtr  ty = struct_union_decl(rest, tok);
 	ty->kind = TY_UNION;
 
 	// for union, all offset is 0, but we need to compute the alignment
@@ -1729,7 +1729,7 @@ static Type * union_decl(Token **rest, Token *tok)
 
 ```c++
 // store %rax to an address that the stack top is pointing to.
-static void store(Type * ty) {
+static void store(TypePtr  ty) {
   pop("%rdi");
   if(ty->kind == TY_STRUCT || ty->kind == TY_UNION)
   {
@@ -1755,8 +1755,8 @@ static void store(Type * ty) {
 samplely change
 
 ```c++
-Type *ty_int = &(Type){TY_INT, 8, 8};
-Type *ty_int = &(Type){TY_INT, 4, 4};
+TypePtr ty_int = &(Type){TY_INT, 8, 8};
+TypePtr ty_int = &(Type){TY_INT, 4, 4};
 ```
 
 and related code
@@ -1790,7 +1790,7 @@ same as long
 //
 //
 // declarator = "*"* ("(" ident ")" | "(" declarator ")" | ident) type-suffix
-static Type * declarator(Token **rest, Token *tok, Type * ty)
+static TypePtr  declarator(TokenPtr *rest, TokenPtr tok, TypePtr  ty)
 {
 	while(consume(&tok, tok, "*"))
 	{
@@ -1799,7 +1799,7 @@ static Type * declarator(Token **rest, Token *tok, Type * ty)
 
 	if(equal(tok, "("))
 	{
-		Token * start = tok;
+		TokenPtr  start = tok;
 		Type dummy = {};
 		declarator(&tok, start->next, & dummy);
 		tok = skip(tok, ")");
@@ -1828,7 +1828,7 @@ if detected a function declaration, not definition , just skip it.
 bool is_definition;
 // parse.c
 // function_declaration = declspec declarator "{" compound_stmt "}"
-static Token * function(Token *tok, Type *basety)
+static TokenPtr  function(TokenPtr tok, TypePtr basety)
 {// ...
     fn->is_definition = !consume(&tok, tok, ";"); // if consume(&tok, tok, ";") == true, is a declaration   
 }
@@ -1923,19 +1923,19 @@ before variable just a variable, but now is maybe a typedef
 when meeting a "typedef" 
 
 1. first set attr 'is_typedef' to true , tag it is a typedef
-2. since `declspec`actually return two value, first is Type * , second is attr return by pointer. the caller of `declspec` change from `declaration` to `compound_stmt` , whjch create a `VarAttr attr` variable and pass to `declspec`. and `declspec` fill the is_typedef field. 
+2. since `declspec`actually return two value, first is TypePtr  , second is attr return by pointer. the caller of `declspec` change from `declaration` to `compound_stmt` , whjch create a `VarAttr attr` variable and pass to `declspec`. and `declspec` fill the is_typedef field. 
 3. if the is_typedef is true, then call `parse_typedef` to create a typedef variable, save to variable scope, otherwise same as ordinary variable declaration.
 4. next time, function `declspec` also need to check whether a type is a typedef type.
 5. since, function `declaration` no longer call  `declspec`, so it need a `basety` ,passing by function argument
 6. last thing need be mention, since now variable maybe a typedef, so every time call `find_var` no longer return the Obj *var, but VarScope *, need extract variable from VarScope if need.
 
 ```c++
-static Node * declaration(Token **rest, Token *tok)
+static Node * declaration(TokenPtr *rest, TokenPtr tok)
 {
-	Type * basety = declspec(&tok, tok);
+	TypePtr  basety = declspec(&tok, tok);
 }
 // now
-static Node * declaration(Token **rest, Token *tok, Type *basety)
+static Node * declaration(TokenPtr *rest, TokenPtr tok, TypePtr basety)
 {
     
 }
@@ -1951,7 +1951,7 @@ code:
 
 ```c++
 // compound-stmt = (typedef | declaration |stmt )* "}"
-static Node * compound_stmt(Token ** rest, Token * tok)
+static Node * compound_stmt(TokenPtr * rest, TokenPtr  tok)
 {
 	Node * node = new_node(ND_BLOCK, tok);
 
@@ -1965,7 +1965,7 @@ static Node * compound_stmt(Token ** rest, Token * tok)
 		if(is_typename(tok))
 		{
 			VarAttr attr = {};
-			Type * basety = declspec(&tok, tok, &attr);
+			TypePtr  basety = declspec(&tok, tok, &attr);
 
 			if(attr.is_typedef)
 			{
@@ -1995,7 +1995,7 @@ static Node * compound_stmt(Token ** rest, Token * tok)
 
 
 ```c++
-static Token *parse_typedef(Token *tok, Type * basety)
+static TokenPtr parse_typedef(TokenPtr tok, TypePtr  basety)
 {
 	bool first = true;
 	while(!consume(&tok, tok, ";"))
@@ -2004,7 +2004,7 @@ static Token *parse_typedef(Token *tok, Type * basety)
 			tok = skip(tok, ",");
 		first =false;
 
-		Type * ty = declarator(&tok, tok, basety);
+		TypePtr  ty = declarator(&tok, tok, basety);
 		push_scope(get_ident(ty->name))->type_def = ty;
 	}
 	return tok;
