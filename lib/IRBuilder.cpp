@@ -93,6 +93,15 @@ bool IRBuilder::Insert(VariablePtr left, VariablePtr right, VariablePtr result,
   return Insert(left, right, result, Op, cache_label, cache_name, table);
 }
 
+bool IRBuilder::CreateAlloca(VariablePtr addr, SymbolTablePtr table) {
+  return Insert(nullptr, nullptr, addr, IROpKind::Op_Alloca, table);
+}
+
+bool IRBuilder::CreateStore(VariablePtr value, VariablePtr addr,
+                            SymbolTablePtr table) {
+  return Insert(value, nullptr, addr, IROpKind::Op_Store, table);
+}
+
 bool IRBuilder::Insert(VariablePtr result, IROpKind Op, SymbolTablePtr table) {
   // store num
   return Insert(nullptr, nullptr, result, Op, cache_label, cache_name, table);

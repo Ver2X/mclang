@@ -154,12 +154,15 @@ void emit_ir(Obj *prog, std::string file_name) {
 
     for (auto p : arg_variable_pair) {
       // std::get<1>(p) = arg.addr
-      bool insertRes = InMemoryIR->Insert(nullptr, nullptr, std::get<1>(p),
-                                          IROpKind::Op_Alloca, local_table);
+      // bool insertRes = InMemoryIR->Insert(nullptr, nullptr, std::get<1>(p),
+      //                                     IROpKind::Op_Alloca, local_table);
+      bool insertRes = InMemoryIR->CreateAlloca(std::get<1>(p), local_table);
       assert(insertRes == true);
       // std::get<0>(p) = arg
-      insertRes = InMemoryIR->Insert(std::get<0>(p), nullptr, std::get<1>(p),
-                                     IROpKind::Op_Store, local_table);
+      // insertRes = InMemoryIR->Insert(std::get<0>(p), nullptr, std::get<1>(p),
+      //                                IROpKind::Op_Store, local_table);
+      insertRes =
+          InMemoryIR->CreateStore(std::get<0>(p), std::get<1>(p), local_table);
       assert(insertRes == true);
       local_table->insert(std::get<1>(p), 0);
     }
@@ -263,24 +266,73 @@ static void gen_stmt_ir(Node *node, SymbolTablePtr table) {
   case ND_FOR: // or while
   {
     int c = count();
-
+    int loop_id = next_label_name_number();
+    BlockPtr InBB = InMemoryIR->GetCurrentBlock();
     // for handle while
-    if (node->init)
+    if (node->init) {
+      BlockPtr PreHeader = std::make_shared<Block>(
+          next_label_num_number(), Twine("%loop.preheader", loop_id));
+      InMemoryIR->Insert(nullptr, PreHeader, nullptr, IROpKind::Op_UnConBranch,
+                         table);
+      InMemoryIR->SetInsertPoint(PreHeader);
+      InBB->SetSucc(PreHeader);
+      PreHeader->SetPred(InBB);
+      InBB = PreHeader;
       gen_stmt_ir(node->init, table);
+    }
+
+    BlockPtr CondBB = std::make_shared<Block>(next_label_num_number(),
+                                              Twine("%loop.cond", loop_id));
+    BlockPtr Body = std::make_shared<Block>(next_label_num_number(),
+                                            Twine("%loop.body", loop_id));
+    BlockPtr Exit = std::make_shared<Block>(next_label_num_number(),
+                                            Twine("%loop.exit", loop_id));
+
+    InMemoryIR->Insert(nullptr, CondBB, nullptr, IROpKind::Op_UnConBranch,
+                       table);
+    InBB->SetSucc(CondBB);
+    CondBB->SetPred(InBB);
+
+    CondBB->SetSucc(Body);
+    Body->SetPred(CondBB);
+
+    InMemoryIR->SetInsertPoint(CondBB);
     // println(".L.begin.%d:", c);
     if (node->cond) {
       VariablePtr res;
       gen_expr_ir(node->cond, &res, table);
+      assert(InMemoryIR->lastResVar != nullptr);
+
+      InMemoryIR->Insert(InMemoryIR->lastResVar, Body, Exit,
+                         IROpKind::Op_Branch, table);
       // println("  cmp $0, %%rax");
       // println("  je .L.end.%d", c);
+    } else {
+      InMemoryIR->Insert(nullptr, Body, nullptr, IROpKind::Op_UnConBranch,
+                         table);
     }
+
+    InMemoryIR->SetInsertPoint(Body);
     gen_stmt_ir(node->then, table);
 
     if (node->inc) {
+      BlockPtr Latch = std::make_shared<Block>(next_label_num_number(),
+                                               Twine("%loop.latch", loop_id));
+      Body->SetSucc(Latch);
+      Latch->SetPred(Body);
+      Latch->SetSucc(CondBB);
+      CondBB->SetPred(Latch);
+      InMemoryIR->Insert(nullptr, Latch, nullptr, IROpKind::Op_UnConBranch,
+                         table);
+      InMemoryIR->SetInsertPoint(Latch);
       VariablePtr res;
       gen_expr_ir(node->inc, &res, table);
     }
 
+    InMemoryIR->Insert(nullptr, CondBB, nullptr, IROpKind::Op_UnConBranch,
+                       table);
+
+    InMemoryIR->SetInsertPoint(Exit);
     // println("  jmp .L.begin.%d", c);
     // println(".L.end.%d:", c);
     return;
@@ -324,77 +376,24 @@ static void gen_stmt_ir(Node *node, SymbolTablePtr table) {
 static VariablePtr gen_variable_ir(Node *node, SymbolTablePtr table) {
   switch (node->kind) {
   case ND_VAR: {
-    std::cout << "gen_variable_ir: " << std::string(node->var->name) << "\n";
-    std::cout << "is_local: " << node->var->is_local << "\n";
     if (node->var->is_local) {
       // Local variable
       VariablePtr Var;
       auto VarHaveDefined = table->findVar(getPreName(node->var->name), Var);
-      std::cout << "is arg: " << Var->isArg() << "\n";
       if (Var->isArg()) {
         Var = Var->GetAddr();
-        // std::cout << "Var: " << Var->GetName() << " addr: " <<
-        // Var->GetAddr()->GetName() << "\n";
       }
 
       assert(VarHaveDefined);
       assert(Var);
       return Var;
-
-      // VariablePtr local_variable = std::make_shared<Variable>();
-      // auto checkExistInCahced = [&](std::string name) -> bool {
-      //   for (auto var : argVariableCached) {
-      //     if (var->GetName() == name) {
-      //       return true;
-      //     }
-      //   }
-      //   return false;
-      // };
-
-      // // if (checkExistInCahced(Twine(getPreName(node->var->name), ".addr")))
-      // { std::cout << "pos 0:\n" << std::string(node->var->name) << "\n";
-
-      // if (!(table->findVar(getPreName(node->var->name), Var)
-      //         && Var->isArg())) {
-      //   local_variable->SetName(getPreName(node->var->name));
-      //   local_variable->type = VaribleKind::VAR_32;
-      //   bool assertCheck = InMemoryIR->Insert(nullptr, nullptr,
-      //   local_variable,
-      //                                         IROpKind::Op_Alloca, table);
-      //   assert(assertCheck == false);
-
-      //   /*VariablePtr load1 = std::make_shared<Variable>();
-      //   load1->SetName(next_variable_name());
-
-      //   // inst1 = std::make_shared<Instruction>(local_variable, nullptr,
-      //   load1, IROpKind::Op_Load);
-      //   // instructinos.push_back(inst1);
-
-      //   if(InMemoryIR->Insert(local_variable, nullptr, load1,
-      //   IROpKind::Op_Load, table)) file_out << "have successfull insert load
-      //   when meeting use" << std::endl;*/
-
-      // } else {
-      //   local_variable->SetName(getPreName(node->var->name));
-      //   local_variable->type = VaribleKind::VAR_32;
-      //   bool assertCheck = InMemoryIR->Insert(nullptr, nullptr,
-      //   local_variable,
-      //                                         IROpKind::Op_Alloca, table);
-      //   assert(assertCheck == false);
-
-      //   /*VariablePtr load1 = std::make_shared<Variable>();
-      //   load1->SetName(next_variable_name());
-
-      //   if(InMemoryIR->Insert(local_variable, nullptr, load1,
-      //   IROpKind::Op_Load, table)) file_out << "have successfull insert load
-      //   when meeting use" << std::endl;*/
-      // }
-      // return local_variable;
-
-      // println("  lea %d(%%rbp), %%rax", node->var->offset);
     } else {
-      // Global variable
-      // println("  lea %s(%%rip), %%rax", node->var->name);
+      // Global variable find in global symbol table
+      VariablePtr Var;
+      auto VarHaveDefined = symTable->findVar(getPreName(node->var->name), Var);
+      assert(VarHaveDefined);
+      assert(Var);
+      return Var;
     }
     return nullptr;
   }
@@ -600,67 +599,6 @@ static void gen_expr_ir(Node *node, VariablePtr *res, SymbolTablePtr table) {
           bool assertCheck = InMemoryIR->Insert(local_variable, nullptr, load1,
                                                 IROpKind::Op_Load, table);
           assert(assertCheck == true);
-          // VariablePtr Var;
-          // auto VarHaveDefined =
-          // table->findVar(getPreName(node->rhs->var->name), Var); std::cout <<
-          // "is arg: " << Var->isArg() << "\n"; if (Var->isArg()) {
-          //   load1 = local_variable;
-          //   // Var = Var->GetAddr();
-          //   // std::cout << "Var: " << Var->GetName() << " addr: " <<
-          //   Var->GetAddr()->GetName() << "\n";
-          // } else {
-          //   load1 = std::make_shared<Variable>();
-          //   load1->SetName(next_variable_name());
-
-          //   bool assertCheck = InMemoryIR->Insert(
-          //         local_variable, nullptr, load1, IROpKind::Op_Load, table);
-          //   assert(assertCheck == true);
-          // }
-
-          // if (checkExistInCahced(
-          //         Twine(getPreName(node->rhs->var->name), ".addr"))) {
-          //   local_variable->SetName(
-          //       Twine(getPreName(node->rhs->var->name), ".addr"));
-          //   local_variable->type = VaribleKind::VAR_32;
-          //   // bool assertCheck = InMemoryIR->Insert(nullptr, nullptr,
-          //   // local_variable, IROpKind::Op_Alloca, table);
-          //   assert(assertCheck
-          //   // == false);
-
-          //   load1 = std::make_shared<Variable>();
-          //   load1->SetName(next_variable_name());
-
-          //   bool assertCheck = InMemoryIR->Insert(
-          //       local_variable, nullptr, load1, IROpKind::Op_Load, table);
-          //   assert(assertCheck == true);
-          //   // if(InMemoryIR->Insert(local_variable, nullptr, load1,
-          //   // IROpKind::Op_Load, table))
-          //   //	file_out << "have successfull insert load when meeting
-          //   use" <<
-          //   // std::endl;
-
-          // } else {
-          //   local_variable->SetName(getPreName(node->rhs->var->name));
-          //   local_variable->type = VaribleKind::VAR_32;
-
-          //   // bool assertCheck = InMemoryIR->Insert(nullptr, nullptr,
-          //   // local_variable, IROpKind::Op_Alloca, table);
-          //   assert(assertCheck
-          //   // == false);
-
-          //   load1 = std::make_shared<Variable>();
-          //   load1->SetName(next_variable_name());
-
-          //   bool assertCheck = InMemoryIR->Insert(
-          //       local_variable, nullptr, load1, IROpKind::Op_Load, table);
-          //   assert(assertCheck == true);
-          //   //	file_out << "have successfull insert load when meeting
-          //   use" <<
-          //   // std::endl;
-          // }
-
-          // InMemoryIR->Insert(local_variable, left, IROpKind::Op_Store,
-          // table);
           InMemoryIR->Insert(load1, left, IROpKind::Op_Store, table);
         } else {
           InMemoryIR->Insert(*res, left, IROpKind::Op_Store, table);
