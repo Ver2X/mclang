@@ -1,4 +1,5 @@
 #pragma once
+#include "FunctionIR.h"
 #include "Variable.h"
 
 #include <assert.h>
@@ -71,7 +72,6 @@ using BlockPtr = std::shared_ptr<Block>;
 
 class BinaryOperator : public Instruction {
 public:
-  // https://stackoverflow.com/questions/1847纸上得9295/member-initializer-does-not-name-a-non-static-data-member-or-base-class
   BinaryOperator(VariablePtr left, VariablePtr right, VariablePtr result,
                  IROpKind Op)
       : left(left), right(right), result(result) {
@@ -147,6 +147,18 @@ public:
 
 private:
   VariablePtr source;
+  VariablePtr dest;
+};
+
+class CallInst : public Instruction {
+public:
+  CallInst(IRFunctionPtr func, std::vector<VariablePtr> args, VariablePtr dest)
+      : func(func), args(args), dest(dest) {}
+  std::string CodeGen();
+
+private:
+  IRFunctionPtr func;
+  std::vector<VariablePtr> args;
   VariablePtr dest;
 };
 

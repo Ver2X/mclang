@@ -27,6 +27,16 @@ void Block::Insert(VariablePtr indicateVariable, BlockPtr targetOne,
     return;
   }
 }
+
+void Block::Insert(IRFunctionPtr func, std::vector<VariablePtr> args,
+                   VariablePtr result, IROpKind Op, IRBuilder *buider) {
+  assert(Op == IROpKind::Op_FUNCALL);
+  auto callInst = std::make_shared<CallInst>(func, args, result);
+  buider->lastResVar = result;
+  instructinos.push_back(std::dynamic_pointer_cast<Instruction>(callInst));
+  return;
+}
+
 void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result,
                    IROpKind Op, IRBuilder *buider) {
 #if DEBUG
@@ -61,27 +71,6 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result,
     instructinos.push_back(std::dynamic_pointer_cast<Instruction>(loadInst));
     return;
   }
-  /*case IROpKind::Op_Branch:
-  {
-          assert(false);
-          buider->lastResVar = result;
-          assert(result != nullptr);
-          auto branchInst = std::make_shared<BranchInst>(result, left, right,
-  Op);
-          instructinos.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
-          return;
-  }
-  case IROpKind::Op_UnConBranch:
-  {
-          assert(false);
-          buider->lastResVar = result;
-          assert(result != nullptr);
-          assert(left == nullptr);
-          assert(right == nullptr);
-          auto branchInst = std::make_shared<BranchInst>(left, result, Op);
-          instructinos.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
-          return;
-  }*/
   case IROpKind::Op_Return: {
     // buider->lastResVar = result;
 
@@ -177,7 +166,7 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result,
     buider->lastResVar = arithRes;
     // InstructionPtr store = std::make_shared<Instruction>(arithRes, nullptr,
     // result, IROpKind::Op_Store);
-
+    // assert(!result && "result is nullptr!");
     result->SetName(std::move(s));
     // instructinos.push_back(store);
 

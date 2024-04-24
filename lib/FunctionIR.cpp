@@ -5,6 +5,13 @@ IRFunction::IRFunction() {
   retTy = ReturnTypeKind::RTY_VOID;
 }
 
+IRFunction::IRFunction(std::string name) {
+  argsNum = 0;
+  retTy = ReturnTypeKind::RTY_VOID;
+  functionName = name;
+}
+void IRFunction::setBody(std::shared_ptr<IRBuilder> _body) { body = _body; }
+
 std::string IRFunction::CodeGen() {
   // if body non-null
   std::string s;
@@ -56,17 +63,17 @@ std::string IRFunction::CodeGen() {
 }
 
 std::string IRFunction::rename() {
-  // _ + return type + name + arg
-  std::string s = "_";
-  if (retTy == ReturnTypeKind::RTY_INT)
-    s += "Z";
-  s += functionName;
+  // // _ + return type + name + arg
+  // std::string s = "_";
+  // if (retTy == ReturnTypeKind::RTY_INT)
+  //   s += "Z";
+  // s += functionName;
 
-  for (auto arg_iter : args) {
-    if (arg_iter->type == VaribleKind::VAR_32)
-      s += "i";
-  }
-  return s;
+  // for (auto arg_iter : args) {
+  //   if (arg_iter->type == VaribleKind::VAR_32)
+  //     s += "i";
+  // }
+  return functionName;
 }
 void IRFunction::AddArgs() {
   // when enter function, need push varibale into symbol table

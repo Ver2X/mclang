@@ -72,6 +72,7 @@ std::shared_ptr<Module> ProgramModule = std::make_shared<Module>();
 
 // emit IR
 void emit_ir(Obj *prog, std::string file_name) {
+  ProgramModule->SetName(file_name);
   symTable = std::make_shared<SymbolTable>();
   emit_global_data_ir(prog);
   for (Obj *fn = prog; fn; fn = fn->next) {
@@ -79,8 +80,11 @@ void emit_ir(Obj *prog, std::string file_name) {
     next_variable_name_v = 0;
     if (!fn->is_function || !fn->is_definition)
       continue;
-    IRFunctionPtr func = std::make_shared<IRFunction>();
-    func->functionName = fn->name;
+    IRFunctionPtr func = nullptr;
+    if (!symTable->findFunc(fn->name, func)) {
+      func = std::make_shared<IRFunction>();
+      func->functionName = fn->name;
+    }
 
     // prologue
     // println("  push %%rbp");
@@ -148,8 +152,10 @@ void emit_ir(Obj *prog, std::string file_name) {
     }
 
     InMemoryIR->SetFunc(func);
-    // emit code
 
+    func->setBody(InMemoryIR);
+
+    // emit code
     InMemoryIR->SetInsertPoint(next_label_num_number(), "entry");
 
     for (auto p : arg_variable_pair) {
@@ -192,18 +198,19 @@ void emit_ir(Obj *prog, std::string file_name) {
 
     // fix no return statement
     InMemoryIR->FixNonReturn(local_table);
-    // file_out << "begin global: " << std::endl;
-    // file_out << "ProgramModule size: "<<
-    // ProgramModule->globalVariables.size() << std::endl;
-    ProgramModule->SetName(file_name);
-    file_out << ProgramModule->GlobalVariableCodeGen() << std::endl;
+    if (fn == prog)
+      file_out << ProgramModule->GlobalVariableCodeGen() << std::endl;
     // file_out << "end global" << std::endl;
     file_out << InMemoryIR->CodeGen() << std::endl;
     std::cout << InMemoryIR->CodeGen() << std::endl;
     InMemoryIR->SetPredAndSuccNum();
     std::fstream cfg_out;
-    cfg_out.open(file_name + ".dot", std::ios_base::out);
-    cfg_out << InMemoryIR->DumpCFG();
+    cfg_out.open(file_name + "_" + fn->name + ".dot", std::ios_base::out);
+    cfg_out << InMemoryIR->DumpCFG() << std::endl;
+    std::string GenPNGCmd = "dot -Tpng " + file_name + "_" + fn->name +
+                            ".dot -o " + file_name + "_" + fn->name + ".png";
+    std::cout << "do cmd:\n" << GenPNGCmd << "\n";
+    system(GenPNGCmd.c_str());
   }
 }
 
@@ -267,11 +274,15 @@ static void gen_stmt_ir(Node *node, SymbolTablePtr table) {
   {
     int c = count();
     int loop_id = next_label_name_number();
+    std::string PreName = "%while.";
+    if (node->inc) {
+      PreName = "%for.";
+    }
     BlockPtr InBB = InMemoryIR->GetCurrentBlock();
     // for handle while
     if (node->init) {
       BlockPtr PreHeader = std::make_shared<Block>(
-          next_label_num_number(), Twine("%loop.preheader", loop_id));
+          next_label_num_number(), Twine(PreName + "preheader", loop_id));
       InMemoryIR->Insert(nullptr, PreHeader, nullptr, IROpKind::Op_UnConBranch,
                          table);
       InMemoryIR->SetInsertPoint(PreHeader);
@@ -282,11 +293,11 @@ static void gen_stmt_ir(Node *node, SymbolTablePtr table) {
     }
 
     BlockPtr CondBB = std::make_shared<Block>(next_label_num_number(),
-                                              Twine("%loop.cond", loop_id));
+                                              Twine(PreName + "cond", loop_id));
     BlockPtr Body = std::make_shared<Block>(next_label_num_number(),
-                                            Twine("%loop.body", loop_id));
+                                            Twine(PreName + "body", loop_id));
     BlockPtr Exit = std::make_shared<Block>(next_label_num_number(),
-                                            Twine("%loop.exit", loop_id));
+                                            Twine(PreName + "exit", loop_id));
 
     InMemoryIR->Insert(nullptr, CondBB, nullptr, IROpKind::Op_UnConBranch,
                        table);
@@ -295,6 +306,8 @@ static void gen_stmt_ir(Node *node, SymbolTablePtr table) {
 
     CondBB->SetSucc(Body);
     Body->SetPred(CondBB);
+    CondBB->SetSucc(Exit);
+    Exit->SetPred(CondBB);
 
     InMemoryIR->SetInsertPoint(CondBB);
     // println(".L.begin.%d:", c);
@@ -316,8 +329,8 @@ static void gen_stmt_ir(Node *node, SymbolTablePtr table) {
     gen_stmt_ir(node->then, table);
 
     if (node->inc) {
-      BlockPtr Latch = std::make_shared<Block>(next_label_num_number(),
-                                               Twine("%loop.latch", loop_id));
+      BlockPtr Latch = std::make_shared<Block>(
+          next_label_num_number(), Twine(PreName + "latch", loop_id));
       Body->SetSucc(Latch);
       Latch->SetPred(Body);
       Latch->SetSucc(CondBB);
@@ -327,6 +340,9 @@ static void gen_stmt_ir(Node *node, SymbolTablePtr table) {
       InMemoryIR->SetInsertPoint(Latch);
       VariablePtr res;
       gen_expr_ir(node->inc, &res, table);
+    } else {
+      Body->SetSucc(CondBB);
+      CondBB->SetPred(Body);
     }
 
     InMemoryIR->Insert(nullptr, CondBB, nullptr, IROpKind::Op_UnConBranch,
@@ -349,13 +365,20 @@ static void gen_stmt_ir(Node *node, SymbolTablePtr table) {
   case ND_RETURN: {
     VariablePtr res;
     gen_expr_ir(node->lhs, &res, table);
-    VariablePtr load;
-    load = std::make_shared<Variable>();
-    load->SetName(next_variable_name());
-    bool assertCheck =
-        InMemoryIR->Insert(res, nullptr, load, IROpKind::Op_Load, table);
-    assert(assertCheck == true);
-    InMemoryIR->Insert(nullptr, nullptr, load, IROpKind::Op_Return, table);
+    if (node->lhs->kind == ND_VAR) {
+      std::cout << "return is a var" << "\n";
+      VariablePtr load;
+      load = std::make_shared<Variable>();
+      load->SetName(next_variable_name());
+      bool assertCheck =
+          InMemoryIR->Insert(res, nullptr, load, IROpKind::Op_Load, table);
+      assert(assertCheck == true);
+      InMemoryIR->Insert(nullptr, nullptr, load, IROpKind::Op_Return, table);
+    } else {
+      std::cout << "return not a var" << "\n";
+      InMemoryIR->Insert(nullptr, nullptr, res, IROpKind::Op_Return, table);
+    }
+
     // println("  jmp .L.return.%s", current_fn->name);
     return;
   }
@@ -518,17 +541,41 @@ static bool BinaryOperatorExpression(Node *node, VariablePtr *&res,
       // assert(node->lhs->var != nullptr);
       // assert(node->rhs->var != nullptr);
       if (node->lhs->var != nullptr && node->rhs->var != nullptr) {
-        std::string s = getRealPreName(node->lhs->var);
-        std::string s2 = getRealPreName(node->rhs->var);
-        VariablePtr l, r;
-        // file_out << "arrive three 1" << std::endl;
-        if (table->findVar(s, l) && table->findVar(s2, r)) {
-          (*res) = std::make_shared<Variable>();
-          //(*res)->Ival = l->Ival + r->Ival;
-          //(*res)->SetName(next_variable_name());
-          InMemoryIR->Insert(l, r, (*res), InstructionOp, table);
-          table->insert((*res), 0);
-        }
+        (*res) = std::make_shared<Variable>();
+        // if (node->lhs->kind == ND_VAR) {
+        //   VariablePtr load;
+        //   load = std::make_shared<Variable>();
+        //   load->SetName(next_variable_name());
+        //   bool assertCheck =
+        //       InMemoryIR->Insert(left, nullptr, load, IROpKind::Op_Load,
+        //       table);
+        //   assert(assertCheck == true);
+        //   left = load;
+        // }
+        // if (node->rhs->kind == ND_VAR) {
+        //   VariablePtr load;
+        //   load = std::make_shared<Variable>();
+        //   load->SetName(next_variable_name());
+        //   bool assertCheck =
+        //       InMemoryIR->Insert(right, nullptr, load, IROpKind::Op_Load,
+        //       table);
+        //   assert(assertCheck == true);
+        //   right = load;
+        // }
+        // (*res)->SetName(next_variable_name());
+        InMemoryIR->Insert(left, right, (*res), InstructionOp, table);
+        table->insert((*res), 0);
+        // std::string s = getRealPreName(node->lhs->var);
+        // std::string s2 = getRealPreName(node->rhs->var);
+        // VariablePtr l, r;
+        // // file_out << "arrive three 1" << std::endl;
+        // if (table->findVar(s, l) && table->findVar(s2, r)) {
+        //   (*res) = std::make_shared<Variable>();
+        //   //(*res)->Ival = l->Ival + r->Ival;
+        //   //(*res)->SetName(next_variable_name());
+        //   InMemoryIR->Insert(l, r, (*res), InstructionOp, table);
+        //   table->insert((*res), 0);
+        // }
       }
     }
   }
@@ -636,10 +683,45 @@ static void gen_expr_ir(Node *node, VariablePtr *res, SymbolTablePtr table) {
     return;
   case ND_FUNCALL: {
     int nargs = 0;
+    std::vector<VariablePtr> Args;
     for (Node *arg = node->args; arg; arg = arg->next) {
+      std::cout << "meet arg: " << nargs << "\n";
       gen_expr_ir(arg, res, table);
+      auto NArg = *res;
+      if (arg->kind == ND_VAR) {
+        std::cout << "ND_VAR:\n";
+        VariablePtr load;
+        load = std::make_shared<Variable>();
+        load->SetName(next_variable_name());
+        bool assertCheck =
+            InMemoryIR->Insert(NArg, nullptr, load, IROpKind::Op_Load, table);
+        assert(assertCheck == true);
+        NArg = load;
+      }
+      Args.push_back(NArg);
       nargs++;
     }
+
+    auto FunctionName = node->funcname;
+    IRFunctionPtr Func = nullptr;
+    VariablePtr call;
+    call = std::make_shared<Variable>();
+    call->SetName(next_variable_name());
+    if (symTable->findFunc(FunctionName, Func)) {
+      InMemoryIR->CreateCall(Func, Args, call, IROpKind::Op_FUNCALL, table);
+    } else {
+      // TODO:
+      // generate declare?
+      Func = std::make_shared<IRFunction>(node->funcname);
+      symTable->insertFunc(Func, 0);
+      if (node->ty == ty_int) {
+        Func->retTy = ReturnTypeKind::RTY_INT;
+      } else {
+        Func->retTy = ReturnTypeKind::RTY_VOID;
+      }
+      InMemoryIR->CreateCall(Func, Args, call, IROpKind::Op_FUNCALL, table);
+    }
+    *res = call;
     return;
   }
   default:
@@ -650,10 +732,12 @@ static void gen_expr_ir(Node *node, VariablePtr *res, SymbolTablePtr table) {
   // file_out << "arrive three 6" << std::endl;
   VariablePtr right = std::make_shared<Variable>();
   gen_expr_ir(node->rhs, &right, table);
+  std::cout << "right is: " << right->GetName() << "\n";
   // push();
   // file_out << "arrive three 5" << std::endl;
   VariablePtr left = std::make_shared<Variable>();
   gen_expr_ir(node->lhs, &left, table);
+  std::cout << "left is: " << left->GetName() << "\n";
   // file_out << "arrive three 4" << std::endl;
   // pop("%rdi");
 

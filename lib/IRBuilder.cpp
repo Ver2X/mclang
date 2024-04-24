@@ -86,6 +86,16 @@ bool IRBuilder::Insert(VariablePtr left, VariablePtr right, VariablePtr result,
   // std::cout << "in ssss" << std::endl;
 }
 
+bool IRBuilder::CreateCall(IRFunctionPtr func, std::vector<VariablePtr> args,
+                           VariablePtr result, IROpKind Op,
+                           SymbolTablePtr table) {
+  if (entry_label < 0)
+    entry_label = cache_label;
+  blocks[cache_label]->Insert(func, args, result, Op, this);
+  return true;
+  // std::cout << "in ssss" << std::endl;
+}
+
 // for Op_Alloca
 //
 bool IRBuilder::Insert(VariablePtr left, VariablePtr right, VariablePtr result,
@@ -112,6 +122,8 @@ bool IRBuilder::Insert(VariablePtr source, VariablePtr dest, IROpKind Op,
   // store identity
   return Insert(source, nullptr, dest, Op, cache_label, cache_name, table);
 }
+
+// branch instruction
 bool IRBuilder::Insert(VariablePtr indicateVariable, BlockPtr targetOne,
                        BlockPtr targetTwo, IROpKind Op, SymbolTablePtr table) {
   if (entry_label < 0)

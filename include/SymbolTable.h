@@ -1,6 +1,6 @@
 #pragma once
+#include "FunctionIR.h"
 #include "Variable.h"
-
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -32,6 +32,8 @@ class SymbolTable {
   SymbolTablePtr next_level;
 
   std::map<std::string, VarList> table; // global
+  std::vector<IRFunctionPtr> funcs;
+
 public:
   SymbolTable() {
     prev_level = nullptr;
@@ -43,7 +45,7 @@ public:
     prev_level = fa;
     // fa->next_level = this; ???
   }
-
+  bool insertFunc(IRFunctionPtr func, int level);
   bool insert(VariablePtr var, int level);
   bool insert(VariablePtr var, VariablePtr newVar, int level);
   // use a cache save inserted varibale, when leaving function, delete
@@ -51,4 +53,5 @@ public:
   void erase(std::string var_name, int level);
   // bool findVar(std::string &var_name, VariablePtr &);
   bool findVar(std::string var_name, VariablePtr &);
+  bool findFunc(std::string func_name, IRFunctionPtr &);
 };

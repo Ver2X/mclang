@@ -64,6 +64,8 @@ public:
   bool CreateAlloca(VariablePtr addr, SymbolTablePtr table);
   bool CreateLoad(VariablePtr addr, SymbolTablePtr table);
   bool CreateStore(VariablePtr value, VariablePtr addr, SymbolTablePtr table);
+  bool CreateCall(IRFunctionPtr func, std::vector<VariablePtr> args,
+                  VariablePtr result, IROpKind Op, SymbolTablePtr table);
   bool Insert(VariablePtr indicateVariable, BlockPtr targetOne,
               BlockPtr targetTwo, IROpKind Op, SymbolTablePtr table);
   bool Insert(VariablePtr dest, IROpKind Op, SymbolTablePtr table);

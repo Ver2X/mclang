@@ -115,6 +115,26 @@ std::string AllocaInst::CodeGen() {
          std::to_string(dest->align); // + "\n";
 }
 
+std::string CallInst::CodeGen() {
+  std::string res;
+  // if (func->retTy == ReturnTypeKind::RTY_VOID) {
+  //   res += "  call void @";
+  // } else {
+  res += "  " + dest->GetName() + " =";
+  res += "  call i32 @";
+  // }
+  res += func->functionName + "("; // + "\n";
+  for (auto x : args) {
+    res += "i32 ";
+    res += x->GetName();
+    if (x != args[args.size() - 1]) {
+      res += ", ";
+    }
+  }
+  res += ")";
+  return res;
+}
+
 std::string BranchInst::CodeGen() {
   if (Op == IROpKind::Op_Branch) {
     std::string s;
@@ -131,7 +151,7 @@ std::string BranchInst::CodeGen() {
 
 std::string ReturnInst::CodeGen() {
   if (returnValue != nullptr)
-    return "  ret i32" + returnValue->GetName(); // + "\n";
+    return "  ret i32 " + returnValue->GetName(); // + "\n";
   else
     return "  ret void\n";
 }

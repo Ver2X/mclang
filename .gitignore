@@ -64,5 +64,6 @@ mclang
 /test/*.s
 core*
 /std/*.ll
+build/*
 
 .cache*

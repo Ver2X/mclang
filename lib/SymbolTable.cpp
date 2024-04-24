@@ -1,5 +1,24 @@
 #include "SymbolTable.h"
 
+bool SymbolTable::insertFunc(IRFunctionPtr func, int level) {
+  for (auto f : funcs) {
+    if (f->functionName == func->functionName)
+      return false;
+  }
+  funcs.push_back(func);
+  return true;
+}
+
+bool SymbolTable::findFunc(std::string func_name, IRFunctionPtr &res) {
+  for (auto f : funcs) {
+    if (f->functionName == func_name) {
+      res = f;
+      return true;
+    }
+  }
+  return false;
+}
+
 bool SymbolTable::insert(VariablePtr var, int level) {
   // down to special level
   std::string var_name = var->GetName();

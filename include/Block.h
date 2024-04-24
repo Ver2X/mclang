@@ -51,6 +51,8 @@ public:
   int GetLabel() { return label; }
   void Insert(VariablePtr left, VariablePtr right, VariablePtr result,
               IROpKind Op, IRBuilder *buider);
+  void Insert(IRFunctionPtr func, std::vector<VariablePtr> args,
+              VariablePtr result, IROpKind Op, IRBuilder *buider);
   void Insert(VariablePtr indicateVariable, BlockPtr targetOne,
               BlockPtr targetTwo, IROpKind Op, IRBuilder *buider);
   void SetPred(BlockPtr);

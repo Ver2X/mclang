@@ -19,9 +19,16 @@
 #include <tuple>
 #include <unordered_map>
 #include <vector>
+
+// do include "IRBuilder.h" incase cycle include
+class IRBuilder;
 class IRFunction {
+
+  std::shared_ptr<IRBuilder> body;
+
 public:
   IRFunction();
+  IRFunction(std::string name);
 
   std::string functionName;
   // VariablePtr args;
@@ -33,5 +40,6 @@ public:
   std::string rename();
   void AddArgs();
   std::string CodeGen();
+  void setBody(std::shared_ptr<IRBuilder> body);
 };
 using IRFunctionPtr = std::shared_ptr<IRFunction>;
