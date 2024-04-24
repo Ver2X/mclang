@@ -90,15 +90,16 @@ int main(int argc, char **argv) {
   // fprintf(out, ".file 1 \"%s\"\n", input_path);
   codegen(prog, out, file_name);
 
+  int error_code = 0;
   if (genAsm) {
     std::string Cmd = "clang -S " + file_name;
-    system(Cmd.c_str());
+    error_code = system(Cmd.c_str());
   } else if (genSigle) {
     std::string Cmd = "clang -c " + file_name;
-    system(Cmd.c_str());
+    error_code = system(Cmd.c_str());
   } else {
     std::string Cmd = "clang " + file_name;
-    system(Cmd.c_str());
+    error_code = system(Cmd.c_str());
   }
-  return 0;
+  return error_code;
 }
