@@ -34,9 +34,9 @@ for file in core_files:
 # Remove old build directory
 if not os.path.exists("build"):
     os.makedirs("build")
-else:
-    os.system("rm -rf build")
-    os.makedirs("build")
+# else:
+    # os.system("rm -rf build")
+    # os.makedirs("build")
 
 # Enter the build directory
 os.chdir("build")
@@ -55,5 +55,5 @@ os.chdir("..")
 # subprocess.run(["make", "clean"])
 
 # Run the compiled executable
-subprocess.run(["./build/mclang", "std/loop.c"], stdout=subprocess.DEVNULL)
-subprocess.run(["./build/mclang", "std/if.c"], stdout=subprocess.DEVNULL)
+# subprocess.run(["./build/mclang", "std/loop.c"], stdout=subprocess.DEVNULL)
+# subprocess.run(["./build/mclang", "std/if.c"], stdout=subprocess.DEVNULL)

@@ -53,5 +53,6 @@ clean:
 		find * -type f '(' -name '*~' -o -name '*.ll' ')' -exec rm {} ';'
 		find * -type f '(' -name '*~' -o -name '*.dot' ')' -exec rm {} ';'
 		find * -type f '(' -name '*~' -o -name '*.png' ')' -exec rm {} ';'
+		find * -type f '(' -name '*~' -o -name '*.s' ')' -exec rm {} ';'
 
 .PHONU: test clean

@@ -197,7 +197,7 @@ std::string IRBuilder::CodeGen() {
              << "label: " << blk.second->GetLabel()
              << " size :" << blk.second->instructinos.size() << std::endl;
 #endif
-    if (blk.first == entry_label)
+    if (blk.first == entry_label && !blk.second->allocas.empty())
       s += blk.second->AllocaCodeGen();
     s += blk.second->CodeGen();
     lastBlock = blk.second;

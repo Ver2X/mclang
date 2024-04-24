@@ -20,3 +20,7 @@ int loop() {
   }
   return sum;
 }
+
+int main() {
+  return loop();
+}

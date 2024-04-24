@@ -65,9 +65,33 @@ static std::string getRealPreName(Obj *var) {
   return Twine("%", var->name);
 }
 
-// IRBuilder InMemoryIR;
-std::shared_ptr<IRBuilder> InMemoryIR; // = std::make_shared<IRBuilder>();
-SymbolTablePtr symTable;               // = std::make_shared<SymbolTable>();
+std::string NodeKindStrings[] = {
+    "ND_ADD",       // +
+    "ND_SUB",       // -
+    "ND_MUL",       // *
+    "ND_DIV",       // /
+    "ND_EQ",        // ==
+    "ND_NE",        // !=
+    "ND_LT",        // <
+    "ND_LE",        // <=
+    "ND_ASSIGN",    // =
+    "ND_COMMA",     // ,
+    "ND_NEG",       // -, unary
+    "ND_ADDR",      // &, unary
+    "ND_DEREF",     // *, unary
+    "ND_NUM",       // integer
+    "ND_VAR",       // local variable
+    "ND_EXPR_STMT", // statement
+    "ND_RETURN",    // "return"
+    "ND_IF",        // "if"
+    "ND_FOR",       // "for" or "while"
+    "ND_BLOCK",
+    "ND_FUNCALL",   // function call
+    "ND_STMT_EXPR", // statement expression
+    "ND_MEMBER"     // . (struct member access)
+};
+std::shared_ptr<IRBuilder> InMemoryIR;
+SymbolTablePtr symTable;
 std::shared_ptr<Module> ProgramModule = std::make_shared<Module>();
 
 // emit IR
@@ -159,14 +183,8 @@ void emit_ir(Obj *prog, std::string file_name) {
     InMemoryIR->SetInsertPoint(next_label_num_number(), "entry");
 
     for (auto p : arg_variable_pair) {
-      // std::get<1>(p) = arg.addr
-      // bool insertRes = InMemoryIR->Insert(nullptr, nullptr, std::get<1>(p),
-      //                                     IROpKind::Op_Alloca, local_table);
       bool insertRes = InMemoryIR->CreateAlloca(std::get<1>(p), local_table);
       assert(insertRes == true);
-      // std::get<0>(p) = arg
-      // insertRes = InMemoryIR->Insert(std::get<0>(p), nullptr, std::get<1>(p),
-      //                                IROpKind::Op_Store, local_table);
       insertRes =
           InMemoryIR->CreateStore(std::get<0>(p), std::get<1>(p), local_table);
       assert(insertRes == true);
@@ -471,6 +489,7 @@ static bool BinaryOperatorExpression(Node *node, VariablePtr *&res,
   // assert(node->lhs->kind == ND_VAR || node->lhs->kind == ND_NUM);
   IROpKind InstructionOp = NKindToIRKind(Op);
   if ((node->lhs->kind == ND_NUM) && (node->rhs->kind == ND_NUM)) {
+    std::cout << "enter pos 1\n\n";
     assert(node->lhs != nullptr);
     assert(node->rhs != nullptr);
     if (node->lhs != nullptr && node->rhs != nullptr) {
@@ -504,81 +523,62 @@ static bool BinaryOperatorExpression(Node *node, VariablePtr *&res,
         return false;
       }
     }
-  } else {
-    if (node->lhs->kind == ND_NUM) {
-      // assert(node->lhs->var == nullptr);
-      // assert(node->rhs->var != nullptr);
-      if (node->rhs->var != nullptr) {
-        std::string s = getRealPreName(node->rhs->var);
-        VariablePtr r;
-        if (table->findVar(s, r)) {
-          (*res) = std::make_shared<Variable>();
-          //(*res)->Ival = node->lhs->val + r->Ival;
-          VariablePtr l;
-          l = std::make_shared<Variable>(node->lhs->val);
-          //(*res)->SetName(next_variable_name());
-          InMemoryIR->Insert(l, r, (*res), InstructionOp, table);
-          table->insert((*res), 0);
-        }
-      }
-    } else if (node->rhs->kind == ND_NUM) {
-      // assert(node->lhs->var != nullptr);
-      // assert(node->rhs->var == nullptr);
-      if (node->lhs->var != nullptr) {
-        std::string s = getRealPreName(node->lhs->var);
-        VariablePtr l;
-        if (table->findVar(s, l)) {
-          (*res) = std::make_shared<Variable>();
-          //(*res)->Ival = l->Ival + node->rhs->val;
-          VariablePtr r;
-          r = std::make_shared<Variable>(node->rhs->val);
-          //(*res)->SetName(next_variable_name());
-          InMemoryIR->Insert(l, r, (*res), InstructionOp, table);
-          table->insert((*res), 0);
-        }
-      }
-    } else {
-      // assert(node->lhs->var != nullptr);
-      // assert(node->rhs->var != nullptr);
-      if (node->lhs->var != nullptr && node->rhs->var != nullptr) {
-        (*res) = std::make_shared<Variable>();
-        // if (node->lhs->kind == ND_VAR) {
-        //   VariablePtr load;
-        //   load = std::make_shared<Variable>();
-        //   load->SetName(next_variable_name());
-        //   bool assertCheck =
-        //       InMemoryIR->Insert(left, nullptr, load, IROpKind::Op_Load,
-        //       table);
-        //   assert(assertCheck == true);
-        //   left = load;
-        // }
-        // if (node->rhs->kind == ND_VAR) {
-        //   VariablePtr load;
-        //   load = std::make_shared<Variable>();
-        //   load->SetName(next_variable_name());
-        //   bool assertCheck =
-        //       InMemoryIR->Insert(right, nullptr, load, IROpKind::Op_Load,
-        //       table);
-        //   assert(assertCheck == true);
-        //   right = load;
-        // }
-        // (*res)->SetName(next_variable_name());
-        InMemoryIR->Insert(left, right, (*res), InstructionOp, table);
-        table->insert((*res), 0);
-        // std::string s = getRealPreName(node->lhs->var);
-        // std::string s2 = getRealPreName(node->rhs->var);
-        // VariablePtr l, r;
-        // // file_out << "arrive three 1" << std::endl;
-        // if (table->findVar(s, l) && table->findVar(s2, r)) {
-        //   (*res) = std::make_shared<Variable>();
-        //   //(*res)->Ival = l->Ival + r->Ival;
-        //   //(*res)->SetName(next_variable_name());
-        //   InMemoryIR->Insert(l, r, (*res), InstructionOp, table);
-        //   table->insert((*res), 0);
-        // }
-      }
+  } else if (node->lhs->kind == ND_NUM) {
+    VariablePtr r = right;
+    if (node->rhs->var != nullptr) {
+      r = std::make_shared<Variable>();
+      r->SetName(next_variable_name());
+
+      bool assertCheck =
+          InMemoryIR->Insert(right, nullptr, r, IROpKind::Op_Load, table);
+      assert(assertCheck == true);
     }
+
+    VariablePtr l;
+    l = std::make_shared<Variable>(node->lhs->val);
+    (*res) = std::make_shared<Variable>();
+    InMemoryIR->Insert(l, r, (*res), InstructionOp, table);
+    table->insert((*res), 0);
+  } else if (node->rhs->kind == ND_NUM) {
+    VariablePtr l = left;
+    if (node->lhs->var != nullptr) {
+      l = std::make_shared<Variable>();
+      l->SetName(next_variable_name());
+
+      bool assertCheck =
+          InMemoryIR->Insert(left, nullptr, l, IROpKind::Op_Load, table);
+      assert(assertCheck == true);
+    }
+
+    VariablePtr r = std::make_shared<Variable>(node->rhs->val);
+    (*res) = std::make_shared<Variable>();
+    InMemoryIR->Insert(l, r, (*res), InstructionOp, table);
+    table->insert((*res), 0);
+  } else {
+    VariablePtr l = left;
+    if (node->lhs->var != nullptr) {
+      l = std::make_shared<Variable>();
+      l->SetName(next_variable_name());
+
+      bool assertCheck =
+          InMemoryIR->Insert(left, nullptr, l, IROpKind::Op_Load, table);
+      assert(assertCheck == true);
+    }
+    VariablePtr r = right;
+    if (node->rhs->var != nullptr) {
+      r = std::make_shared<Variable>();
+      r->SetName(next_variable_name());
+
+      bool assertCheck =
+          InMemoryIR->Insert(right, nullptr, r, IROpKind::Op_Load, table);
+      assert(assertCheck == true);
+    }
+
+    (*res) = std::make_shared<Variable>();
+    InMemoryIR->Insert(l, r, (*res), InstructionOp, table);
+    table->insert((*res), 0);
   }
+  // }
   return true;
 }
 
@@ -614,8 +614,10 @@ static void gen_expr_ir(Node *node, VariablePtr *res, SymbolTablePtr table) {
     gen_variable_ir(node->lhs, table);
     return;
   case ND_ASSIGN: {
+
     VariablePtr left = gen_variable_ir(node->lhs, table);
     // push();
+    std::cout << "meet assign : " << "right is: " << node->rhs->kind << "\n";
     gen_expr_ir(node->rhs, res, table);
     VariablePtr local_variable;
     if (left != nullptr) {

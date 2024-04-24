@@ -4,8 +4,14 @@ static char *opt_o;
 
 static char *input_path;
 
+static bool genAsm = false;
+
+static bool genIR = false;
+
+static bool genSigle = false;
+
 static void usage(int status) {
-  fprintf(stderr, "mclang [ -o <path>] <file> \n");
+  fprintf(stderr, "mclang [ -o <path>] [-c] [-S] [-emit-llvm] <file> \n");
   exit(status);
 }
 
@@ -18,6 +24,21 @@ static void parse_args(int argc, char **argv) {
       if (!argv[++i])
         usage(1);
       opt_o = argv[i];
+      continue;
+    }
+
+    if (!strcmp(argv[i], "-S")) {
+      genAsm = true;
+      continue;
+    }
+
+    if (!strcmp(argv[i], "-c")) {
+      genSigle = true;
+      continue;
+    }
+
+    if (!strcmp(argv[i], "-emit-llvm")) {
+      genIR = true;
       continue;
     }
 
@@ -60,9 +81,24 @@ int main(int argc, char **argv) {
   file_name = removeExtension(file_name);
   TokenPtr tok = tokenize_file(input_path);
   Obj *prog = parse(tok);
-
+  if (opt_o) {
+    file_name = opt_o;
+  } else {
+    file_name += ".ll";
+  }
   FILE *out = open_file(opt_o);
   // fprintf(out, ".file 1 \"%s\"\n", input_path);
   codegen(prog, out, file_name);
+
+  if (genAsm) {
+    std::string Cmd = "clang -S " + file_name;
+    system(Cmd.c_str());
+  } else if (genSigle) {
+    std::string Cmd = "clang -c " + file_name;
+    system(Cmd.c_str());
+  } else {
+    std::string Cmd = "clang " + file_name;
+    system(Cmd.c_str());
+  }
   return 0;
 }

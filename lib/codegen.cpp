@@ -97,8 +97,9 @@ static void store_gp(int r, int offset, int sz) {
 }
 
 void codegen(Obj *prog, FILE *out, std::string file) {
-  file_out.open(file + ".ll", std::ios_base::out);
+  file_out.open(file, std::ios_base::out);
   output_file = out;
+  // file_out.open(output_file, out);
   // first setup offset
   assign_lvar_offsets(prog);
   // emit_data(prog);
@@ -106,4 +107,7 @@ void codegen(Obj *prog, FILE *out, std::string file) {
   // printf("before emit_global_data_ir:\n");
 
   emit_ir(prog, file);
+
+  file_out.flush();
+  file_out.close();
 }

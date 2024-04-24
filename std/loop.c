@@ -1,4 +1,4 @@
-int loop() {
+int main() {
   int n = 50;
   int sum = 0;
   int i = 0;

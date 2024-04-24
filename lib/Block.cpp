@@ -124,51 +124,13 @@ void Block::Insert(VariablePtr left, VariablePtr right, VariablePtr result,
       s += std::to_string(nextcf);
     arithRes->SetName(s);
 
-    VariablePtr load1;
-    VariablePtr load2;
-
-    if (!left->isConst && !right->isConst) {
-      load1 = std::make_shared<Variable>();
-      load1->SetName(next_variable_name());
-
-      load2 = std::make_shared<Variable>();
-      load2->SetName(next_variable_name());
-
-      auto inst1 = std::make_shared<LoadInst>(left, load1);
-      instructinos.push_back(std::dynamic_pointer_cast<Instruction>(inst1));
-
-      auto inst2 = std::make_shared<LoadInst>(right, load2);
-      instructinos.push_back(std::dynamic_pointer_cast<Instruction>(inst2));
-
-      auto instArith =
-          std::make_shared<BinaryOperator>(load1, load2, arithRes, Op);
-      instructinos.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
-    } else if (!left->isConst) {
-      load1 = std::make_shared<Variable>();
-      load1->SetName(next_variable_name());
-      auto inst1 = std::make_shared<LoadInst>(left, load1);
-      instructinos.push_back(std::dynamic_pointer_cast<Instruction>(inst1));
-
-      auto instArith =
-          std::make_shared<BinaryOperator>(load1, right, arithRes, Op);
-      instructinos.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
-    } else {
-      load2 = std::make_shared<Variable>();
-      load2->SetName(next_variable_name());
-      auto inst2 = std::make_shared<LoadInst>(right, load2);
-      instructinos.push_back(std::dynamic_pointer_cast<Instruction>(inst2));
-
-      auto instArith =
-          std::make_shared<BinaryOperator>(left, load2, arithRes, Op);
-      instructinos.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
-    }
+    auto instArith =
+        std::make_shared<BinaryOperator>(left, right, arithRes, Op);
+    instructinos.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
 
     buider->lastResVar = arithRes;
-    // InstructionPtr store = std::make_shared<Instruction>(arithRes, nullptr,
-    // result, IROpKind::Op_Store);
-    // assert(!result && "result is nullptr!");
+
     result->SetName(std::move(s));
-    // instructinos.push_back(store);
 
     return;
   }
