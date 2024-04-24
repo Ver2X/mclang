@@ -42,26 +42,24 @@ make it reuse, like ir gen, printer
 
 ## TODO LIST:
 
-before write code self, create a branch to save old code
 
 support **Doxygen**
 
-move to C with STL , then move to C++
+all move to C++
 
+bind ir 'res' to 'instruction'
 
+IR gen function return a result, don't passing by arg
 
-add free(), using tools to check or use shared pointer...
+index use slot
 
+cfg pre-succ is set with create of branch inst automatically
 
-maybe create a function IRgen
+support array
 
-push all of instruction in to IRgen Builder
+support void function
 
-and a symbol table
-
-then travel again to generate IR code
-
-
+support type
 
 add printAST function
 
@@ -77,17 +75,22 @@ like
 
 ​				|
 
+symbol table using a 'idenity'
+
 change locals to a nest symbol, to support multi function
 
-may use the dic tree to boost string compare 
+twine
 
 support CHANGE LOG
 
-may using tree IR?  like gcc and open64
 
+Opt?:
 
+SSA
 
-===> tree base instruction selection ==> DAG base
+DCE
+
+CodeGen?:
 
 ## The syntax of C in Backus-Naur Form
 

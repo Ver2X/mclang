@@ -36,6 +36,8 @@ enum class VaribleKind {
   VAR_32,
   VAR_64,
   VAR_PRT,
+  VAR_Void,
+  VAR_Undefined = VAR_32,
 };
 
 class Operand;

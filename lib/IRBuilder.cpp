@@ -73,12 +73,8 @@ bool IRBuilder::Insert(VariablePtr left, VariablePtr right, VariablePtr result,
   }
 
   if (Op == IROpKind::Op_Alloca) {
-    if (!table->findVar(result->GetName(), result)) {
-      blocks[entry_label]->Insert(left, right, result, Op, this);
-      return true;
-    } else {
-      return false;
-    }
+    blocks[entry_label]->Insert(left, right, result, Op, this);
+    return true;
   } else {
     blocks[label]->Insert(left, right, result, Op, this);
     return true;

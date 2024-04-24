@@ -1,97 +1,67 @@
 #include "SymbolTable.h"
 
-bool SymbolTable::insertFunc(IRFunctionPtr func, int level) {
-  for (auto f : funcs) {
-    if (f->functionName == func->functionName)
-      return false;
-  }
-  funcs.push_back(func);
-  return true;
-}
-
-bool SymbolTable::findFunc(std::string func_name, IRFunctionPtr &res) {
-  for (auto f : funcs) {
-    if (f->functionName == func_name) {
-      res = f;
+bool SymbolTable::nameHaveUsed(std::string name) {
+  for (auto &[_, Var] : table) {
+    if (Var->GetName() == name) {
       return true;
     }
   }
   return false;
 }
-
-bool SymbolTable::insert(VariablePtr var, int level) {
-  // down to special level
-  std::string var_name = var->GetName();
-  auto iter = table.find(var_name);
-
-  if (iter != table.end()) {
-    auto finout = [=](VarList vars) {
-      auto res = std::find(vars->begin(), vars->end(), var);
-      if (res != vars->end()) {
-        return false;
-      } else {
-        vars->push_back(var);
-        return true;
-      }
-    };
-    return finout(iter->second);
+bool SymbolTable::insertFunc(IRFunctionPtr func) {
+  for (auto f : funcs) {
+    if (f->GetName() == func->GetName()) {
+      return false;
+    }
   }
-  auto sVariable = std::make_shared<std::vector<VariablePtr>>();
-  sVariable->push_back(var);
-  table[var_name] = sVariable;
+  funcs.push_back(func);
   return true;
 }
 
-bool SymbolTable::insert(VariablePtr var, VariablePtr newVar, int level) {
-  // down to special level
-  std::string var_name = var->GetName();
-  auto iter = table.find(var_name);
-  if (iter == table.end()) {
+IRFunctionPtr SymbolTable::findFunc(std::string funcname) {
+  for (auto func : funcs) {
+    if (func->GetName() == funcname) {
+      return func;
+    }
+  }
+  return nullptr;
+}
+
+bool SymbolTable::insert(Obj *node, VariablePtr var) {
+  if (!table.count(node)) {
+    table[node] = var;
+    return true;
+  } else {
     return false;
   }
-  assert(iter != table.end());
-  auto finout = [=](VarList vars) {
-    auto res = std::find(vars->begin(), vars->end(), newVar);
-    if (res != vars->end()) {
-      return false;
-    } else {
-      vars->push_back(newVar);
-      return true;
-    }
-  };
-  return finout(iter->second);
-}
-// use a cache save inserted varibale, when leaving function, delete
-// it from symbol table
-void SymbolTable::erase(std::string var_name, int level) {
-  auto iter = table.find(var_name);
-  if (iter != table.end()) {
-    table.erase(iter);
-  }
 }
 
-// bool SymbolTable::findVar(std::string &var_name, VariablePtr &result) {
-//   // result = table.find(var_name)->second->back();
-//   auto it = table.find(var_name);
-//   if (it == table.end()) {
-//     // shouldn't flush result !!!
-//     // it will make insert alloca instruction error
-//     return false;
-//   } else {
-//     result = it->second->back();
-//     return true;
-//   }
-// }
-
-bool SymbolTable::findVar(std::string var_name, VariablePtr &result) {
-  // result = table.find(var_name)->second->back();
-  auto it = table.find(var_name);
-  if (it == table.end()) {
-    // shouldn't flush result !!!
-    // it will make insert alloca instruction error
+bool SymbolTable::update(Obj *node, VariablePtr var, VariablePtr newVar) {
+  if (!table.count(node)) {
     return false;
   } else {
-    result = it->second->back();
+    if (table[node] != var) {
+      assert(false);
+      return false;
+    }
+    table[node] = newVar;
     return true;
+  }
+}
+
+bool SymbolTable::erase(Obj *node, VariablePtr var) {
+  if (table[node] != var) {
+    assert(false);
+    return false;
+  }
+  table.erase(node);
+  return true;
+}
+
+VariablePtr SymbolTable::findVar(Obj *node) {
+  if (table.count(node)) {
+    return table[node];
+  } else {
+    return nullptr;
   }
 }

@@ -21,37 +21,22 @@
 #include <vector>
 class SymbolTable;
 using SymbolTablePtr = std::shared_ptr<SymbolTable>;
+typedef struct Obj Obj;
 
 class SymbolTable {
-  // std::string name;
-  // VariablePtr variables;
-  int level;
+  SymbolTablePtr global_table;
 
-  // SymbolTablePtr symb_list;
-  SymbolTablePtr prev_level;
-  SymbolTablePtr next_level;
-
-  std::map<std::string, VarList> table; // global
+  std::map<Obj *, VariablePtr> table;
   std::vector<IRFunctionPtr> funcs;
 
 public:
-  SymbolTable() {
-    prev_level = nullptr;
-    next_level = nullptr;
-  }
-
-  SymbolTable(SymbolTablePtr fa) {
-    // symb_list = std::make_shared<SymbolTable>();
-    prev_level = fa;
-    // fa->next_level = this; ???
-  }
-  bool insertFunc(IRFunctionPtr func, int level);
-  bool insert(VariablePtr var, int level);
-  bool insert(VariablePtr var, VariablePtr newVar, int level);
-  // use a cache save inserted varibale, when leaving function, delete
-  // it from symbol table
-  void erase(std::string var_name, int level);
-  // bool findVar(std::string &var_name, VariablePtr &);
-  bool findVar(std::string var_name, VariablePtr &);
-  bool findFunc(std::string func_name, IRFunctionPtr &);
+  SymbolTable() : global_table(nullptr) {}
+  SymbolTable(SymbolTablePtr fa) : global_table(fa) {}
+  bool nameHaveUsed(std::string name);
+  bool insertFunc(IRFunctionPtr func);
+  bool insert(Obj *node, VariablePtr var);
+  bool update(Obj *node, VariablePtr var, VariablePtr newVar);
+  bool erase(Obj *node, VariablePtr var);
+  VariablePtr findVar(Obj *node);
+  IRFunctionPtr findFunc(std::string funcname);
 };

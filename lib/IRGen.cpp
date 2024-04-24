@@ -65,6 +65,24 @@ static std::string getRealPreName(Obj *var) {
   return Twine("%", var->name);
 }
 
+static VaribleKind nodeTypeToVarType(TypePtr ty) {
+  if (ty == ty_char) {
+    return VaribleKind::VAR_8;
+  } else if (ty == ty_short) {
+    return VaribleKind::VAR_16;
+  } else if (ty == ty_int) {
+    return VaribleKind::VAR_32;
+  } else if (ty == ty_long) {
+    return VaribleKind::VAR_64;
+  } else if (ty == ty_void) {
+    return VaribleKind::VAR_Void;
+  } else {
+    // // TODO: make assert do
+    // assert(false && "not support now");
+    return VaribleKind::VAR_Undefined;
+  }
+}
+
 std::string NodeKindStrings[] = {
     "ND_ADD",       // +
     "ND_SUB",       // -
@@ -104,16 +122,11 @@ void emit_ir(Obj *prog, std::string file_name) {
     next_variable_name_v = 0;
     if (!fn->is_function || !fn->is_definition)
       continue;
-    IRFunctionPtr func = nullptr;
-    if (!symTable->findFunc(fn->name, func)) {
+    IRFunctionPtr func = symTable->findFunc(fn->name);
+    if (!func) {
       func = std::make_shared<IRFunction>();
       func->functionName = fn->name;
     }
-
-    // prologue
-    // println("  push %%rbp");
-    // println("  mov %%rsp, %%rbp");
-    // println("  sub $%d, %%rsp", fn->stack_size);
 
     switch (fn->ty->return_ty->kind) {
     case TY_INT:
@@ -140,31 +153,10 @@ void emit_ir(Obj *prog, std::string file_name) {
       // file_out << "func args increase 1" << std::endl;
       arg_variable = std::make_shared<Variable>();
       // next_variable_name_number();
-      switch (var->ty->size) {
-
-      case 1: {
-        // var->name
-        arg_variable->type = VaribleKind::VAR_8;
-        break;
-      }
-      case 2: {
-        arg_variable->type = VaribleKind::VAR_16;
-        break;
-      }
-      case 4: {
-        arg_variable->type = VaribleKind::VAR_32;
-        break;
-      }
-      case 8: {
-        arg_variable->type = VaribleKind::VAR_64;
-        break;
-      }
-      default:
-        break;
-      } // end switch
+      arg_variable->type = nodeTypeToVarType(var->ty);
       arg_variable->SetName(getPreName(var->name));
       arg_variable->SetArg();
-      local_table->insert(arg_variable, 0);
+      local_table->insert(var, arg_variable);
       arg_variable_addr = std::make_shared<Variable>();
       arg_variable_addr->SetName(Twine(getPreName(var->name), ".addr"));
       arg_variable_pair.push_back(std::tuple<VariablePtr, VariablePtr>(
@@ -188,28 +180,29 @@ void emit_ir(Obj *prog, std::string file_name) {
       insertRes =
           InMemoryIR->CreateStore(std::get<0>(p), std::get<1>(p), local_table);
       assert(insertRes == true);
-      local_table->insert(std::get<1>(p), 0);
+      // local_table->insert(std::get<1>(p), 0);
     }
     ////////// maybe need generate Block first
     // file_out << "arrive three 7" << std::endl;
     //  std::stack<Obj *> local_variables;
-    std::vector<Obj *> local_variables;
+    int NumOfLocal = 0;
     for (Obj *var = fn->locals; var; var = var->next) {
       // local_variables.push(var);
-      local_variables.push_back(var);
-    }
-    auto handleVariableDeclaration = [&](Obj *var) {
       VariablePtr local_variable = std::make_shared<Variable>();
-      local_variable->SetName(getPreName(var->name));
-      local_variable->type = VaribleKind::VAR_32;
+      std::string InitName = getPreName(var->name);
+      while (local_table->nameHaveUsed(InitName)) {
+        InitName += ".1";
+      }
+      local_variable->SetName(InitName);
+      local_variable->type = nodeTypeToVarType(var->ty);
       if (InMemoryIR->Insert(nullptr, nullptr, local_variable,
                              IROpKind::Op_Alloca, local_table)) {
-        local_table->insert(local_variable, 0);
+        local_table->insert(var, local_variable);
       }
-    };
-    std::for_each(local_variables.rbegin(), local_variables.rend(),
-                  handleVariableDeclaration);
-    // handleVariableDeclarationRes();
+
+      NumOfLocal++;
+    }
+    std::cout << "NumOfLocal: " << NumOfLocal << "\n";
 
     gen_stmt_ir(fn->body, local_table);
     assert(depth == 0);
@@ -419,20 +412,15 @@ static VariablePtr gen_variable_ir(Node *node, SymbolTablePtr table) {
   case ND_VAR: {
     if (node->var->is_local) {
       // Local variable
-      VariablePtr Var;
-      auto VarHaveDefined = table->findVar(getPreName(node->var->name), Var);
+      VariablePtr Var = table->findVar(node->var);
+      assert(Var);
       if (Var->isArg()) {
         Var = Var->GetAddr();
       }
-
-      assert(VarHaveDefined);
-      assert(Var);
       return Var;
     } else {
       // Global variable find in global symbol table
-      VariablePtr Var;
-      auto VarHaveDefined = symTable->findVar(getPreName(node->var->name), Var);
-      assert(VarHaveDefined);
+      VariablePtr Var = symTable->findVar(node->var);
       assert(Var);
       return Var;
     }
@@ -538,7 +526,7 @@ static bool BinaryOperatorExpression(Node *node, VariablePtr *&res,
     l = std::make_shared<Variable>(node->lhs->val);
     (*res) = std::make_shared<Variable>();
     InMemoryIR->Insert(l, r, (*res), InstructionOp, table);
-    table->insert((*res), 0);
+    // table->insert((*res), 0);
   } else if (node->rhs->kind == ND_NUM) {
     VariablePtr l = left;
     if (node->lhs->var != nullptr) {
@@ -553,7 +541,7 @@ static bool BinaryOperatorExpression(Node *node, VariablePtr *&res,
     VariablePtr r = std::make_shared<Variable>(node->rhs->val);
     (*res) = std::make_shared<Variable>();
     InMemoryIR->Insert(l, r, (*res), InstructionOp, table);
-    table->insert((*res), 0);
+    // table->insert((*res), 0);
   } else {
     VariablePtr l = left;
     if (node->lhs->var != nullptr) {
@@ -576,7 +564,7 @@ static bool BinaryOperatorExpression(Node *node, VariablePtr *&res,
 
     (*res) = std::make_shared<Variable>();
     InMemoryIR->Insert(l, r, (*res), InstructionOp, table);
-    table->insert((*res), 0);
+    // table->insert((*res), 0);
   }
   // }
   return true;
@@ -705,17 +693,18 @@ static void gen_expr_ir(Node *node, VariablePtr *res, SymbolTablePtr table) {
     }
 
     auto FunctionName = node->funcname;
-    IRFunctionPtr Func = nullptr;
+    IRFunctionPtr Func = symTable->findFunc(FunctionName);
     VariablePtr call;
     call = std::make_shared<Variable>();
     call->SetName(next_variable_name());
-    if (symTable->findFunc(FunctionName, Func)) {
+    if (Func) {
       InMemoryIR->CreateCall(Func, Args, call, IROpKind::Op_FUNCALL, table);
     } else {
       // TODO:
       // generate declare?
-      Func = std::make_shared<IRFunction>(node->funcname);
-      symTable->insertFunc(Func, 0);
+      Func = std::make_shared<IRFunction>(FunctionName);
+      auto insertFuncRes = symTable->insertFunc(Func);
+      assert(insertFuncRes);
       if (node->ty == ty_int) {
         Func->retTy = ReturnTypeKind::RTY_INT;
       } else {

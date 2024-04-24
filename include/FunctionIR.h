@@ -38,6 +38,7 @@ public:
   ReturnTypeKind retTy;
 
   std::string rename();
+  std::string GetName() { return functionName; };
   void AddArgs();
   std::string CodeGen();
   void setBody(std::shared_ptr<IRBuilder> body);
