@@ -4,6 +4,15 @@
 #include <cassert>
 #include <memory>
 #include <string>
+
+std::string IRBuilder::GetNextVarName() {
+  return "%" + std::to_string(function->NextVarNameNum());
+}
+
+int IRBuilder::NextBlockLabelNum() { return function->NextBlockLabelNum(); }
+
+int IRBuilder::NextControlFlowNum() { return function->NextControlFlowNum(); }
+
 void IRBuilder::SetInsertPoint(int label, std::string name) {
   if (entry_label < 0)
     entry_label = label;
@@ -59,7 +68,7 @@ void IRBuilder::InsertBasicBlock(int label, std::string name, int pred) {
   cache_name = name;
 }
 
-// extern SymbolTablePtr symTable;
+// extern SymbolTablePtr globalSymTable;
 bool IRBuilder::Insert(VariablePtr left, VariablePtr right, VariablePtr result,
                        IROpKind Op, int label, std::string name,
                        SymbolTablePtr table) {
@@ -82,13 +91,14 @@ bool IRBuilder::Insert(VariablePtr left, VariablePtr right, VariablePtr result,
   // std::cout << "in ssss" << std::endl;
 }
 
-bool IRBuilder::CreateCall(IRFunctionPtr func, std::vector<VariablePtr> args,
-                           VariablePtr result, IROpKind Op,
-                           SymbolTablePtr table) {
+VariablePtr IRBuilder::CreateCall(IRFunctionPtr func,
+                                  std::vector<VariablePtr> args) {
+  auto res = std::make_shared<Variable>();
+  res->SetName(GetNextVarName());
   if (entry_label < 0)
     entry_label = cache_label;
-  blocks[cache_label]->Insert(func, args, result, Op, this);
-  return true;
+  blocks[cache_label]->Insert(func, args, res, IROpKind::Op_FUNCALL, this);
+  return res;
   // std::cout << "in ssss" << std::endl;
 }
 
@@ -99,14 +109,38 @@ bool IRBuilder::Insert(VariablePtr left, VariablePtr right, VariablePtr result,
   return Insert(left, right, result, Op, cache_label, cache_name, table);
 }
 
-bool IRBuilder::CreateAlloca(VariablePtr addr, SymbolTablePtr table) {
-  return Insert(nullptr, nullptr, addr, IROpKind::Op_Alloca, table);
+VariablePtr IRBuilder::CreateBinary(VariablePtr left, VariablePtr right,
+                                    IROpKind Op) {
+  auto res = std::make_shared<Variable>();
+  auto rt = Insert(left, right, res, Op, cache_label, cache_name,
+                   function->GeTable());
+  assert(rt);
+  return res;
 }
 
-bool IRBuilder::CreateStore(VariablePtr value, VariablePtr addr,
-                            SymbolTablePtr table) {
-  return Insert(value, nullptr, addr, IROpKind::Op_Store, table);
+VariablePtr IRBuilder::CreateLoad(VariablePtr addr) {
+  auto res = std::make_shared<Variable>();
+  res->SetName(GetNextVarName());
+  auto rt = Insert(addr, nullptr, res, IROpKind::Op_Load, cache_label,
+                   cache_name, function->GeTable());
+  assert(rt);
+  return res;
 }
+
+void IRBuilder::CreateRet(VariablePtr value) {
+  Insert(nullptr, nullptr, value, IROpKind::Op_Return, cache_label, cache_name,
+         function->GeTable());
+}
+
+void IRBuilder::CreateAlloca(VariablePtr addr) {
+  Insert(nullptr, nullptr, addr, IROpKind::Op_Alloca, function->GeTable());
+}
+
+void IRBuilder::CreateStore(VariablePtr value, VariablePtr addr) {
+  Insert(value, nullptr, addr, IROpKind::Op_Store, function->GeTable());
+}
+
+void IRBuilder::CreateStore(VariablePtr addr) { CreateStore(nullptr, addr); }
 
 bool IRBuilder::Insert(VariablePtr result, IROpKind Op, SymbolTablePtr table) {
   // store num
@@ -133,6 +167,23 @@ bool IRBuilder::Insert(VariablePtr indicateVariable, BlockPtr targetOne,
   assert(Op == IROpKind::Op_Branch || Op == IROpKind::Op_UnConBranch);
   blocks[cache_label]->Insert(indicateVariable, targetOne, targetTwo, Op, this);
   return true;
+}
+
+void IRBuilder::CreateCondBr(VariablePtr Cond, BlockPtr True, BlockPtr False) {
+  auto Curr = GetCurrentBlock();
+  Curr->SetSucc(True);
+  Curr->SetSucc(False);
+  True->SetPred(Curr);
+  False->SetPred(Curr);
+  Insert(Cond, True, False, IROpKind::Op_Branch, function->GeTable());
+}
+
+void IRBuilder::CreateBr(BlockPtr Target) {
+  auto Curr = GetCurrentBlock();
+  Curr->SetSucc(Target);
+  Target->SetPred(Curr);
+  Insert(nullptr, Target, nullptr, IROpKind::Op_UnConBranch,
+         function->GeTable());
 }
 
 void IRBuilder::FixNonReturn(SymbolTablePtr table) {

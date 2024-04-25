@@ -21,10 +21,15 @@
 #include <vector>
 
 // do include "IRBuilder.h" incase cycle include
+class SymbolTable;
+using SymbolTablePtr = std::shared_ptr<SymbolTable>;
 class IRBuilder;
 class IRFunction {
-
+  int varNameNum;
+  int blockLabelNum;
+  int controlFlowNum;
   std::shared_ptr<IRBuilder> body;
+  SymbolTablePtr table;
 
 public:
   IRFunction();
@@ -39,8 +44,13 @@ public:
 
   std::string rename();
   std::string GetName() { return functionName; };
+  SymbolTablePtr GeTable() { return table; };
+  int NextVarNameNum();
+  int NextBlockLabelNum();
+  int NextControlFlowNum();
   void AddArgs();
   std::string CodeGen();
   void setBody(std::shared_ptr<IRBuilder> body);
+  void setTable(SymbolTablePtr local_table) { table = local_table; };
 };
 using IRFunctionPtr = std::shared_ptr<IRFunction>;

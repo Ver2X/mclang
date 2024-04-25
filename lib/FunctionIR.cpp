@@ -3,13 +3,26 @@
 IRFunction::IRFunction() {
   argsNum = 0;
   retTy = ReturnTypeKind::RTY_VOID;
+  varNameNum = 0;
+  blockLabelNum = 0;
+  controlFlowNum = 0;
 }
 
 IRFunction::IRFunction(std::string name) {
   argsNum = 0;
   retTy = ReturnTypeKind::RTY_VOID;
   functionName = name;
+  varNameNum = 0;
+  blockLabelNum = 0;
+  controlFlowNum = 0;
 }
+
+int IRFunction::NextVarNameNum() { return varNameNum++; }
+
+int IRFunction::NextBlockLabelNum() { return blockLabelNum++; }
+
+int IRFunction::NextControlFlowNum() { return controlFlowNum++; }
+
 void IRFunction::setBody(std::shared_ptr<IRBuilder> _body) { body = _body; }
 
 std::string IRFunction::CodeGen() {

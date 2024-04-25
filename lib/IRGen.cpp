@@ -14,10 +14,6 @@ static void gen_func_arg_ir(Obj *var, int r, int offset, int sz);
 extern std::fstream file_out;
 extern int depth;
 
-extern int count_diff_if;
-// use to identify diff "if" statements
-static int count() { return count_diff_if++; }
-
 // for now, define as a fucntion, then change to rope data structure.
 std::string Twine(std::string &l, std::string &r) { return l + r; }
 
@@ -28,23 +24,6 @@ std::string Twine(std::string l, int r) {
     return l;
   else
     return l + std::to_string(r);
-}
-
-static int next_variable_name_v = 0;
-static int next_variable_name_number() { return next_variable_name_v++; }
-
-// use to count number of if, same group have the same number
-static int next_label_name_v = 0;
-static int next_label_name_number() { return next_label_name_v++; }
-
-// numbering label, all blocks have different label
-static int next_label_num_v = 0;
-static int next_label_num_number() { return next_label_num_v++; }
-
-std::string next_variable_name() {
-  std::string name = Twine("%", std::to_string(next_variable_name_number()));
-  return name;
-  // return std::to_string(next_variable_name_number());
 }
 
 static std::string getPreName(std::string name) { return Twine("%", name); }
@@ -65,20 +44,20 @@ static std::string getRealPreName(Obj *var) {
   return Twine("%", var->name);
 }
 
-static VaribleKind nodeTypeToVarType(TypePtr ty) {
-  if (ty == ty_char) {
+static VaribleKind nodeTypeToVarType(TypeKind ty) {
+  if (ty == TY_CHAR) {
     return VaribleKind::VAR_8;
-  } else if (ty == ty_short) {
+  } else if (ty == TY_SHORT) {
     return VaribleKind::VAR_16;
-  } else if (ty == ty_int) {
+  } else if (ty == TY_INT) {
     return VaribleKind::VAR_32;
-  } else if (ty == ty_long) {
+  } else if (ty == TY_LONG) {
     return VaribleKind::VAR_64;
-  } else if (ty == ty_void) {
+  } else if (ty == TY_VOID) {
     return VaribleKind::VAR_Void;
   } else {
-    // // TODO: make assert do
-    // assert(false && "not support now");
+    // TODO: make assert do
+    assert(false && "not support now");
     return VaribleKind::VAR_Undefined;
   }
 }
@@ -109,24 +88,26 @@ std::string NodeKindStrings[] = {
     "ND_MEMBER"     // . (struct member access)
 };
 std::shared_ptr<IRBuilder> InMemoryIR;
-SymbolTablePtr symTable;
+SymbolTablePtr globalSymTable;
 std::shared_ptr<Module> ProgramModule = std::make_shared<Module>();
 
 // emit IR
 void emit_ir(Obj *prog, std::string file_name) {
   ProgramModule->SetName(file_name);
-  symTable = std::make_shared<SymbolTable>();
+  globalSymTable = std::make_shared<SymbolTable>();
   emit_global_data_ir(prog);
   for (Obj *fn = prog; fn; fn = fn->next) {
-    InMemoryIR = std::make_shared<IRBuilder>();
-    next_variable_name_v = 0;
     if (!fn->is_function || !fn->is_definition)
       continue;
-    IRFunctionPtr func = symTable->findFunc(fn->name);
+    IRFunctionPtr func = globalSymTable->findFunc(fn->name);
     if (!func) {
       func = std::make_shared<IRFunction>();
       func->functionName = fn->name;
     }
+
+    auto local_table = std::make_shared<SymbolTable>(globalSymTable);
+    func->setTable(local_table);
+    InMemoryIR = std::make_shared<IRBuilder>(func);
 
     switch (fn->ty->return_ty->kind) {
     case TY_INT:
@@ -140,20 +121,17 @@ void emit_ir(Obj *prog, std::string file_name) {
       break;
     }
     // save passed-by-register arguments to the stack
-    // int i = 0;
-    // VariablePtr head = nullptr;
     VariablePtr arg_variable;
     VariablePtr arg_variable_addr;
     // arg, addr of arg
     std::vector<std::tuple<VariablePtr, VariablePtr>> arg_variable_pair;
-    auto local_table = std::make_shared<SymbolTable>(symTable);
 
     /// Cache and release variable
     for (Obj *var = fn->params; var; var = var->next) {
       // file_out << "func args increase 1" << std::endl;
       arg_variable = std::make_shared<Variable>();
-      // next_variable_name_number();
-      arg_variable->type = nodeTypeToVarType(var->ty);
+      std::cout << "meet type: " << var->ty->kind << "\n";
+      arg_variable->type = nodeTypeToVarType(var->ty->kind);
       arg_variable->SetName(getPreName(var->name));
       arg_variable->SetArg();
       local_table->insert(var, arg_variable);
@@ -172,33 +150,24 @@ void emit_ir(Obj *prog, std::string file_name) {
     func->setBody(InMemoryIR);
 
     // emit code
-    InMemoryIR->SetInsertPoint(next_label_num_number(), "entry");
+    InMemoryIR->SetInsertPoint(InMemoryIR->NextBlockLabelNum(), "entry");
 
     for (auto p : arg_variable_pair) {
-      bool insertRes = InMemoryIR->CreateAlloca(std::get<1>(p), local_table);
-      assert(insertRes == true);
-      insertRes =
-          InMemoryIR->CreateStore(std::get<0>(p), std::get<1>(p), local_table);
-      assert(insertRes == true);
-      // local_table->insert(std::get<1>(p), 0);
+      InMemoryIR->CreateAlloca(std::get<1>(p));
+      InMemoryIR->CreateStore(std::get<0>(p), std::get<1>(p));
     }
-    ////////// maybe need generate Block first
-    // file_out << "arrive three 7" << std::endl;
-    //  std::stack<Obj *> local_variables;
+
     int NumOfLocal = 0;
     for (Obj *var = fn->locals; var; var = var->next) {
-      // local_variables.push(var);
       VariablePtr local_variable = std::make_shared<Variable>();
       std::string InitName = getPreName(var->name);
       while (local_table->nameHaveUsed(InitName)) {
         InitName += ".1";
       }
       local_variable->SetName(InitName);
-      local_variable->type = nodeTypeToVarType(var->ty);
-      if (InMemoryIR->Insert(nullptr, nullptr, local_variable,
-                             IROpKind::Op_Alloca, local_table)) {
-        local_table->insert(var, local_variable);
-      }
+      local_variable->type = nodeTypeToVarType(var->ty->kind);
+      InMemoryIR->CreateAlloca(local_variable);
+      local_table->insert(var, local_variable);
 
       NumOfLocal++;
     }
@@ -229,62 +198,40 @@ static void gen_stmt_ir(Node *node, SymbolTablePtr table) {
   // println("  .loc 1 %d", node->tok->line_no);
   switch (node->kind) {
   case ND_IF: {
-    int c = count();
-    int loop_id = next_label_name_number();
+    int loop_id = InMemoryIR->NextControlFlowNum();
     VariablePtr res;
 
     gen_expr_ir(node->cond, &res, table);
     // insert icmp
 
     // br i1 %cmp, label %if.then, label %if.else
-    BlockPtr before = InMemoryIR->GetCurrentBlock();
+    BlockPtr InIf = InMemoryIR->GetCurrentBlock();
 
-    BlockPtr label1 = std::make_shared<Block>(next_label_num_number(),
-                                              Twine("%if.then", loop_id));
-    BlockPtr label2 = std::make_shared<Block>(next_label_num_number(),
-                                              Twine("%if.else", loop_id));
+    BlockPtr Then = std::make_shared<Block>(InMemoryIR->NextBlockLabelNum(),
+                                            Twine("%if.then", loop_id));
+    BlockPtr Else = std::make_shared<Block>(InMemoryIR->NextBlockLabelNum(),
+                                            Twine("%if.else", loop_id));
 
-    before->SetSucc(label1);
-    before->SetSucc(label2);
-    label1->SetPred(before);
-    label2->SetPred(before);
+    InMemoryIR->CreateCondBr(InMemoryIR->lastResVar, Then, Else);
 
-    assert(InMemoryIR->lastResVar != nullptr);
-
-    InMemoryIR->Insert(InMemoryIR->lastResVar, label1, label2,
-                       IROpKind::Op_Branch, table);
-
-    InMemoryIR->SetInsertPoint(label1);
+    InMemoryIR->SetInsertPoint(Then);
 
     gen_stmt_ir(node->then, table);
 
-    BlockPtr dest = std::make_shared<Block>(next_label_num_number(),
-                                            Twine("%if.end", loop_id));
-
-    label1->SetSucc(dest);
-    label2->SetSucc(dest);
-    dest->SetPred(label1);
-    dest->SetPred(label2);
-
-    InMemoryIR->Insert(nullptr, dest, nullptr, IROpKind::Op_UnConBranch, table);
-    // println("  jmp .L.end.%d", c);
-    // println(".L.else.%d:", c);
+    BlockPtr End = std::make_shared<Block>(InMemoryIR->NextBlockLabelNum(),
+                                           Twine("%if.end", loop_id));
+    InMemoryIR->CreateBr(End);
     if (node->els) {
-      // file_out << "set new if.else" << std::endl;
-      InMemoryIR->SetInsertPoint(label2);
+      InMemoryIR->SetInsertPoint(Else);
       gen_stmt_ir(node->els, table);
-      InMemoryIR->Insert(nullptr, dest, nullptr, IROpKind::Op_UnConBranch,
-                         table);
+      InMemoryIR->CreateBr(End);
     }
-    // file_out << "set new if.end" << std::endl;
-    InMemoryIR->SetInsertPoint(dest);
-    // println(".L.end.%d:", c);
+    InMemoryIR->SetInsertPoint(End);
     return;
   }
   case ND_FOR: // or while
   {
-    int c = count();
-    int loop_id = next_label_name_number();
+    int loop_id = InMemoryIR->NextControlFlowNum();
     std::string PreName = "%while.";
     if (node->inc) {
       PreName = "%for.";
@@ -292,48 +239,33 @@ static void gen_stmt_ir(Node *node, SymbolTablePtr table) {
     BlockPtr InBB = InMemoryIR->GetCurrentBlock();
     // for handle while
     if (node->init) {
-      BlockPtr PreHeader = std::make_shared<Block>(
-          next_label_num_number(), Twine(PreName + "preheader", loop_id));
-      InMemoryIR->Insert(nullptr, PreHeader, nullptr, IROpKind::Op_UnConBranch,
-                         table);
+      BlockPtr PreHeader =
+          std::make_shared<Block>(InMemoryIR->NextBlockLabelNum(),
+                                  Twine(PreName + "preheader", loop_id));
+      InMemoryIR->CreateBr(PreHeader);
       InMemoryIR->SetInsertPoint(PreHeader);
-      InBB->SetSucc(PreHeader);
-      PreHeader->SetPred(InBB);
       InBB = PreHeader;
       gen_stmt_ir(node->init, table);
     }
 
-    BlockPtr CondBB = std::make_shared<Block>(next_label_num_number(),
+    BlockPtr CondBB = std::make_shared<Block>(InMemoryIR->NextBlockLabelNum(),
                                               Twine(PreName + "cond", loop_id));
-    BlockPtr Body = std::make_shared<Block>(next_label_num_number(),
+    BlockPtr Body = std::make_shared<Block>(InMemoryIR->NextBlockLabelNum(),
                                             Twine(PreName + "body", loop_id));
-    BlockPtr Exit = std::make_shared<Block>(next_label_num_number(),
+    BlockPtr Exit = std::make_shared<Block>(InMemoryIR->NextBlockLabelNum(),
                                             Twine(PreName + "exit", loop_id));
 
-    InMemoryIR->Insert(nullptr, CondBB, nullptr, IROpKind::Op_UnConBranch,
-                       table);
-    InBB->SetSucc(CondBB);
-    CondBB->SetPred(InBB);
-
-    CondBB->SetSucc(Body);
-    Body->SetPred(CondBB);
-    CondBB->SetSucc(Exit);
-    Exit->SetPred(CondBB);
+    InMemoryIR->CreateBr(CondBB);
 
     InMemoryIR->SetInsertPoint(CondBB);
-    // println(".L.begin.%d:", c);
+
     if (node->cond) {
       VariablePtr res;
       gen_expr_ir(node->cond, &res, table);
       assert(InMemoryIR->lastResVar != nullptr);
-
-      InMemoryIR->Insert(InMemoryIR->lastResVar, Body, Exit,
-                         IROpKind::Op_Branch, table);
-      // println("  cmp $0, %%rax");
-      // println("  je .L.end.%d", c);
+      InMemoryIR->CreateCondBr(InMemoryIR->lastResVar, Body, Exit);
     } else {
-      InMemoryIR->Insert(nullptr, Body, nullptr, IROpKind::Op_UnConBranch,
-                         table);
+      InMemoryIR->CreateBr(Body);
     }
 
     InMemoryIR->SetInsertPoint(Body);
@@ -341,33 +273,21 @@ static void gen_stmt_ir(Node *node, SymbolTablePtr table) {
 
     if (node->inc) {
       BlockPtr Latch = std::make_shared<Block>(
-          next_label_num_number(), Twine(PreName + "latch", loop_id));
-      Body->SetSucc(Latch);
-      Latch->SetPred(Body);
-      Latch->SetSucc(CondBB);
-      CondBB->SetPred(Latch);
-      InMemoryIR->Insert(nullptr, Latch, nullptr, IROpKind::Op_UnConBranch,
-                         table);
+          InMemoryIR->NextBlockLabelNum(), Twine(PreName + "latch", loop_id));
+
+      InMemoryIR->CreateBr(Latch);
       InMemoryIR->SetInsertPoint(Latch);
       VariablePtr res;
       gen_expr_ir(node->inc, &res, table);
-    } else {
-      Body->SetSucc(CondBB);
-      CondBB->SetPred(Body);
     }
 
-    InMemoryIR->Insert(nullptr, CondBB, nullptr, IROpKind::Op_UnConBranch,
-                       table);
+    InMemoryIR->CreateBr(CondBB);
 
     InMemoryIR->SetInsertPoint(Exit);
-    // println("  jmp .L.begin.%d", c);
-    // println(".L.end.%d:", c);
     return;
   }
   case ND_BLOCK: {
     // nest
-    // int t = next_variable_name_number();
-    // InMemoryIR->SetInsertPoint(t, std::to_string(t));
     for (Node *n = node->body; n; n = n->next) {
       gen_stmt_ir(n, table);
     }
@@ -378,24 +298,15 @@ static void gen_stmt_ir(Node *node, SymbolTablePtr table) {
     gen_expr_ir(node->lhs, &res, table);
     if (node->lhs->kind == ND_VAR) {
       std::cout << "return is a var" << "\n";
-      VariablePtr load;
-      load = std::make_shared<Variable>();
-      load->SetName(next_variable_name());
-      bool assertCheck =
-          InMemoryIR->Insert(res, nullptr, load, IROpKind::Op_Load, table);
-      assert(assertCheck == true);
-      InMemoryIR->Insert(nullptr, nullptr, load, IROpKind::Op_Return, table);
+      VariablePtr load = InMemoryIR->CreateLoad(res);
+      InMemoryIR->CreateRet(load);
     } else {
       std::cout << "return not a var" << "\n";
-      InMemoryIR->Insert(nullptr, nullptr, res, IROpKind::Op_Return, table);
+      InMemoryIR->CreateRet(res);
     }
-
-    // println("  jmp .L.return.%s", current_fn->name);
     return;
   }
   case ND_EXPR_STMT: {
-    // file_out << "generating ND_EXPR_STMT" << std::endl;
-    // file_out << "arrive three 8" << std::endl;
     VariablePtr res = std::make_shared<Variable>();
     gen_expr_ir(node->lhs, &res, table);
     return;
@@ -420,7 +331,7 @@ static VariablePtr gen_variable_ir(Node *node, SymbolTablePtr table) {
       return Var;
     } else {
       // Global variable find in global symbol table
-      VariablePtr Var = symTable->findVar(node->var);
+      VariablePtr Var = globalSymTable->findVar(node->var);
       assert(Var);
       return Var;
     }
@@ -474,10 +385,8 @@ static IROpKind NKindToIRKind(NodeKind Op) {
 static bool BinaryOperatorExpression(Node *node, VariablePtr *&res,
                                      SymbolTablePtr table, VariablePtr left,
                                      VariablePtr right, NodeKind Op) {
-  // assert(node->lhs->kind == ND_VAR || node->lhs->kind == ND_NUM);
   IROpKind InstructionOp = NKindToIRKind(Op);
   if ((node->lhs->kind == ND_NUM) && (node->rhs->kind == ND_NUM)) {
-    std::cout << "enter pos 1\n\n";
     assert(node->lhs != nullptr);
     assert(node->rhs != nullptr);
     if (node->lhs != nullptr && node->rhs != nullptr) {
@@ -514,57 +423,29 @@ static bool BinaryOperatorExpression(Node *node, VariablePtr *&res,
   } else if (node->lhs->kind == ND_NUM) {
     VariablePtr r = right;
     if (node->rhs->var != nullptr) {
-      r = std::make_shared<Variable>();
-      r->SetName(next_variable_name());
-
-      bool assertCheck =
-          InMemoryIR->Insert(right, nullptr, r, IROpKind::Op_Load, table);
-      assert(assertCheck == true);
+      r = InMemoryIR->CreateLoad(right);
     }
 
-    VariablePtr l;
-    l = std::make_shared<Variable>(node->lhs->val);
-    (*res) = std::make_shared<Variable>();
-    InMemoryIR->Insert(l, r, (*res), InstructionOp, table);
-    // table->insert((*res), 0);
+    VariablePtr l = std::make_shared<Variable>(node->lhs->val);
+    *res = InMemoryIR->CreateBinary(l, r, InstructionOp);
   } else if (node->rhs->kind == ND_NUM) {
     VariablePtr l = left;
     if (node->lhs->var != nullptr) {
-      l = std::make_shared<Variable>();
-      l->SetName(next_variable_name());
-
-      bool assertCheck =
-          InMemoryIR->Insert(left, nullptr, l, IROpKind::Op_Load, table);
-      assert(assertCheck == true);
+      l = InMemoryIR->CreateLoad(left);
     }
 
     VariablePtr r = std::make_shared<Variable>(node->rhs->val);
-    (*res) = std::make_shared<Variable>();
-    InMemoryIR->Insert(l, r, (*res), InstructionOp, table);
-    // table->insert((*res), 0);
+    *res = InMemoryIR->CreateBinary(l, r, InstructionOp);
   } else {
     VariablePtr l = left;
     if (node->lhs->var != nullptr) {
-      l = std::make_shared<Variable>();
-      l->SetName(next_variable_name());
-
-      bool assertCheck =
-          InMemoryIR->Insert(left, nullptr, l, IROpKind::Op_Load, table);
-      assert(assertCheck == true);
+      l = InMemoryIR->CreateLoad(left);
     }
     VariablePtr r = right;
     if (node->rhs->var != nullptr) {
-      r = std::make_shared<Variable>();
-      r->SetName(next_variable_name());
-
-      bool assertCheck =
-          InMemoryIR->Insert(right, nullptr, r, IROpKind::Op_Load, table);
-      assert(assertCheck == true);
+      r = InMemoryIR->CreateLoad(right);
     }
-
-    (*res) = std::make_shared<Variable>();
-    InMemoryIR->Insert(l, r, (*res), InstructionOp, table);
-    // table->insert((*res), 0);
+    *res = InMemoryIR->CreateBinary(l, r, InstructionOp);
   }
   // }
   return true;
@@ -629,19 +510,11 @@ static void gen_expr_ir(Node *node, VariablePtr *res, SymbolTablePtr table) {
             }
             return false;
           };
-          VariablePtr load1;
-          load1 = std::make_shared<Variable>();
-          load1->SetName(next_variable_name());
-
-          bool assertCheck = InMemoryIR->Insert(local_variable, nullptr, load1,
-                                                IROpKind::Op_Load, table);
-          assert(assertCheck == true);
-          InMemoryIR->Insert(load1, left, IROpKind::Op_Store, table);
+          VariablePtr load = InMemoryIR->CreateLoad(local_variable);
+          InMemoryIR->CreateStore(load, left);
         } else {
-          InMemoryIR->Insert(*res, left, IROpKind::Op_Store, table);
+          InMemoryIR->CreateStore(*res, left);
         }
-
-        // table->insert(left, *res, 0);
       } else {
         left->isConst = false;
         // here need const propagation
@@ -651,11 +524,7 @@ static void gen_expr_ir(Node *node, VariablePtr *res, SymbolTablePtr table) {
         left->type = (*res)->type;
 
         // fix me
-        // assert(false);
-        InMemoryIR->Insert(left, IROpKind::Op_Store, table);
-
-        // file_out << "ASSIGN get value : "<< left->GetName() <<" = " <<
-        // left->Ival <<" res is const?" << (*res)->isConst << std::endl;
+        InMemoryIR->CreateStore(left);
       }
     }
     // need bind varibale at here
@@ -680,12 +549,7 @@ static void gen_expr_ir(Node *node, VariablePtr *res, SymbolTablePtr table) {
       auto NArg = *res;
       if (arg->kind == ND_VAR) {
         std::cout << "ND_VAR:\n";
-        VariablePtr load;
-        load = std::make_shared<Variable>();
-        load->SetName(next_variable_name());
-        bool assertCheck =
-            InMemoryIR->Insert(NArg, nullptr, load, IROpKind::Op_Load, table);
-        assert(assertCheck == true);
+        VariablePtr load = InMemoryIR->CreateLoad(NArg);
         NArg = load;
       }
       Args.push_back(NArg);
@@ -693,24 +557,22 @@ static void gen_expr_ir(Node *node, VariablePtr *res, SymbolTablePtr table) {
     }
 
     auto FunctionName = node->funcname;
-    IRFunctionPtr Func = symTable->findFunc(FunctionName);
-    VariablePtr call;
-    call = std::make_shared<Variable>();
-    call->SetName(next_variable_name());
+    IRFunctionPtr Func = globalSymTable->findFunc(FunctionName);
+    VariablePtr call = nullptr;
     if (Func) {
-      InMemoryIR->CreateCall(Func, Args, call, IROpKind::Op_FUNCALL, table);
+      call = InMemoryIR->CreateCall(Func, Args);
     } else {
       // TODO:
       // generate declare?
       Func = std::make_shared<IRFunction>(FunctionName);
-      auto insertFuncRes = symTable->insertFunc(Func);
+      auto insertFuncRes = globalSymTable->insertFunc(Func);
       assert(insertFuncRes);
       if (node->ty == ty_int) {
         Func->retTy = ReturnTypeKind::RTY_INT;
       } else {
         Func->retTy = ReturnTypeKind::RTY_VOID;
       }
-      InMemoryIR->CreateCall(Func, Args, call, IROpKind::Op_FUNCALL, table);
+      call = InMemoryIR->CreateCall(Func, Args);
     }
     *res = call;
     return;
@@ -750,20 +612,22 @@ void emit_global_data_ir(Obj *prog) {
     vars.push_back(var);
   }
   auto handleGlobalVariable = [&](Obj *var) {
+    VariablePtr GlobalValue;
     if (var->init_data) {
-      VariablePtr Zero = std::make_shared<Variable>(var->init_data[0]);
-      Zero->SetGlobal();
-      Zero->SetName(var->name);
-      ProgramModule->InsertGlobalVariable(Zero);
+      GlobalValue = std::make_shared<Variable>(var->init_data[0]);
+      GlobalValue->SetGlobal();
+      GlobalValue->SetName(var->name);
+      ProgramModule->InsertGlobalVariable(GlobalValue);
       // for(int i = 0; i < var->ty->size;i++)
       //	println("  .byte %d", var->init_data[i]);
     } else {
-      VariablePtr Zero = std::make_shared<Variable>(0);
-      Zero->SetGlobal();
-      Zero->SetName(var->name);
-      ProgramModule->InsertGlobalVariable(Zero);
+      GlobalValue = std::make_shared<Variable>(0);
+      GlobalValue->SetGlobal();
+      GlobalValue->SetName(var->name);
+      ProgramModule->InsertGlobalVariable(GlobalValue);
       // println("  .zero %d", var->ty->size);
     }
+    globalSymTable->insert(var, GlobalValue);
   };
   auto handle = std::for_each(vars.rbegin(), vars.rend(), handleGlobalVariable);
 }
