@@ -4,7 +4,7 @@
 #include "Variable.h"
 #include <string>
 
-void Module::InsertGlobalVariable(VariablePtr global) {
+void Module::insertGlobalVariable(VariablePtr global) {
   globalVariables.push_back(global);
 }
 std::string Module::GlobalVariableCodeGen() {

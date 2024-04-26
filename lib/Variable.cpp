@@ -2,8 +2,8 @@
 #include <string>
 Operand::Operand() {
   Ival = INT_MIN;
-  next = nullptr;
-  align = 4;
+  Next = nullptr;
+  Align = 4;
   isConst = false;
   isGlobal = false;
   varIsArg = false;
@@ -11,34 +11,34 @@ Operand::Operand() {
 }
 Operand::Operand(int64_t v) {
   Ival = v;
-  next = nullptr;
-  align = 8;
+  Next = nullptr;
+  Align = 8;
   isConst = true;
   isGlobal = false;
   varIsArg = false;
-  name = std::to_string(Ival);
+  Name = std::to_string(Ival);
   type = VaribleKind::VAR_64;
 }
 
 Operand::Operand(int v) {
   Ival = v;
-  next = nullptr;
-  align = 4;
+  Next = nullptr;
+  Align = 4;
   isConst = true;
   isGlobal = false;
   varIsArg = false;
-  name = std::to_string(Ival);
+  Name = std::to_string(Ival);
   type = VaribleKind::VAR_32;
 }
 
 Operand::Operand(double v) {
   Fval = v;
-  next = nullptr;
-  align = 8;
+  Next = nullptr;
+  Align = 8;
   isConst = true;
   isGlobal = false;
   varIsArg = false;
-  name = std::to_string(Fval);
+  Name = std::to_string(Fval);
   type = VaribleKind::VAR_64;
 }
 
@@ -46,42 +46,42 @@ bool Operand::isArg() { return varIsArg; }
 
 void Operand::SetAddr(VariablePtr _Addr) { Addr = _Addr; }
 
-VariablePtr Operand::GetAddr() { return Addr; }
+VariablePtr Operand::getAddr() { return Addr; }
 
 void Operand::SetConst(double v) {
   Fval = v;
-  next = nullptr;
-  align = 8;
+  Next = nullptr;
+  Align = 8;
   isConst = true;
   isGlobal = false;
   varIsArg = false;
-  name = std::to_string(Fval);
+  Name = std::to_string(Fval);
   type = VaribleKind::VAR_64;
 }
 
 void Operand::SetConst(int v) {
   Ival = v;
-  next = nullptr;
-  align = 4;
+  Next = nullptr;
+  Align = 4;
   isConst = true;
   isGlobal = false;
   varIsArg = false;
-  name = std::to_string(Ival);
+  Name = std::to_string(Ival);
   type = VaribleKind::VAR_32;
 }
 
 void Operand::SetConst(int64_t v) {
   Ival = v;
-  next = nullptr;
-  align = 8;
+  Next = nullptr;
+  Align = 8;
   isConst = true;
   isGlobal = false;
   varIsArg = false;
-  name = std::to_string(Ival);
+  Name = std::to_string(Ival);
   type = VaribleKind::VAR_64;
 }
 
-void Operand::SetGlobal() { isGlobal = true; }
+void Operand::setGlobal() { isGlobal = true; }
 
 void Operand::SetArg() { varIsArg = true; }
 
@@ -91,24 +91,24 @@ std::string Operand::CodeGen() {
     switch (type) {
 
     case VaribleKind::VAR_8:
-      s += "@" + this->name + " = dso_local global " + "i8 " +
-           std::to_string(Ival) + ", align 4\n";
+      s += "@" + this->Name + " = dso_local global " + "i8 " +
+           std::to_string(Ival) + ", Align 4\n";
       break;
     case VaribleKind::VAR_16:
-      s += "@" + this->name + " = dso_local global " + "i16 " +
-           std::to_string(Ival) + ", align 4\n";
+      s += "@" + this->Name + " = dso_local global " + "i16 " +
+           std::to_string(Ival) + ", Align 4\n";
       break;
     case VaribleKind::VAR_32:
-      s += "@" + this->name + " = dso_local global " + "i32 " +
-           std::to_string(Ival) + ", align 4\n";
+      s += "@" + this->Name + " = dso_local global " + "i32 " +
+           std::to_string(Ival) + ", Align 4\n";
       break;
     case VaribleKind::VAR_64:
-      s += "@" + this->name + " = dso_local global " + "i64 " +
-           std::to_string(Ival) + ", align 4\n";
+      s += "@" + this->Name + " = dso_local global " + "i64 " +
+           std::to_string(Ival) + ", Align 4\n";
       break;
     case VaribleKind::VAR_PRT:
-      s += "@" + this->name + " = dso_local global " + "i32* " +
-           std::to_string(Ival) + ", align 4\n";
+      s += "@" + this->Name + " = dso_local global " + "i32* " +
+           std::to_string(Ival) + ", Align 4\n";
       break;
     default:
       break;
@@ -137,6 +137,6 @@ std::string Operand::CodeGen() {
   }
 
   // s += "%";
-  s += name;
+  s += Name;
   return s;
 }

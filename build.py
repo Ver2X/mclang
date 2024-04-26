@@ -42,7 +42,7 @@ if not os.path.exists("build"):
 os.chdir("build")
 
 # Build the project using CMake and set compilation options based on ENABLE_ASAN
-cmake_cmd = ["cmake", f"-DENABLE_ASAN={str(ENABLE_ASAN).lower()}", "-G", "Ninja", ".."]
+cmake_cmd = ["cmake", f"-DENABLE_ASAN={str(ENABLE_ASAN).lower()}", "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",  "-G", "Ninja", ".."]
 subprocess.run(cmake_cmd, check=True)
 
 # Compile the project

@@ -1,3 +1,4 @@
+#pragma once
 // C++ program to concatenate two strings using
 // rope data structure.
 // #include <bits/stdc++.h>

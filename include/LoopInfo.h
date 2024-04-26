@@ -1,14 +1,15 @@
-#include "Block.h"
+#pragma once
+#include "BasicBlock.h"
 #include "Instruction.h"
 
 class LoopInfo {
 public:
-  BlockPtr Guard;
+  BasicBlockPtr Guard;
 
-  BlockPtr Header;
-  BlockPtr PreHeader;
-  BlockPtr Batch;
+  BasicBlockPtr Header;
+  BasicBlockPtr PreHeader;
+  BasicBlockPtr Batch;
 
-  BlockPtr Exit;
-  BlockPtr Exiting;
+  BasicBlockPtr Exit;
+  BasicBlockPtr Exiting;
 };

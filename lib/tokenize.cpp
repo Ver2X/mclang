@@ -56,42 +56,42 @@ void error_at(char *loc, const char *fmt, ...) {
   verror_at(line_no, loc, fmt, ap);
 }
 
-void error_tok(TokenPtr tok, const char *fmt, ...) {
+void error_tok(TokenPtr Tok, const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   // assert(false);
-  verror_at(tok->line_no, tok->loc, fmt, ap);
+  verror_at(Tok->line_no, Tok->loc, fmt, ap);
 }
 
 // Consumes the current token if it matches `op`.
-bool equal(TokenPtr tok, const char *op) {
-  return memcmp(tok->loc, op, tok->len) == 0 && op[tok->len] == '\0';
+bool equal(TokenPtr Tok, const char *op) {
+  return memcmp(Tok->loc, op, Tok->len) == 0 && op[Tok->len] == '\0';
 }
 
 // Ensure that the current token is `op`.
-TokenPtr skip(TokenPtr tok, const char *op) {
-  if (!equal(tok, op)) {
-    error_tok(tok, "expected '%s'", op);
+TokenPtr skip(TokenPtr Tok, const char *op) {
+  if (!equal(Tok, op)) {
+    error_tok(Tok, "expected '%s'", op);
   }
-  return tok->next;
+  return Tok->Next;
 }
 
-bool consume(TokenPtr *rest, TokenPtr tok, const char *str) {
-  if (equal(tok, str)) {
-    *rest = tok->next;
+bool consume(TokenPtr *rest, TokenPtr Tok, const char *str) {
+  if (equal(Tok, str)) {
+    *rest = Tok->Next;
     return true;
   }
-  *rest = tok;
+  *rest = Tok;
   return false;
 }
 
 // Create a new token.
-static TokenPtr new_token(TokenKind kind, char *start, char *end) {
-  TokenPtr tok = std::make_shared<Token>();
-  tok->kind = kind;
-  tok->loc = start;
-  tok->len = end - start;
-  return tok;
+static TokenPtr new_token(TokenKind Kind, char *start, char *end) {
+  TokenPtr Tok = std::make_shared<Token>();
+  Tok->Kind = Kind;
+  Tok->loc = start;
+  Tok->len = end - start;
+  return Tok;
 }
 
 static bool startswith(char *p, const char *q) {
@@ -150,13 +150,13 @@ static int read_punct2(char *p) {
 }
 
 // aux fuction , judge keywords
-static bool is_keyword(TokenPtr tok) {
+static bool is_keyword(TokenPtr Tok) {
   static const char *kw[] = {"return", "if",     "else", "for",    "while",
                              "int",    "sizeof", "char", "struct", "union",
                              "short",  "long",   "void", "typedef"};
 
   for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++) {
-    if (equal(tok, kw[i]))
+    if (equal(Tok, kw[i]))
       return true;
   }
   return false;
@@ -248,28 +248,28 @@ static TokenPtr read_string_literal(char *start) {
     }
   }
 
-  TokenPtr tok = new_token(TK_STR, start, end + 1);
-  tok->ty = array_of(ty_char, len + 1);
-  tok->str = buf;
-  return tok;
+  TokenPtr Tok = new_token(TK_STR, start, end + 1);
+  Tok->Ty = arrayOf(TyChar, len + 1);
+  Tok->str = buf;
+  return Tok;
 }
 
 // travel again , convert idents to keywords
-static void convert_keywords(TokenPtr tok) {
-  for (auto t = tok; t->kind != TK_EOF; t = t->next) {
+static void convert_keywords(TokenPtr Tok) {
+  for (auto t = Tok; t->Kind != TK_EOF; t = t->Next) {
     if (is_keyword(t))
-      t->kind = TK_KEYWORD;
+      t->Kind = TK_KEYWORD;
   }
 }
 
 // initialize line info for all tokens
-static void add_line_numbers(TokenPtr tok) {
+static void add_line_numbers(TokenPtr Tok) {
   char *p = current_input;
   int n = 1;
   do {
-    if (p == tok->loc) {
-      tok->line_no = n;
-      tok = tok->next;
+    if (p == Tok->loc) {
+      Tok->line_no = n;
+      Tok = Tok->Next;
     }
     if (*p == '\n')
       n++;
@@ -293,11 +293,11 @@ TokenPtr tokenize(char *filename, char *p, size_t &buflen) {
       continue;
     }
 
-    // skip block comments
+    // skip Block comments
     if (startswith(p, "/*")) {
       char *q = strstr(p + 2, "*/");
       if (!q)
-        error_at(p, "unclosed block comment");
+        error_at(p, "unclosed Block comment");
       p = q + 2;
     }
 
@@ -309,16 +309,16 @@ TokenPtr tokenize(char *filename, char *p, size_t &buflen) {
 
     // numeric literal
     if (isdigit(*p)) {
-      cur = cur->next = new_token(TK_NUM, p, p);
+      cur = cur->Next = new_token(TK_NUM, p, p);
       char *q = p;
-      cur->val = strtoul(p, &p, 10);
+      cur->Val = strtoul(p, &p, 10);
       cur->len = p - q;
       continue;
     }
 
     // string literal
     if (*p == '"') {
-      cur = cur->next = read_string_literal(p);
+      cur = cur->Next = read_string_literal(p);
       p += cur->len;
       continue;
     }
@@ -329,14 +329,14 @@ TokenPtr tokenize(char *filename, char *p, size_t &buflen) {
       do {
         p++;
       } while (is_ident_rest(*p));
-      cur = cur->next = new_token(TK_IDENT, start, p);
+      cur = cur->Next = new_token(TK_IDENT, start, p);
       continue;
     }
 
     // Punctuators
     int punct_len = read_punct(p);
     if (punct_len) {
-      cur = cur->next = new_token(TK_PUNCT, p, p + punct_len);
+      cur = cur->Next = new_token(TK_PUNCT, p, p + punct_len);
       p += cur->len;
       continue;
     }
@@ -344,11 +344,11 @@ TokenPtr tokenize(char *filename, char *p, size_t &buflen) {
     error_at(p, "invalid token");
   }
 
-  cur = cur->next = new_token(TK_EOF, p, p);
-  add_line_numbers(head->next);
+  cur = cur->Next = new_token(TK_EOF, p, p);
+  add_line_numbers(head->Next);
   // convert identify to keyword
-  convert_keywords(head->next);
-  return head->next;
+  convert_keywords(head->Next);
+  return head->Next;
 }
 
 // return the contens of a given file

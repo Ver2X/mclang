@@ -1,8 +1,8 @@
 #include "SymbolTable.h"
 
-bool SymbolTable::nameHaveUsed(std::string name) {
-  for (auto &[_, Var] : table) {
-    if (Var->GetName() == name) {
+bool SymbolTable::nameHaveUsed(std::string Name) {
+  for (auto &[_, Var] : Table) {
+    if (Var->getName() == Name) {
       return true;
     }
   }
@@ -10,7 +10,7 @@ bool SymbolTable::nameHaveUsed(std::string name) {
 }
 bool SymbolTable::insertFunc(IRFunctionPtr func) {
   for (auto f : funcs) {
-    if (f->GetName() == func->GetName()) {
+    if (f->getName() == func->getName()) {
       return false;
     }
   }
@@ -20,47 +20,47 @@ bool SymbolTable::insertFunc(IRFunctionPtr func) {
 
 IRFunctionPtr SymbolTable::findFunc(std::string funcname) {
   for (auto func : funcs) {
-    if (func->GetName() == funcname) {
+    if (func->getName() == funcname) {
       return func;
     }
   }
   return nullptr;
 }
 
-bool SymbolTable::insert(Obj *node, VariablePtr var) {
-  if (!table.count(node)) {
-    table[node] = var;
+bool SymbolTable::insert(Obj *node, VariablePtr Var) {
+  if (!Table.count(node)) {
+    Table[node] = Var;
     return true;
   } else {
     return false;
   }
 }
 
-bool SymbolTable::update(Obj *node, VariablePtr var, VariablePtr newVar) {
-  if (!table.count(node)) {
+bool SymbolTable::update(Obj *node, VariablePtr Var, VariablePtr newVar) {
+  if (!Table.count(node)) {
     return false;
   } else {
-    if (table[node] != var) {
+    if (Table[node] != Var) {
       assert(false);
       return false;
     }
-    table[node] = newVar;
+    Table[node] = newVar;
     return true;
   }
 }
 
-bool SymbolTable::erase(Obj *node, VariablePtr var) {
-  if (table[node] != var) {
+bool SymbolTable::erase(Obj *node, VariablePtr Var) {
+  if (Table[node] != Var) {
     assert(false);
     return false;
   }
-  table.erase(node);
+  Table.erase(node);
   return true;
 }
 
 VariablePtr SymbolTable::findVar(Obj *node) {
-  if (table.count(node)) {
-    return table[node];
+  if (Table.count(node)) {
+    return Table[node];
   } else {
     return nullptr;
   }

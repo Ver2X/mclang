@@ -5,87 +5,87 @@
 #include <memory>
 #include <string>
 
-std::string IRBuilder::GetNextVarName() {
-  return "%" + std::to_string(function->NextVarNameNum());
+std::string IRBuilder::getNextVarName() {
+  return "%" + std::to_string(function->nextVarNameNum());
 }
 
-int IRBuilder::NextBlockLabelNum() { return function->NextBlockLabelNum(); }
+int IRBuilder::nextBlockLabelNum() { return function->nextBlockLabelNum(); }
 
-int IRBuilder::NextControlFlowNum() { return function->NextControlFlowNum(); }
+int IRBuilder::nextControlFlowNum() { return function->nextControlFlowNum(); }
 
-void IRBuilder::SetInsertPoint(int label, std::string name) {
-  if (entry_label < 0)
-    entry_label = label;
-  if (cache_label != label) {
-    if (blocks.count(label) == 0) {
+void IRBuilder::SetInsertPoint(int Label, std::string Name) {
+  if (EntryLabel < 0)
+    EntryLabel = Label;
+  if (CacheLabel != Label) {
+    if (Blocks.count(Label) == 0) {
 #if DEBUG
-      file_out << "create a new blcok " << std::endl;
+      FileOut << "create a new blcok " << std::endl;
 #endif
-      BlockPtr block = std::make_shared<Block>();
-      block->SetName(name);
-      block->SetLabel(label);
-      blocks.insert(std::make_pair(label, block));
+      BasicBlockPtr Block = std::make_shared<BasicBlock>();
+      Block->setName(Name);
+      Block->SetLabel(Label);
+      Blocks.insert(std::make_pair(Label, Block));
     }
-    cache_label = label;
-    cache_name = name;
+    CacheLabel = Label;
+    CacheName = Name;
   }
 }
 
-void IRBuilder::SetInsertPoint(BlockPtr insertPoint) {
-  if (entry_label < 0)
-    entry_label = insertPoint->GetLabel();
-  if (cache_label != insertPoint->GetLabel()) {
-    if (blocks.count(insertPoint->GetLabel()) == 0) {
+void IRBuilder::SetInsertPoint(BasicBlockPtr insertPoint) {
+  if (EntryLabel < 0)
+    EntryLabel = insertPoint->GetLabel();
+  if (CacheLabel != insertPoint->GetLabel()) {
+    if (Blocks.count(insertPoint->GetLabel()) == 0) {
 #if DEBUG
-      file_out << "create a new blcok " << std::endl;
+      FileOut << "create a new blcok " << std::endl;
 #endif
-      blocks.insert(std::make_pair(insertPoint->GetLabel(), insertPoint));
+      Blocks.insert(std::make_pair(insertPoint->GetLabel(), insertPoint));
     }
-    cache_label = insertPoint->GetLabel();
-    cache_name = insertPoint->GetName();
+    CacheLabel = insertPoint->GetLabel();
+    CacheName = insertPoint->getName();
   }
 }
 
-void IRBuilder::InsertBasicBlock(int label, std::string name, int pred) {
+void IRBuilder::InsertBasicBlock(int Label, std::string Name, int Pred) {
   // fix me :
-  // keep pred succ right
-  if (entry_label < 0)
-    entry_label = label;
-  if (blocks.count(label) == 0) {
+  // keep Pred succ Right
+  if (EntryLabel < 0)
+    EntryLabel = Label;
+  if (Blocks.count(Label) == 0) {
 #if DEBUG
-    file_out << "create a new blcok " << std::endl;
+    FileOut << "create a new blcok " << std::endl;
 #endif
 
-    BlockPtr block = std::make_shared<Block>();
-    blocks[pred]->succes.push_back(block);
-    block->preds.push_back(blocks[pred]);
+    BasicBlockPtr Block = std::make_shared<BasicBlock>();
+    Blocks[Pred]->succes.push_back(Block);
+    Block->preds.push_back(Blocks[Pred]);
 
-    block->SetName(name);
-    block->SetLabel(label);
-    blocks.insert(std::make_pair(label, block));
+    Block->setName(Name);
+    Block->SetLabel(Label);
+    Blocks.insert(std::make_pair(Label, Block));
   }
-  cache_label = label;
-  cache_name = name;
+  CacheLabel = Label;
+  CacheName = Name;
 }
 
-// extern SymbolTablePtr globalSymTable;
-bool IRBuilder::Insert(VariablePtr left, VariablePtr right, VariablePtr result,
-                       IROpKind Op, int label, std::string name,
-                       SymbolTablePtr table) {
-  if (entry_label < 0)
-    entry_label = label;
-  if (blocks.count(label) == 0) {
-    BlockPtr block = std::make_shared<Block>();
-    block->SetName(name);
-    block->SetLabel(label);
-    blocks.insert(std::make_pair(label, block));
+// extern SymbolTablePtr GlobalSymTable;
+bool IRBuilder::Insert(VariablePtr Left, VariablePtr Right, VariablePtr Result,
+                       IROpKind Op, int Label, std::string Name,
+                       SymbolTablePtr Table) {
+  if (EntryLabel < 0)
+    EntryLabel = Label;
+  if (Blocks.count(Label) == 0) {
+    BasicBlockPtr Block = std::make_shared<BasicBlock>();
+    Block->setName(Name);
+    Block->SetLabel(Label);
+    Blocks.insert(std::make_pair(Label, Block));
   }
 
   if (Op == IROpKind::Op_Alloca) {
-    blocks[entry_label]->Insert(left, right, result, Op, this);
+    Blocks[EntryLabel]->Insert(Left, Right, Result, Op, this);
     return true;
   } else {
-    blocks[label]->Insert(left, right, result, Op, this);
+    Blocks[Label]->Insert(Left, Right, Result, Op, this);
     return true;
   }
   // std::cout << "in ssss" << std::endl;
@@ -93,42 +93,42 @@ bool IRBuilder::Insert(VariablePtr left, VariablePtr right, VariablePtr result,
 
 VariablePtr IRBuilder::CreateCall(IRFunctionPtr func,
                                   std::vector<VariablePtr> args) {
-  auto res = std::make_shared<Variable>();
-  res->SetName(GetNextVarName());
-  if (entry_label < 0)
-    entry_label = cache_label;
-  blocks[cache_label]->Insert(func, args, res, IROpKind::Op_FUNCALL, this);
-  return res;
+  auto Res = std::make_shared<Variable>();
+  Res->setName(getNextVarName());
+  if (EntryLabel < 0)
+    EntryLabel = CacheLabel;
+  Blocks[CacheLabel]->Insert(func, args, Res, IROpKind::Op_FUNCALL, this);
+  return Res;
   // std::cout << "in ssss" << std::endl;
 }
 
 // for Op_Alloca
 //
-bool IRBuilder::Insert(VariablePtr left, VariablePtr right, VariablePtr result,
-                       IROpKind Op, SymbolTablePtr table) {
-  return Insert(left, right, result, Op, cache_label, cache_name, table);
+bool IRBuilder::Insert(VariablePtr Left, VariablePtr Right, VariablePtr Result,
+                       IROpKind Op, SymbolTablePtr Table) {
+  return Insert(Left, Right, Result, Op, CacheLabel, CacheName, Table);
 }
 
-VariablePtr IRBuilder::CreateBinary(VariablePtr left, VariablePtr right,
+VariablePtr IRBuilder::CreateBinary(VariablePtr Left, VariablePtr Right,
                                     IROpKind Op) {
-  auto res = std::make_shared<Variable>();
-  auto rt = Insert(left, right, res, Op, cache_label, cache_name,
-                   function->GeTable());
+  auto Res = std::make_shared<Variable>();
+  auto rt =
+      Insert(Left, Right, Res, Op, CacheLabel, CacheName, function->GeTable());
   assert(rt);
-  return res;
+  return Res;
 }
 
 VariablePtr IRBuilder::CreateLoad(VariablePtr addr) {
-  auto res = std::make_shared<Variable>();
-  res->SetName(GetNextVarName());
-  auto rt = Insert(addr, nullptr, res, IROpKind::Op_Load, cache_label,
-                   cache_name, function->GeTable());
+  auto Res = std::make_shared<Variable>();
+  Res->setName(getNextVarName());
+  auto rt = Insert(addr, nullptr, Res, IROpKind::Op_Load, CacheLabel, CacheName,
+                   function->GeTable());
   assert(rt);
-  return res;
+  return Res;
 }
 
 void IRBuilder::CreateRet(VariablePtr value) {
-  Insert(nullptr, nullptr, value, IROpKind::Op_Return, cache_label, cache_name,
+  Insert(nullptr, nullptr, value, IROpKind::Op_Return, CacheLabel, CacheName,
          function->GeTable());
 }
 
@@ -142,35 +142,37 @@ void IRBuilder::CreateStore(VariablePtr value, VariablePtr addr) {
 
 void IRBuilder::CreateStore(VariablePtr addr) { CreateStore(nullptr, addr); }
 
-bool IRBuilder::Insert(VariablePtr result, IROpKind Op, SymbolTablePtr table) {
+bool IRBuilder::Insert(VariablePtr Result, IROpKind Op, SymbolTablePtr Table) {
   // store num
-  return Insert(nullptr, nullptr, result, Op, cache_label, cache_name, table);
+  return Insert(nullptr, nullptr, Result, Op, CacheLabel, CacheName, Table);
 }
 
 bool IRBuilder::Insert(VariablePtr source, VariablePtr dest, IROpKind Op,
-                       SymbolTablePtr table) {
+                       SymbolTablePtr Table) {
   // store identity
-  return Insert(source, nullptr, dest, Op, cache_label, cache_name, table);
+  return Insert(source, nullptr, dest, Op, CacheLabel, CacheName, Table);
 }
 
 // branch instruction
-bool IRBuilder::Insert(VariablePtr indicateVariable, BlockPtr targetOne,
-                       BlockPtr targetTwo, IROpKind Op, SymbolTablePtr table) {
-  if (entry_label < 0)
-    entry_label = cache_label;
-  if (blocks.count(cache_label) == 0) {
-    BlockPtr block = std::make_shared<Block>();
-    block->SetName(cache_name);
-    block->SetLabel(cache_label);
-    blocks.insert(std::make_pair(cache_label, block));
+bool IRBuilder::Insert(VariablePtr indicateVariable, BasicBlockPtr targetOne,
+                       BasicBlockPtr targetTwo, IROpKind Op,
+                       SymbolTablePtr Table) {
+  if (EntryLabel < 0)
+    EntryLabel = CacheLabel;
+  if (Blocks.count(CacheLabel) == 0) {
+    BasicBlockPtr Block = std::make_shared<BasicBlock>();
+    Block->setName(CacheName);
+    Block->SetLabel(CacheLabel);
+    Blocks.insert(std::make_pair(CacheLabel, Block));
   }
   assert(Op == IROpKind::Op_Branch || Op == IROpKind::Op_UnConBranch);
-  blocks[cache_label]->Insert(indicateVariable, targetOne, targetTwo, Op, this);
+  Blocks[CacheLabel]->Insert(indicateVariable, targetOne, targetTwo, Op, this);
   return true;
 }
 
-void IRBuilder::CreateCondBr(VariablePtr Cond, BlockPtr True, BlockPtr False) {
-  auto Curr = GetCurrentBlock();
+void IRBuilder::CreateCondBr(VariablePtr Cond, BasicBlockPtr True,
+                             BasicBlockPtr False) {
+  auto Curr = getCurrentBlock();
   Curr->SetSucc(True);
   Curr->SetSucc(False);
   True->SetPred(Curr);
@@ -178,17 +180,17 @@ void IRBuilder::CreateCondBr(VariablePtr Cond, BlockPtr True, BlockPtr False) {
   Insert(Cond, True, False, IROpKind::Op_Branch, function->GeTable());
 }
 
-void IRBuilder::CreateBr(BlockPtr Target) {
-  auto Curr = GetCurrentBlock();
+void IRBuilder::CreateBr(BasicBlockPtr Target) {
+  auto Curr = getCurrentBlock();
   Curr->SetSucc(Target);
   Target->SetPred(Curr);
   Insert(nullptr, Target, nullptr, IROpKind::Op_UnConBranch,
          function->GeTable());
 }
 
-void IRBuilder::FixNonReturn(SymbolTablePtr table) {
-  BlockPtr lastBlock;
-  for (const auto &blk : blocks) {
+void IRBuilder::fixNonReturn(SymbolTablePtr Table) {
+  BasicBlockPtr lastBlock;
+  for (const auto &blk : Blocks) {
     lastBlock = blk.second;
   }
   // fix no return statement
@@ -196,19 +198,19 @@ void IRBuilder::FixNonReturn(SymbolTablePtr table) {
     if (function->retTy == ReturnTypeKind::RTY_VOID) {
       // fix me: remove temp variables
       VariablePtr tempRetVoid = std::make_shared<Variable>();
-      tempRetVoid->SetName("void");
+      tempRetVoid->setName("void");
       auto t1 = std::make_shared<Variable>();
       auto t2 = std::make_shared<Variable>();
-      this->Insert(t1, t2, tempRetVoid, IROpKind::Op_Return, table);
+      this->Insert(t1, t2, tempRetVoid, IROpKind::Op_Return, Table);
       // this->Insert(std::make_shared<Variable>(),
-      // std::make_shared<Variable>(), tempRetVoid, IROpKind::Op_Return, table);
+      // std::make_shared<Variable>(), tempRetVoid, IROpKind::Op_Return, Table);
     } else {
       auto t1 = std::make_shared<Variable>();
       auto t2 = std::make_shared<Variable>();
-      this->Insert(t1, t2, lastResVar, IROpKind::Op_Return, table);
+      this->Insert(t1, t2, lastResVar, IROpKind::Op_Return, Table);
       // this->Insert(std::make_shared<Variable>(),
       // std::make_shared<Variable>(), std::make_shared<Variable>(lastResVar),
-      // IROpKind::Op_Return, table);
+      // IROpKind::Op_Return, Table);
     }
 
   } else {
@@ -218,14 +220,14 @@ void IRBuilder::FixNonReturn(SymbolTablePtr table) {
       if (function->retTy == ReturnTypeKind::RTY_VOID) {
         // fix me: remove temp variable
         VariablePtr tempRetVoid = std::make_shared<Variable>();
-        tempRetVoid->SetName("void");
+        tempRetVoid->setName("void");
         auto t1 = std::make_shared<Variable>();
         auto t2 = std::make_shared<Variable>();
-        this->Insert(t1, t2, tempRetVoid, IROpKind::Op_Return, table);
+        this->Insert(t1, t2, tempRetVoid, IROpKind::Op_Return, Table);
       } else {
         auto t1 = std::make_shared<Variable>();
         auto t2 = std::make_shared<Variable>();
-        this->Insert(t1, t2, lastResVar, IROpKind::Op_Return, table);
+        this->Insert(t1, t2, lastResVar, IROpKind::Op_Return, Table);
       }
     }
   }
@@ -237,14 +239,14 @@ std::string IRBuilder::CodeGen() {
     s += function->CodeGen();
   }
   s += "{\n";
-  BlockPtr lastBlock;
-  for (const auto &blk : blocks) {
+  BasicBlockPtr lastBlock;
+  for (const auto &blk : Blocks) {
 #if DEBUG
-    file_out << "dump instructinos in block , name: " << blk.second->GetName()
-             << "label: " << blk.second->GetLabel()
-             << " size :" << blk.second->instructinos.size() << std::endl;
+    FileOut << "dump instructinos in BasicBlock , Name: "
+            << blk.second->getName() << "Label: " << blk.second->GetLabel()
+            << " Size :" << blk.second->instructinos.Size() << std::endl;
 #endif
-    if (blk.first == entry_label && !blk.second->allocas.empty())
+    if (blk.first == EntryLabel && !blk.second->allocas.empty())
       s += blk.second->AllocaCodeGen();
     s += blk.second->CodeGen();
     lastBlock = blk.second;
@@ -253,32 +255,33 @@ std::string IRBuilder::CodeGen() {
   return s;
 }
 
-BlockPtr IRBuilder::GetCurrentBlock() {
-  if (cache_label == -1)
+BasicBlockPtr IRBuilder::getCurrentBlock() {
+  if (CacheLabel == -1)
     return nullptr;
-  return blocks[cache_label];
+  return Blocks[CacheLabel];
 }
 
 void IRBuilder::SetPredAndSuccNum() {
-  std::map<BlockPtr, bool> Visit;
-  BlockPtr current;
-  for (auto pr : blocks) {
+  std::map<BasicBlockPtr, bool> Visit;
+  BasicBlockPtr current;
+  for (auto pr : Blocks) {
     current = pr.second;
     Visit[current] = false;
   }
   int i, j;
   i = 0;
   j = 0;
-  DepthFirstSearchPP(i, j, Visit, blocks[entry_label]->succes,
-                     blocks[entry_label]);
+  DepthFirstSearchPP(i, j, Visit, Blocks[EntryLabel]->succes,
+                     Blocks[EntryLabel]);
   assert(i == j);
   numofblock = i;
 }
 
 void IRBuilder::DepthFirstSearchPP(int &i, int &j,
-                                   std::map<BlockPtr, bool> &Visit,
-                                   std::vector<BlockPtr> &succ, BlockPtr x) {
-  // BlockPtr y;
+                                   std::map<BasicBlockPtr, bool> &Visit,
+                                   std::vector<BasicBlockPtr> &succ,
+                                   BasicBlockPtr x) {
+  // BasicBlockPtr y;
   Visit[x] = true;
   PreNum[x] = j;
   PreNumToBlock[j] = x;
@@ -306,7 +309,7 @@ std::string IRBuilder::DumpCFG() {
           0 -> 1-> 2
           1 -> 3;
           0 [shape=polygon,sides=5,peripheries=3,color=lightblue,style=filled];
-          2 [shape=polygon,sides=4,label="hello world"]
+          2 [shape=polygon,sides=4,Label="hello world"]
           3 [shape=invtriangle];
           4 [shape=polygon,sides=4,distortion=.7];
   }
@@ -321,10 +324,10 @@ std::string IRBuilder::DumpCFG() {
   for (int i = 0; i < numofblock; i++) {
     s += "\n";
     if (i != 0)
-      s += "  " + std::to_string(i) + " [shape = polygon, label = \" " +
+      s += "  " + std::to_string(i) + " [shape = polygon, Label = \" " +
            PreNumToBlock[i]->CodeGenCFG() + "\" ];";
     else
-      s += "  " + std::to_string(i) + " [shape = polygon, label = \" " +
+      s += "  " + std::to_string(i) + " [shape = polygon, Label = \" " +
            PreNumToBlock[i]->EntryCodeGenCFG() + "\" ];";
   }
   s += "\n}\n";

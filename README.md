@@ -8,24 +8,24 @@ ir is a struct
 
 struct irbuilder;
 
-struct block;
+struct Block;
 
 struct inst
 {
-	node * left;
-	node * right;
+	node * Left;
+	node * Right;
 	emum op;
-	int align;
+	int Align;
 
-	label * lb;
+	Label * lb;
 }
 
-node * create(op, left, right)
+node * create(op, Left, Right)
 {
 	%3 = add %1 , %2
 	node * rt = new node(3);
-	rt->left = %1;
-	rt->right = %2;
+	rt->Left = %1;
+	rt->Right = %2;
 	rt->op = op;
 
 	// here save instruction to a instruction list,array, generate linear ir
@@ -47,9 +47,9 @@ support **Doxygen**
 
 all move to C++
 
-bind ir 'res' to 'instruction'
+bind ir 'Res' to 'instruction'
 
-IR gen function return a result, don't passing by arg
+IR gen function return a Result, don't passing by arg
 
 index use slot
 
@@ -75,9 +75,9 @@ like
 
 ​				|
 
-symbol table using a 'idenity'
+symbol Table using a 'idenity'
 
-change locals to a nest symbol, to support multi function
+change Locals to a nest symbol, to support multi function
 
 twine
 
@@ -123,7 +123,7 @@ CodeGen?:
                    | unsigned
                    | <struct-or-union-specifier>
                    | <enum-specifier>
-                   | <typedef-name>
+                   | <typedef-Name>
 
 <struct-or-union-specifier> ::= <struct-or-union> <identifier> { {<struct-declaration>}+ }
                               | <struct-or-union> { {<struct-declaration>}+ }
@@ -201,14 +201,14 @@ CodeGen?:
                               | <multiplicative-expression> % <cast-expression>
 
 <cast-expression> ::= <unary-expression>
-                    | ( <type-name> ) <cast-expression>
+                    | ( <type-Name> ) <cast-expression>
 
 <unary-expression> ::= <postfix-expression>
                      | ++ <unary-expression>
                      | -- <unary-expression>
                      | <unary-operator> <cast-expression>
                      | sizeof <unary-expression>
-                     | sizeof <type-name>
+                     | sizeof <type-Name>
 
 <postfix-expression> ::= <primary-expression>
                        | <postfix-expression> [ <expression> ]
@@ -253,7 +253,7 @@ CodeGen?:
                    | ~
                    | !
 
-<type-name> ::= {<specifier-qualifier>}+ {<abstract-declarator>}?
+<type-Name> ::= {<specifier-qualifier>}+ {<abstract-declarator>}?
 
 <parameter-type-list> ::= <parameter-list>
                         | <parameter-list> , ...
@@ -283,7 +283,7 @@ CodeGen?:
 <enumerator> ::= <identifier>
                | <identifier> = <constant-expression>
 
-<typedef-name> ::= <identifier>
+<typedef-Name> ::= <identifier>
 
 <declaration> ::=  {<declaration-specifier>}+ {<init-declarator>}* ;
 
@@ -343,19 +343,19 @@ for lexcer
 typedef struct Obj Obj;
 struct Obj
 {
-	Obj * next;
-	char * name;
-	int offset; 	// from rbp
-	TypePtr ty;		// Type of local variable ,  new add
+	Obj * Next;
+	char * Name;
+	int Offset; 	// from rbp
+	TypePtr Ty;		// Type of local variable ,  new add
 };
 
 struct Type
 {
-	TypeKind kind;
-	TypePtr  base;
+	TypeKind Kind;
+	TypePtr  Base;
 
 	// declaration
-	TokenPtr  name;  // new add
+	TokenPtr  Name;  // new add
 };
 
 ```
@@ -372,7 +372,7 @@ type:
 
 declspec = "int"
 
-left of declaration
+Left of declaration
 
 declarator = "*"* ident
 
@@ -390,36 +390,36 @@ after ",",  >= 0 or more times, before >= 1 times
 
 ```c++
 // declaration = declspec (declarator ("=" expr)? ("," declarator  ("=" expr)?)* )? ;
-static Node * declaration(TokenPtr *rest, TokenPtr tok)
+static Node * declaration(TokenPtr *rest, TokenPtr Tok)
 {
-	TypePtr  basety = declspec(&tok, tok);
+	TypePtr  basety = declspec(&Tok, Tok);
 
 	Node head = {};
 	Node * cur = &head;
 
 
-	int i = 0; // label to check whether is the first declaration varibale
-	while(!equal(tok, ";"))
+	int i = 0; // Label to check whether is the first declaration varibale
+	while(!equal(Tok, ";"))
 	{
 		if(i++ > 0)
-			tok = skip(tok, ",");
+			Tok = skip(Tok, ",");
 
 		// define but not used, add it to variable list
-		TypePtr  ty = declarator(&tok, tok, basety);
-		Obj * var = new_lvar(get_ident(ty->name), ty);
+		TypePtr  Ty = declarator(&Tok, Tok, basety);
+		Obj * Var = new_lvar(get_ident(Ty->Name), Ty);
 
-		if(!equal(tok, "="))
+		if(!equal(Tok, "="))
 			continue;
 
-		Node * lhs = new_var_node(var, ty->name);
-		Node * rhs = assign(&tok, tok->next);
-		Node * node = new_binary(ND_ASSIGN, lhs, rhs, tok);
-		cur = cur->next = new_unary(ND_EXPR_STMT, node, tok);
+		Node * Lhs = new_var_node(Var, Ty->Name);
+		Node * Rhs = assign(&Tok, Tok->Next);
+		Node * node = new_binary(ND_ASSIGN, Lhs, Rhs, Tok);
+		cur = cur->Next = new_unary(ND_EXPR_STMT, node, Tok);
 	}
 
-	Node * node = new_node(ND_BLOCK, tok);
-	node->body = head.next;
-	*rest = tok->next;
+	Node * node = createNewNode(ND_BLOCK, Tok);
+	node->Body = head.Next;
+	*rest = Tok->Next;
 	return node;
 }
 
@@ -430,16 +430,16 @@ and
 ```c++
 	
 // => primary =  "(" expr ")" | ident | num 
-static Node *primary(TokenPtr * rest, TokenPtr  tok)
+static Node *primary(TokenPtr * rest, TokenPtr  Tok)
     ...
-if(tok->kind == TK_IDENT)
+if(Tok->Kind == TK_IDENT)
 	{
-		Obj * var = find_var(tok);
-		if(!var){
-			error_tok(tok, "undefined varibale");
+		Obj * Var = find_var(Tok);
+		if(!Var){
+			error_tok(Tok, "undefined varibale");
 		}
-		*rest = tok->next;
-		return new_var_node(var, tok);
+		*rest = Tok->Next;
+		return new_var_node(Var, Tok);
 	}
 ```
 
@@ -450,29 +450,29 @@ then change the type.c
 
 
 ```c++
-void add_type(Node *node)
+void addType(Node *node)
     ...
 
 case ND_NUM:
-			node->ty = ty_int;
+			node->Ty = TyInt;
 			return;
 		case ND_VAR:
 			// int, int *, int ** ...
-			node->ty = node->var->ty;
+			node->Ty = node->Var->Ty;
 			return;
 
-		// for '&', create a new type as TY_PTR, setup base type
+		// for '&', create a new type as TY_PTR, setup Base type
 		case ND_ADDR:
-			node->ty = pointer_to(node->lhs->ty);
+			node->Ty = pointerTo(node->Lhs->Ty);
 			return;
 		case ND_DEREF:
-			if(node->lhs->ty->kind != TY_PTR)
+			if(node->Lhs->Ty->Kind != TY_PTR)
 			{
-				error_tok(node->tok, "expect dereference a pointer, but not");
+				error_tok(node->Tok, "expect dereference a pointer, but not");
 				
 			}
 			// for '*', down a type level
-			node->ty = node->lhs->ty->base;
+			node->Ty = node->Lhs->Ty->Base;
 			return;
 ```
 
@@ -548,12 +548,12 @@ for function definition
 typedef struct Function Function;
 struct Function
 {
-	Node * body;
-	Obj * locals;
-	int stack_size;
+	Node * Body;
+	Obj * Locals;
+	int StackSize;
 
-	Function * next;
-	char * name;
+	Function * Next;
+	char * Name;
 };
 // add FUNC type
 typedef enum
@@ -565,14 +565,14 @@ typedef enum
 
 struct Type
 {
-	TypeKind kind;
-	TypePtr  base;
+	TypeKind Kind;
+	TypePtr  Base;
 
 	// declaration
-	TokenPtr  name;
+	TokenPtr  Name;
 
 	// Function type
-	TypePtr  return_ty;
+	TypePtr  ReturnTy;
 };
 
 ```
@@ -596,21 +596,21 @@ besides, now we should parser function first, not statements
 but for function definition. function also need a independent variable list
 
 ```c++
-// function_declaration = declspec declarator "{" compound_stmt "}"
-static Function * function(TokenPtr  tok)
+// function_declaration = declspec declarator "{" compoundStmt "}"
+static Function * function(TokenPtr  Tok)
 {
-	TypePtr  ty = declspec(&tok, tok);
-	ty = declarator(&tok, tok, ty);
+	TypePtr  Ty = declspec(&Tok, Tok);
+	Ty = declarator(&Tok, Tok, Ty);
 
-	locals = nullptr;
+	Locals = nullptr;
 
 	Function *fn = calloc(1, sizeof(Function));
-	fn->name = get_ident(ty->name);
+	fn->Name = get_ident(Ty->Name);
 
-	tok = skip(tok, "{");
+	Tok = skip(Tok, "{");
 
-	fn->body = compound_stmt(rest, tok);
-	fn->locals = locals;
+	fn->Body = compoundStmt(rest, Tok);
+	fn->Locals = Locals;
 	return fn;
 }
 ```
@@ -626,21 +626,21 @@ for struct
 typedef struct Function Function;
 struct Function
 {	// ...
-    Obj *params;
+    Obj *Params;
 };
 
 struct Type
 {
-	TypeKind kind;
-	TypePtr  base;
+	TypeKind Kind;
+	TypePtr  Base;
 
 	// declaration
-	TokenPtr  name;
+	TokenPtr  Name;
 
 	// Function type
-	TypePtr  return_ty;
-	TypePtr params;
-  	TypePtr next;
+	TypePtr  ReturnTy;
+	TypePtr Params;
+  	TypePtr Next;
 };
 ```
 
@@ -664,9 +664,9 @@ static void create_param_lvars(TypePtr  param)
 	if(param)
 	{
         // recurse to last params
-		create_param_lvars(param->next);
+		create_param_lvars(param->Next);
 		// head insert, in variable list seq is same with seq decl variable
-        new_lvar(get_ident(param->name, param));
+        new_lvar(get_ident(param->Name, param));
 	}
 }
 ```
@@ -676,34 +676,34 @@ in codegen
 ```c++
 void codegen(Function * prog)
 {
-	// first setup offset
+	// first setup Offset
 	assign_lvar_offsets(prog);
 
-	for(Function * fn = prog; fn; fn = fn->next)
+	for(Function * fn = prog; fn; fn = fn->Next)
 	{
-		printf("  .globl %s\n", fn->name);
-		printf("%s:\n", fn->name);
+		printf("  .globl %s\n", fn->Name);
+		printf("%s:\n", fn->Name);
 		current_fn = fn;
 
 
 		// prologue
 		printf("  push %%rbp\n");
 		printf("  mov %%rsp, %%rbp\n");
-		printf("  sub $%d, %%rsp\n", fn->stack_size);
+		printf("  sub $%d, %%rsp\n", fn->StackSize);
 
 		// save passed-by-register arguments to the stack
 		int i = 0;
-		for(Obj * var = fn->params; var; var = var->next)
+		for(Obj * Var = fn->Params; Var; Var = Var->Next)
 		{
-			printf("  mov %s, %d(%%rbp)\n", argreg[i++], var->offset);
+			printf("  mov %s, %d(%%rbp)\n", argreg[i++], Var->Offset);
 		}
 
 		// emit code
-		gen_stmt(fn->body);
-		assert(depth == 0);
+		gen_stmt(fn->Body);
+		assert(Depth == 0);
 
 		// Epilogue
-		printf(".L.return.%s:\n", fn->name);
+		printf(".L.return.%s:\n", fn->Name);
 		printf("  mov %%rbp, %%rsp\n");
 		printf("  pop %%rbp\n");
 		printf("  ret\n");
@@ -717,7 +717,7 @@ void codegen(Function * prog)
 
 in C , array is a lanuage sugar, it is a pointer with number of element, but is could be modify "not a lvalue"
 
-for AST and size and len
+for AST and Size and len
 
 ```c++
 typedef enum
@@ -730,30 +730,30 @@ typedef enum
 
 struct Type
 {
-	TypeKind kind;
+	TypeKind Kind;
 
-	int size;      // sizeof() value
+	int Size;      // sizeof() value
 
   	// Pointer-to or array-of type. We intentionally use the same member
 	// to represent pointer/array duality in C.
 	//
 	// In many contexts in which a pointer is expected, we examine this
-	// member instead of "kind" member to determine whether a type is a
+	// member instead of "Kind" member to determine whether a type is a
 	// pointer or not. That means in many contexts "array of T" is
 	// naturally handled as if it were "pointer to T", as required by
 	// the C spec.
-	TypePtr  base;
+	TypePtr  Base;
 
 	// declaration
-	TokenPtr  name;
+	TokenPtr  Name;
 
 	// array
-	int array_len;
+	int ArrayLen;
 
 	// Function type
-	TypePtr  return_ty;
-	TypePtr params;
-  	TypePtr next;
+	TypePtr  ReturnTy;
+	TypePtr Params;
+  	TypePtr Next;
 };
 ```
 
@@ -761,51 +761,51 @@ struct Type
 
 for supoort arrays
 
-we need to change the parser make it support "[ num ]", besides make int => size = 8, maintain size set right
+we need to change the parser make it support "[ num ]", besides make int => Size = 8, maintain Size set Right
 
 ```c++
 // func-params = (param ("," param)*)? ")"
 // param       = declspec declarator
-static TypePtr  func_params(TokenPtr *rest, Token*tok, TypePtr  ty)
+static TypePtr  func_params(TokenPtr *rest, Token*Tok, TypePtr  Ty)
 {
 	Type head = {};
 	TypePtr  cur = &head;
 
-	while(!equal(tok, ")"))
+	while(!equal(Tok, ")"))
 	{
 		if(cur != &head)
 		{
-			tok = skip(tok, ",");			
+			Tok = skip(Tok, ",");			
 		}
 
-		TypePtr  basety = declspec(&tok, tok);
-		TypePtr  ty = declarator(&tok, tok, basety);
-		cur = cur->next = copy_type(ty);
+		TypePtr  basety = declspec(&Tok, Tok);
+		TypePtr  Ty = declarator(&Tok, Tok, basety);
+		cur = cur->Next = copyType(Ty);
 	}
 
-	ty = func_type(ty);
-	ty->params = head.next;
-	*rest = tok->next;
-	return ty;
+	Ty = funcType(Ty);
+	Ty->Params = head.Next;
+	*rest = Tok->Next;
+	return Ty;
 }
 // type-suffix = "(" func-params
 //             | "[" num "]"
 //             | ε
 
-static TypePtr  type_suffix(TokenPtr * rest, TokenPtr tok, TypePtr ty)
+static TypePtr  type_suffix(TokenPtr * rest, TokenPtr Tok, TypePtr Ty)
 {
-	if(equal(tok, "("))
-		return func_params(rest, tok->next, ty);
+	if(equal(Tok, "("))
+		return func_params(rest, Tok->Next, Ty);
 
-	if(equal(tok, "["))
+	if(equal(Tok, "["))
 	{
-		int sz = get_number(tok->next);
-		*rest = skip(tok->next->next, "]");
-		return array_of(ty, sz);
+		int sz = get_number(Tok->Next);
+		*rest = skip(Tok->Next->Next, "]");
+		return arrayOf(Ty, sz);
 	}
 
-	*rest = tok;
-	return ty;
+	*rest = Tok;
+	return Ty;
 }
 ```
 
@@ -815,7 +815,7 @@ static TypePtr  type_suffix(TokenPtr * rest, TokenPtr tok, TypePtr ty)
 
 in lexer, make it reconize "sizeof" as a keyword
 
-because before we have add  "size" int Type, change parser just return the correspond number
+because before we have add  "Size" int Type, change parser just return the correspond number
 
 ```c++
 // primary =  "(" expr ")" | ident func-args?| num 
@@ -823,14 +823,14 @@ because before we have add  "size" int Type, change parser just return the corre
 // to
 //
 // primary = "(" expr ")" | "sizeof" unary | ident func-args? | num
-static Node *primary(TokenPtr * rest, TokenPtr  tok)
+static Node *primary(TokenPtr * rest, TokenPtr  Tok)
 {
     // ...
-    if(equal(tok, "sizeof"))
+    if(equal(Tok, "sizeof"))
 	{
-		Node * node = unary(rest, tok->next);
-		add_type(node);
-		return new_num(node->ty->size, tok);
+		Node * node = unary(rest, Tok->Next);
+		addType(node);
+		return new_num(node->Ty->Size, Tok);
 	}
     // ...
 }
@@ -846,21 +846,21 @@ recursive parser
 // type-suffix = "(" func-params
 //             | "[" num "]" type-suffix
 //             | ε
-static TypePtr  type_suffix(TokenPtr * rest, TokenPtr tok, TypePtr ty)
+static TypePtr  type_suffix(TokenPtr * rest, TokenPtr Tok, TypePtr Ty)
 {
-	if(equal(tok, "("))
-		return func_params(rest, tok->next, ty);
+	if(equal(Tok, "("))
+		return func_params(rest, Tok->Next, Ty);
 
-	if(equal(tok, "["))
+	if(equal(Tok, "["))
 	{
-		int sz = get_number(tok->next);
-		tok = skip(tok->next->next, "]");
-		ty = type_suffix(rest, tok, ty);
-		return array_of(ty, sz);
+		int sz = get_number(Tok->Next);
+		Tok = skip(Tok->Next->Next, "]");
+		Ty = type_suffix(rest, Tok, Ty);
+		return arrayOf(Ty, sz);
 	}
 
-	*rest = tok;
-	return ty;
+	*rest = Tok;
+	return Ty;
 }
 ```
 
@@ -873,37 +873,37 @@ it is a post operator, just change parser
 ```c++
 // unary   = ("+" | "-" | "&" | "*")? unary
 //         | postfix
-static Node* unary(TokenPtr * rest, TokenPtr  tok)
+static Node* unary(TokenPtr * rest, TokenPtr  Tok)
 {
-	if(equal(tok, "+"))
-		return unary(rest, tok->next);
+	if(equal(Tok, "+"))
+		return unary(rest, Tok->Next);
 
-	if(equal(tok, "-"))
-		return new_unary(ND_NEG, unary(rest, tok->next), tok);
+	if(equal(Tok, "-"))
+		return new_unary(ND_NEG, unary(rest, Tok->Next), Tok);
 
-	if(equal(tok, "&"))
-		return new_unary(ND_ADDR, unary(rest, tok->next), tok);
+	if(equal(Tok, "&"))
+		return new_unary(ND_ADDR, unary(rest, Tok->Next), Tok);
 
-	if(equal(tok, "*"))
-		return new_unary(ND_DEREF, unary(rest, tok->next), tok);
+	if(equal(Tok, "*"))
+		return new_unary(ND_DEREF, unary(rest, Tok->Next), Tok);
 
-	return postfix(rest, tok);
+	return postfix(rest, Tok);
 }
 
 // postfix = primary ("[" expr "]")*
-static Node *postfix(TokenPtr *rest, TokenPtr  tok)
+static Node *postfix(TokenPtr *rest, TokenPtr  Tok)
 {
-	Node * node = primary(&tok, tok);
+	Node * node = primary(&Tok, Tok);
 
-	while(equal(tok, "["))
+	while(equal(Tok, "["))
 	{
 		// x[y] ==> *(x+y)
-		TokenPtr  start = tok;
-		Node * idx = expr(&tok, tok->next);
-		tok = skip(tok, "]");
+		TokenPtr  start = Tok;
+		Node * idx = expr(&Tok, Tok->Next);
+		Tok = skip(Tok, "]");
 		node = new_unary(ND_DEREF, new_add(node, idx, start), start);
 	}
-	*rest = tok;
+	*rest = Tok;
 	return node;
 }
 ```
@@ -919,24 +919,24 @@ static Node *postfix(TokenPtr *rest, TokenPtr  tok)
 typedef struct Obj Obj;
 struct Obj
 {
-	Obj * next;
-	char * name;
-	int offset; 	// from rbp
-	TypePtr ty;		// Type of local variable
+	Obj * Next;
+	char * Name;
+	int Offset; 	// from rbp
+	TypePtr Ty;		// Type of local variable
 -};
 
 -// function
 -typedef struct Function Function;
 -struct Function
 -{
-	Node * body;
-	Obj * locals;
-	int stack_size;
+	Node * Body;
+	Obj * Locals;
+	int StackSize;
 
-+	bool is_function;
--	Function * next;
--	char * name;
-	Obj *params;
++	bool IsFunction;
+-	Function * Next;
+-	char * Name;
+	Obj *Params;
 };
 ```
 
@@ -948,23 +948,23 @@ for parser deal global varibale
 
 ```c++
 // program = (function-definition | global-variable)*
-Obj * parse(TokenPtr  tok)
+Obj * parse(TokenPtr  Tok)
 {
 	globals = nullptr;
 
 
-	while(tok->kind != TK_EOF){
-		TypePtr basety = declspec(&tok, tok);
+	while(Tok->Kind != TK_EOF){
+		TypePtr basety = declspec(&Tok, Tok);
 
 		// function 
-		if(is_function(tok))
+		if(IsFunction(Tok))
 		{
-			tok = function(tok, basety);
+			Tok = function(Tok, basety);
 			continue;
 		}
 
 		// global variable
-		tok = global_varibale(tok, basety);
+		Tok = global_varibale(Tok, basety);
 	}
 	return globals;
 }
@@ -976,14 +976,14 @@ for codegen()
 // emit global data
 static void emit_data(Obj * prog)
 {
-	for(Obj * var = prog; var; var = var->next)
+	for(Obj * Var = prog; Var; Var = Var->Next)
 	{
-		if(var->is_function)
+		if(Var->IsFunction)
 			continue;
 		printf("  .data\n");
-		printf("  .globl %s\n", var->name);
-		printf("%s:\n",var->name);
-		printf("  .zero %d\n", var->ty->size);
+		printf("  .globl %s\n", Var->Name);
+		printf("%s:\n",Var->Name);
+		printf("  .zero %d\n", Var->Ty->Size);
 	}
 }
 ```
@@ -996,15 +996,15 @@ for now, use think char is integer
 
 ```c++
 // declspec = "char" | "int"
-static TypePtr  declspec(TokenPtr * rest, TokenPtr tok)
+static TypePtr  declspec(TokenPtr * rest, TokenPtr Tok)
 {
-	if(equal(tok, "char"))
+	if(equal(Tok, "char"))
 	{
-		*rest = tok->next;
-		return ty_char;
+		*rest = Tok->Next;
+		return TyChar;
 	}
-	*rest = skip(tok, "int");
-	return ty_int;
+	*rest = skip(Tok, "int");
+	return TyInt;
 }
 ```
 
@@ -1013,38 +1013,38 @@ notice we need use 8bit reg, not 64bit, such as
 ```c++
 static void emit_text(Obj * prog)
 {
-	for(Obj * fn = prog; fn; fn = fn->next)
+	for(Obj * fn = prog; fn; fn = fn->Next)
 	{
-		if(!fn->is_function)
+		if(!fn->IsFunction)
 			continue;
 
-		printf("  .globl %s\n", fn->name);
+		printf("  .globl %s\n", fn->Name);
 		printf("  .text\n");
-		printf("%s:\n", fn->name);
+		printf("%s:\n", fn->Name);
 		current_fn = fn;
 
 
 		// prologue
 		printf("  push %%rbp\n");
 		printf("  mov %%rsp, %%rbp\n");
-		printf("  sub $%d, %%rsp\n", fn->stack_size);
+		printf("  sub $%d, %%rsp\n", fn->StackSize);
 
 		// save passed-by-register arguments to the stack
 		int i = 0;
-		for(Obj * var = fn->params; var; var = var->next)
+		for(Obj * Var = fn->Params; Var; Var = Var->Next)
 		{
-			if(var->ty->size == 1)
-				printf("  mov %s, %d(%%rbp)\n", argreg8[i++], var->offset);
+			if(Var->Ty->Size == 1)
+				printf("  mov %s, %d(%%rbp)\n", argreg8[i++], Var->Offset);
 			else
-				printf("  mov %s, %d(%%rbp)\n", argreg64[i++], var->offset);
+				printf("  mov %s, %d(%%rbp)\n", argreg64[i++], Var->Offset);
 		}
 
 		// emit code
-		gen_stmt(fn->body);
-		assert(depth == 0);
+		gen_stmt(fn->Body);
+		assert(Depth == 0);
 
 		// Epilogue
-		printf(".L.return.%s:\n", fn->name);
+		printf(".L.return.%s:\n", fn->Name);
 		printf("  mov %%rbp, %%rsp\n");
 		printf("  pop %%rbp\n");
 		printf("  ret\n");
@@ -1063,7 +1063,7 @@ for lexcer
 struct Token
 {
 	// ...
-	TypePtr  ty;				// used if TK_STR
+	TypePtr  Ty;				// used if TK_STR
 	char * str;				// string literal contents including terminating '\0'
 };
 
@@ -1074,7 +1074,7 @@ struct Obj
 	// ...
     
 	// Global variable
-	char * init_data;
+	char * InitData;
 
 	// ...
 };
@@ -1093,16 +1093,16 @@ static char * new_unique_name(void)
 	return buf;
 }
 
-static Obj * new_anon_gvar(TypePtr  ty)
+static Obj * new_anon_gvar(TypePtr  Ty)
 {
-	return new_gvar(new_unique_name(), ty);
+	return new_gvar(new_unique_name(), Ty);
 }
 
-static Obj * new_string_literal(char * p, TypePtr  ty)
+static Obj * new_string_literal(char * p, TypePtr  Ty)
 {
-	Obj * var = new_anon_gvar(ty);
-	var->init_data = p;
-	return val;
+	Obj * Var = new_anon_gvar(Ty);
+	Var->InitData = p;
+	return Val;
 }
 
 
@@ -1213,7 +1213,7 @@ GUN allow write epxression like
 int a = ({int c = 1; c + 2;});
 ```
 
-change parser and codegen and type add_type() function
+change parser and codegen and type addType() function
 
 ```c++
 // primary = "(" expr ")" | "sizeof" unary | ident func-args? |  str | num
@@ -1226,15 +1226,15 @@ change parser and codegen and type add_type() function
 //         | ident func-args?
 //         | str
 //         | num
-static Node *primary(TokenPtr * rest, TokenPtr  tok)
+static Node *primary(TokenPtr * rest, TokenPtr  Tok)
 {
 
-	if(equal(tok, "(") && equal(tok->next, "{"))
+	if(equal(Tok, "(") && equal(Tok->Next, "{"))
 	{
 		// this is a GNU statement expresssion
-		Node * node = new_node(ND_STMT_EXPR, tok);
-		node->body = compound_stmt(&tok, tok->next->next)->body;
-		*rest = skip(tok, ")");
+		Node * node = createNewNode(ND_STMT_EXPR, Tok);
+		node->Body = compoundStmt(&Tok, Tok->Next->Next)->Body;
+		*rest = skip(Tok, ")");
 		return node;
 	}
 	// ...
@@ -1312,7 +1312,7 @@ static void parse_args(int argc, char ** argv)
 
 `4d32c17c2acd5d27a9a42c5607e3ef2eb6062ae8`
 
-### Step 37: Support line and block comments
+### Step 37: Support line and Block comments
 
 just jum it when tokenize
 
@@ -1328,32 +1328,32 @@ The C library function **char \*strstr(const char \*haystack, const char \*needl
 		continue;
 	}
 
-	// skip block comments
+	// skip Block comments
 	if(startswith(p, "/*"))
 	{
 		char * q = strstr(p + 2, "*/");
 		if(!q)
-			error_at(p, "unclosed block comment");
+			error_at(p, "unclosed Block comment");
 		p = q + 2;
 	}
 ```
 
 `da07308f95da1914d925eef8159198e84898d3aa`
 
-### Step 38: Support block scope
+### Step 38: Support Block Scope
 
 remind how we deal variable before
 
-a. every time call new_lvar() will add a varibale to locals varibale list 
+a. every time call new_lvar() will add a varibale to Locals varibale list 
 
 b.
 
 1. when call parse first add global variable by global_varibale()
-2. when parse function(), wuk first add function name as global varibale and add function params (by create_param_lvars()) to local varibale list then call **compound_stmt()** which call declaration() , then declspec() and declarator() judge variable type and set right variable name, then return to declaration() call new_lvar() to create local variable
+2. when parse function(), wuk first add function Name as global varibale and add function params (by create_param_lvars()) to local varibale list then call **compoundStmt()** which call declaration() , then declspec() and declarator() judge variable type and set Right variable Name, then return to declaration() call new_lvar() to create local variable
 
 parse --- > global_varibale
 
-parse --- > function ---> compound_stmt ---> declaration ---> new_lvar
+parse --- > function ---> compoundStmt ---> declaration ---> new_lvar
 
 then if variable have been define, change it
 
@@ -1363,9 +1363,9 @@ then if variable have been define, change it
 //      | "for" "(" expr-stmt expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
 //      | "{" compound-stmt
-//		| expr_stmt
+//		| exprStmt
 
-// function_declaration = declspec declarator "{" compound_stmt "}"
+// function_declaration = declspec declarator "{" compoundStmt "}"
 ```
 
 but actually in C, the varibale save as a nest list
@@ -1401,61 +1401,61 @@ but actually in C, the varibale save as a nest list
 
 ```c++
 // compound-stmt = (declaration | stmt)* "}"
-// function_declaration = declspec declarator "{" compound_stmt "}"
+// function_declaration = declspec declarator "{" compoundStmt "}"
 ```
 
-the code of from scope,
+the code of from Scope,
 
-struct Scope, present a block scope, init it present global variable scope,
+struct BlockScope, present a Block Scope, init it present global variable Scope,
 
-and every time meet '{' enter a level scope, and meet '}' exit a level of scope, VarScope present variable list 
+and every time meet '{' enter a level Scope, and meet '}' exit a level of Scope, VarScope present variable list 
 
 ```c++
-// scope for local or global variable
+// Scope for local or global variable
 typedef struct VarScope VarScope;
 struct VarScope{
-  VarScope * next;
-  char * name;
-  Obj *var;
+  VarScope * Next;
+  char * Name;
+  Obj *Var;
 };
 
-// represent a block scope
-typedef struct Scope Scope;
-struct Scope{
-  Scope * next;
+// represent a Block Scope
+typedef struct BlockScope BlockScope;
+struct BlockScope{
+  BlockScope * Next;
   VarScope * vars;
 };
 
-static Obj * find_var(TokenPtr  tok)
+static Obj * find_var(TokenPtr  Tok)
 {
-	for(Scope * sc = scope; sc; sc = sc->next)
+	for(BlockScope * sc = Scope; sc; sc = sc->Next)
 	{
-		for(VarScope * sc2 = sc->vars; sc2; sc2 = sc2->next)
-			if(equal(tok, sc2->name))
-				return sc2->var;
+		for(VarScope * sc2 = sc->vars; sc2; sc2 = sc2->Next)
+			if(equal(Tok, sc2->Name))
+				return sc2->Var;
 	}
 	return nullptr;
 }
 
-static void enter_scope(void)
+static void enterScope(void)
 {
-	Scope *sc = calloc(1, sizeof(Scope));
-	sc->next = scope;
-	scope = sc;
+	BlockScope *sc = calloc(1, sizeof(BlockScope));
+	sc->Next = Scope;
+	Scope = sc;
 }
 
-static void leave_scope(void)
+static void leaveScope(void)
 {
-	scope = scope->next;
+	Scope = Scope->Next;
 }
 
-static VarScope * push_scope(char * name, Obj *var)
+static VarScope * push_scope(char * Name, Obj *Var)
 {
 	VarScope * sc = calloc(1, sizeof(VarScope));
-	sc->name = name;
-	sc->var = var;
-	sc->next = scope->vars;	// VarScope * vars, head insert here
-	scope->vars = sc;
+	sc->Name = Name;
+	sc->Var = Var;
+	sc->Next = Scope->vars;	// VarScope * vars, head insert here
+	Scope->vars = sc;
 }
 ```
 
@@ -1489,7 +1489,7 @@ test: $(TESTS)
 
 clean:
 		rm -f chibicc tmp*  $(TESTS) test/*.s test/*.exe
-		find * -type f '(' -name '*~' -o -name '*.o' ')' -exec rm {} ';'
+		find * -type f '(' -Name '*~' -o -Name '*.o' ')' -exec rm {} ';'
 
 .PHONU: test clean
 
@@ -1511,7 +1511,7 @@ With these directives, gdb can print out an error location when a compiled progr
 
 ### Step 40: Support comma operator
 
-This patch allows writing a comma expression on the left-hand side of an assignment expression. This is called the "generalized lvalue" which is a deprecated GCC language extension, implementing it anyway because it's useful to implement other features.
+This patch allows writing a comma expression on the Left-hand side of an assignment expression. This is called the "generalized lvalue" which is a deprecated GCC language extension, implementing it anyway because it's useful to implement other features.
 
 ```c++
 // expr       = assign
@@ -1522,7 +1522,7 @@ This patch allows writing a comma expression on the left-hand side of an assignm
 // expr = assign ("," expr)?
 ```
 
-make below right
+make below Right
 
 ```c+
   ASSERT(3, (1,2,3));
@@ -1534,13 +1534,13 @@ which return a mutable variable
 
 ```c++
 // expr       = assign ("," expr)
-static Node * expr(TokenPtr * rest, TokenPtr  tok)
+static Node * expr(TokenPtr * rest, TokenPtr  Tok)
 {
-	Node * node = assign(&tok, tok);
-	if(equal(tok, ","))
-		return new_binary(ND_COMMA, node, expr(rest, tok->next), tok);
+	Node * node = assign(&Tok, Tok);
+	if(equal(Tok, ","))
+		return new_binary(ND_COMMA, node, expr(rest, Tok->Next), Tok);
 
-	*rest = tok;
+	*rest = Tok;
 	return node;
 }
 ```
@@ -1549,14 +1549,14 @@ static Node * expr(TokenPtr * rest, TokenPtr  tok)
 
 ### Step 41: Support struct 
 
-for now, when meet struct's "{" we don't need enter scope, actually struct have its own scope
+for now, when meet struct's "{" we don't need enter Scope, actually struct have its own Scope
 
 and struct just is a anonymous variable type, no tag
 
 ```c++
 // declspec = "char" | "int" | struct-decl
-// struct-decl = "{" struct-members
-// struct-members = (declspec declarator (","  declarator)* ";")*
+// struct-decl = "{" struct-Members
+// struct-Members = (declspec declarator (","  declarator)* ";")*
 
 
 // postfix = primary ("[" expr "]")*
@@ -1573,27 +1573,27 @@ struct Type {
 @@ -169,12 +175,23 @@ struct Type {
   // ...
   // Struct
-  Member *members;
+  Member *Members;
   // ...
 };
 
 // Struct member
 struct Member {
-  Member *next;
-  TypePtr ty;
-  TokenPtr name;
-  int offset;
+  Member *Next;
+  TypePtr Ty;
+  TokenPtr Name;
+  int Offset;
 };
 
 ```
 
 `e562ff5a90f5eee001622409ed8319c2f31ed158`
 
-### Step 42: Align struct members
+### Step 42: Align struct Members
 
-align of a struct is the max ocopied space align
+Align of a struct is the max ocopied space Align
 
-add a `int align` to Type, and maintain it, besides align offset to `align`
+add a `int Align` to Type, and maintain it, besides Align Offset to `Align`
 
 which mean
 
@@ -1606,69 +1606,69 @@ which mean
 
 ### Step 43: Align local variables
 
-when set vriable offset in codegen, just align it.
+when set vriable Offset in codegen, just Align it.
 
 ```c++
-offset = align_to(offset, var->ty->align);
+Offset = alignTo(Offset, Var->Ty->Align);
 ```
 
 `2733964ec177e24d31c7f6d2bb178bc7943a2466`
 
-### Step 44: Support struct tags and scope
+### Step 44: Support struct tags and Scope
 
 ```c++
-// struct-decl = "{" struct-members
+// struct-decl = "{" struct-Members
 //
 // to
-// struct-decl = ident? ("{" struct-members)?
-static TypePtr  struct_decl(TokenPtr *rest, TokenPtr tok)
+// struct-decl = ident? ("{" struct-Members)?
+static TypePtr  structDecl(TokenPtr *rest, TokenPtr Tok)
 {
 	// read a truct tag
 	// define
 	TokenPtr  tag = nullptr;
-	if(tok->kind == TK_IDENT)
+	if(Tok->Kind == TK_IDENT)
 	{
-		tag = tok;
-		tok = tok->next;
+		tag = Tok;
+		Tok = Tok->Next;
 	}
 
 	// use to define a struct variable
-	if(tag && !equal(tok, "{"))
+	if(tag && !equal(Tok, "{"))
 	{
-		TypePtr  ty = find_tag(tag);
-		if(!ty)
+		TypePtr  Ty = find_tag(tag);
+		if(!Ty)
 			error_tok(tag, "unknown struct type");
-		*rest = tok;
-		return ty;
+		*rest = Tok;
+		return Ty;
 	}
 
 
 
 	// construct a struct object
-	TypePtr  ty = calloc(1, sizeof(Type));
-	ty->kind = TY_STRUCT;
-	struct_members(rest, tok->next, ty);	// skip "}"
-	ty->align = 1;
+	TypePtr  Ty = calloc(1, sizeof(Type));
+	Ty->Kind = TY_STRUCT;
+	struct_members(rest, Tok->Next, Ty);	// skip "}"
+	Ty->Align = 1;
 
-	int offset = 0;
-	for(Member * mem = ty->members; mem; mem = mem->next)
+	int Offset = 0;
+	for(Member * mem = Ty->Members; mem; mem = mem->Next)
 	{
-		offset = align_to(offset, mem->ty->align);
-		mem->offset = offset;
-		offset += mem->ty->size;
+		Offset = alignTo(Offset, mem->Ty->Align);
+		mem->Offset = Offset;
+		Offset += mem->Ty->Size;
 
-		if(ty->align < mem->ty->align)
+		if(Ty->Align < mem->Ty->Align)
 		{
-			ty->align = mem->ty->align;
+			Ty->Align = mem->Ty->Align;
 		}
 
 	}
-	ty->size = align_to(offset, ty->align);
+	Ty->Size = alignTo(Offset, Ty->Align);
 
-	// register the struct type if a name was given.
+	// register the struct type if a Name was given.
 	if(tag)
-		push_tag_scope(tag, ty);
-	return ty;
+		push_tag_scope(tag, Ty);
+	return Ty;
 }
 ```
 
@@ -1679,12 +1679,12 @@ static TypePtr  struct_decl(TokenPtr *rest, TokenPtr tok)
 which is a postfix operator
 
 ```c++
-		if(equal(tok, "->"))
+		if(equal(Tok, "->"))
 		{
 			// x->t is short for (*x).y
-			node = new_unary(ND_DEREF, node, tok);
-			node = struct_ref(node, tok->next);
-			tok = tok->next->next; // skip "->" and ident
+			node = new_unary(ND_DEREF, node, Tok);
+			node = struct_ref(node, Tok->Next);
+			Tok = Tok->Next->Next; // skip "->" and ident
 			continue;
 		}
 ```
@@ -1693,36 +1693,36 @@ which is a postfix operator
 
 ### Step 46: Support union
 
-the way to handle union is like handle struct, for union, all offset is 0, but we need to compute the alignment and size.
+the way to handle union is like handle struct, for union, all Offset is 0, but we need to compute the alignment and Size.
 
 all variable share the space
 
 ```c++
-// struct-union-decl = ident? ("{" struct-members)?
+// struct-union-decl = ident? ("{" struct-Members)?
 // union-decl = struct-union-decl
-static TypePtr  union_decl(TokenPtr *rest, TokenPtr tok)
+static TypePtr  unionDecl(TokenPtr *rest, TokenPtr Tok)
 {
-	TypePtr  ty = struct_union_decl(rest, tok);
-	ty->kind = TY_UNION;
+	TypePtr  Ty = struct_union_decl(rest, Tok);
+	Ty->Kind = TY_UNION;
 
-	// for union, all offset is 0, but we need to compute the alignment
-	// and size 
+	// for union, all Offset is 0, but we need to compute the alignment
+	// and Size 
 
-	for(Member * mem = ty->members; mem; mem = mem->next)
+	for(Member * mem = Ty->Members; mem; mem = mem->Next)
 	{
 
-		if(ty->align < mem->ty->align)
+		if(Ty->Align < mem->Ty->Align)
 		{
-			ty->align = mem->ty->align;
+			Ty->Align = mem->Ty->Align;
 		}
-		if(ty->size < mem->ty->size)
-			ty->size = mem->ty->size; // shred space, so set size as max elem size
+		if(Ty->Size < mem->Ty->Size)
+			Ty->Size = mem->Ty->Size; // shred space, so set Size as max elem Size
 
 	}
-    // algin size, offset is always for all variable
-	ty->size = align_to(ty->size, ty->align);
+    // algin Size, Offset is always for all variable
+	Ty->Size = alignTo(Ty->Size, Ty->Align);
 
-	return ty;
+	return Ty;
 }
 ```
 
@@ -1732,11 +1732,11 @@ static TypePtr  union_decl(TokenPtr *rest, TokenPtr tok)
 
 ```c++
 // store %rax to an address that the stack top is pointing to.
-static void store(TypePtr  ty) {
+static void store(TypePtr  Ty) {
   pop("%rdi");
-  if(ty->kind == TY_STRUCT || ty->kind == TY_UNION)
+  if(Ty->Kind == TY_STRUCT || Ty->Kind == TY_UNION)
   {
-  	for(int i = 0; i < ty->size; i++)
+  	for(int i = 0; i < Ty->Size; i++)
   	{
   		println("  mov %d(%%rax), %%r8b", i);
   		println("  mov %%r8b, %d(%%rdi)", i);
@@ -1744,7 +1744,7 @@ static void store(TypePtr  ty) {
   	return;
   }
 
-  if(ty->size == 1)
+  if(Ty->Size == 1)
   	println("  mov %%al, (%%rdi)");
   else
   	println("  mov %%rax, (%%rdi)");
@@ -1753,13 +1753,13 @@ static void store(TypePtr  ty) {
 
 `cf39095e150df76e1c81679f997bcfee4922faf8`
 
-### Step 48: Change size of int from 8 to 4
+### Step 48: Change Size of int from 8 to 4
 
 samplely change
 
 ```c++
-TypePtr ty_int = &(Type){TY_INT, 8, 8};
-TypePtr ty_int = &(Type){TY_INT, 4, 4};
+TypePtr TyInt = &(Type){TY_INT, 8, 8};
+TypePtr TyInt = &(Type){TY_INT, 4, 4};
 ```
 
 and related code
@@ -1793,30 +1793,30 @@ same as long
 //
 //
 // declarator = "*"* ("(" ident ")" | "(" declarator ")" | ident) type-suffix
-static TypePtr  declarator(TokenPtr *rest, TokenPtr tok, TypePtr  ty)
+static TypePtr  declarator(TokenPtr *rest, TokenPtr Tok, TypePtr  Ty)
 {
-	while(consume(&tok, tok, "*"))
+	while(consume(&Tok, Tok, "*"))
 	{
-		ty = pointer_to(ty);
+		Ty = pointerTo(Ty);
 	}
 
-	if(equal(tok, "("))
+	if(equal(Tok, "("))
 	{
-		TokenPtr  start = tok;
+		TokenPtr  start = Tok;
 		Type dummy = {};
-		declarator(&tok, start->next, & dummy);
-		tok = skip(tok, ")");
-		ty = type_suffix(rest, tok, ty);
-		return declarator(&tok, start->next, ty);
+		declarator(&Tok, start->Next, & dummy);
+		Tok = skip(Tok, ")");
+		Ty = type_suffix(rest, Tok, Ty);
+		return declarator(&Tok, start->Next, Ty);
 	}
 
 
-	if(tok->kind != TK_IDENT)
-		error_tok(tok, "expected a varibale name");
+	if(Tok->Kind != TK_IDENT)
+		error_tok(Tok, "expected a varibale Name");
 
-	ty = type_suffix(rest, tok->next, ty);
-	ty->name = tok;
-	return ty;
+	Ty = type_suffix(rest, Tok->Next, Ty);
+	Ty->Name = Tok;
+	return Ty;
 }
 ```
 
@@ -1828,16 +1828,16 @@ if detected a function declaration, not definition , just skip it.
 
 ```c++
 // in Obg
-bool is_definition;
+bool IsDefinition;
 // parse.c
-// function_declaration = declspec declarator "{" compound_stmt "}"
-static TokenPtr  function(TokenPtr tok, TypePtr basety)
+// function_declaration = declspec declarator "{" compoundStmt "}"
+static TokenPtr  function(TokenPtr Tok, TypePtr basety)
 {// ...
-    fn->is_definition = !consume(&tok, tok, ";"); // if consume(&tok, tok, ";") == true, is a declaration   
+    fn->IsDefinition = !consume(&Tok, Tok, ";"); // if consume(&Tok, Tok, ";") == true, is a declaration   
 }
 
 // codegen.c
-    if (!fn->is_function || !fn->is_definition) // ===> declaration
+    if (!fn->IsFunction || !fn->IsDefinition) // ===> declaration
       continue;
 ```
 
@@ -1926,19 +1926,19 @@ before variable just a variable, but now is maybe a typedef
 when meeting a "typedef" 
 
 1. first set attr 'is_typedef' to true , tag it is a typedef
-2. since `declspec`actually return two value, first is TypePtr  , second is attr return by pointer. the caller of `declspec` change from `declaration` to `compound_stmt` , whjch create a `VarAttr attr` variable and pass to `declspec`. and `declspec` fill the is_typedef field. 
-3. if the is_typedef is true, then call `parse_typedef` to create a typedef variable, save to variable scope, otherwise same as ordinary variable declaration.
-4. next time, function `declspec` also need to check whether a type is a typedef type.
+2. since `declspec`actually return two value, first is TypePtr  , second is attr return by pointer. the caller of `declspec` change from `declaration` to `compoundStmt` , whjch create a `VarAttr attr` variable and pass to `declspec`. and `declspec` fill the is_typedef field. 
+3. if the is_typedef is true, then call `parseTypedef` to create a typedef variable, save to variable Scope, otherwise same as ordinary variable declaration.
+4. Next time, function `declspec` also need to check whether a type is a typedef type.
 5. since, function `declaration` no longer call  `declspec`, so it need a `basety` ,passing by function argument
-6. last thing need be mention, since now variable maybe a typedef, so every time call `find_var` no longer return the Obj *var, but VarScope *, need extract variable from VarScope if need.
+6. last thing need be mention, since now variable maybe a typedef, so every time call `find_var` no longer return the Obj *Var, but VarScope *, need extract variable from VarScope if need.
 
 ```c++
-static Node * declaration(TokenPtr *rest, TokenPtr tok)
+static Node * declaration(TokenPtr *rest, TokenPtr Tok)
 {
-	TypePtr  basety = declspec(&tok, tok);
+	TypePtr  basety = declspec(&Tok, Tok);
 }
 // now
-static Node * declaration(TokenPtr *rest, TokenPtr tok, TypePtr basety)
+static Node * declaration(TokenPtr *rest, TokenPtr Tok, TypePtr basety)
 {
     
 }
@@ -1954,43 +1954,43 @@ code:
 
 ```c++
 // compound-stmt = (typedef | declaration |stmt )* "}"
-static Node * compound_stmt(TokenPtr * rest, TokenPtr  tok)
+static Node * compoundStmt(TokenPtr * rest, TokenPtr  Tok)
 {
-	Node * node = new_node(ND_BLOCK, tok);
+	Node * node = createNewNode(ND_BLOCK, Tok);
 
 	Node head = {};
 	Node * cur = &head;
 
-	enter_scope();
+	enterScope();
 
 
-	while(!equal(tok, "}")){
-		if(is_typename(tok))
+	while(!equal(Tok, "}")){
+		if(isTypename(Tok))
 		{
 			VarAttr attr = {};
-			TypePtr  basety = declspec(&tok, tok, &attr);
+			TypePtr  basety = declspec(&Tok, Tok, &attr);
 
 			if(attr.is_typedef)
 			{
-				tok = parse_typedef(tok, basety);
+				Tok = parseTypedef(Tok, basety);
 				continue;
 			}
 
-			cur = cur->next = declaration(&tok, tok, basety);
+			cur = cur->Next = declaration(&Tok, Tok, basety);
 		}
 		else
 		{
-			cur = cur->next = stmt(&tok, tok);
+			cur = cur->Next = stmt(&Tok, Tok);
 		}
 
 		// here add type
-		add_type(cur);
+		addType(cur);
 	}
 	
-	leave_scope();
+	leaveScope();
 
-	node->body = head.next;
-	*rest = tok->next;
+	node->Body = head.Next;
+	*rest = Tok->Next;
 	return node;
 }
 ```
@@ -1998,19 +1998,19 @@ static Node * compound_stmt(TokenPtr * rest, TokenPtr  tok)
 
 
 ```c++
-static TokenPtr parse_typedef(TokenPtr tok, TypePtr  basety)
+static TokenPtr parseTypedef(TokenPtr Tok, TypePtr  basety)
 {
 	bool first = true;
-	while(!consume(&tok, tok, ";"))
+	while(!consume(&Tok, Tok, ";"))
 	{
 		if(!first)
-			tok = skip(tok, ",");
+			Tok = skip(Tok, ",");
 		first =false;
 
-		TypePtr  ty = declarator(&tok, tok, basety);
-		push_scope(get_ident(ty->name))->type_def = ty;
+		TypePtr  Ty = declarator(&Tok, Tok, basety);
+		push_scope(get_ident(Ty->Name))->type_def = Ty;
 	}
-	return tok;
+	return Tok;
 }
 
 ```
@@ -2019,17 +2019,17 @@ static TokenPtr parse_typedef(TokenPtr tok, TypePtr  basety)
 
 ### Step57: Support sizeof() a typename
 
-the base idea is expand the `primary` to support a special expression
+the Base idea is expand the `primary` to support a special expression
 
 replace the expression in sizeof() to a num node.
 
 ```c++
 // abstract-declarator = "*"* ("(" abstract-declarator ")")? type-suffix
-// type-name = declspec abstract-declarator
+// type-Name = declspec abstract-declarator
 
 // primary = "(" "{" stmt+ "}" ")"
 //         | "(" expr ")"
-//         | "sizeof" "(" type-name ")"
+//         | "sizeof" "(" type-Name ")"
 //         | "sizeof" unary
 //         | ident func-args?
 //         | str

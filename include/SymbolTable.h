@@ -26,7 +26,7 @@ typedef struct Obj Obj;
 class SymbolTable {
   SymbolTablePtr global_table;
 
-  std::map<Obj *, VariablePtr> table;
+  std::map<Obj *, VariablePtr> Table;
   std::vector<IRFunctionPtr> funcs;
 
 public:

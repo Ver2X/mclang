@@ -1,17 +1,17 @@
 define dso_local i32 @call_test(int, int)(i32 %a, i32 %b) {
 entry:
-  %a.addr = alloca i32, align 4
-  %b.addr = alloca i32, align 4
-  %c = alloca i32, align 4
-  store i32 %a, i32* %a.addr, align 4
-  store i32 %b, i32* %b.addr, align 4
-  %0 = load i32, i32* %a.addr, align 4
-  %1 = load i32, i32* %b.addr, align 4
+  %a.addr = alloca i32, Align 4
+  %b.addr = alloca i32, Align 4
+  %c = alloca i32, Align 4
+  store i32 %a, i32* %a.addr, Align 4
+  store i32 %b, i32* %b.addr, Align 4
+  %0 = load i32, i32* %a.addr, Align 4
+  %1 = load i32, i32* %b.addr, Align 4
   %add = add nsw i32 %0, %1
-  %2 = load i32, i32* %a.addr, align 4
+  %2 = load i32, i32* %a.addr, Align 4
   %call = call i32 @foo(int, int)(i32 %add, i32 %2)
-  store i32 %call, i32* %c, align 4
-  %3 = load i32, i32* %c, align 4
+  store i32 %call, i32* %c, Align 4
+  %3 = load i32, i32* %c, Align 4
   ret i32 %3
 }
 

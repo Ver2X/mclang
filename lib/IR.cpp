@@ -1,10 +1,10 @@
-#include "Block.h"
+#include "BasicBlock.h"
 #include "FunctionIR.h"
 #include "IRBuilder.h"
 #include "Instruction.h"
 #include "SymbolTable.h"
 #include "Variable.h"
-extern std::fstream file_out;
+extern std::fstream FileOut;
 #define DEBUG 0
 //////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////

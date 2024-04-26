@@ -8,10 +8,10 @@
 class Module {
 public:
   Module() {}
-  void InsertGlobalVariable(VariablePtr global);
+  void insertGlobalVariable(VariablePtr global);
   std::string GlobalVariableCodeGen();
-  std::string GetName() { return Name; }
-  void SetName(std::string _Name) { Name = _Name; }
+  std::string getName() { return Name; }
+  void setName(std::string _Name) { Name = _Name; }
   std::vector<VariablePtr> globalVariables;
 
 private:

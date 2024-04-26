@@ -8,25 +8,25 @@ IRFunction::IRFunction() {
   controlFlowNum = 0;
 }
 
-IRFunction::IRFunction(std::string name) {
+IRFunction::IRFunction(std::string Name) {
   argsNum = 0;
   retTy = ReturnTypeKind::RTY_VOID;
-  functionName = name;
+  FunctionName = Name;
   varNameNum = 0;
   blockLabelNum = 0;
   controlFlowNum = 0;
 }
 
-int IRFunction::NextVarNameNum() { return varNameNum++; }
+int IRFunction::nextVarNameNum() { return varNameNum++; }
 
-int IRFunction::NextBlockLabelNum() { return blockLabelNum++; }
+int IRFunction::nextBlockLabelNum() { return blockLabelNum++; }
 
-int IRFunction::NextControlFlowNum() { return controlFlowNum++; }
+int IRFunction::nextControlFlowNum() { return controlFlowNum++; }
 
-void IRFunction::setBody(std::shared_ptr<IRBuilder> _body) { body = _body; }
+void IRFunction::setBody(std::shared_ptr<IRBuilder> _body) { Body = _body; }
 
 std::string IRFunction::CodeGen() {
-  // if body non-null
+  // if Body non-null
   std::string s;
   s += "define dso_local ";
   switch (retTy) {
@@ -69,26 +69,26 @@ std::string IRFunction::CodeGen() {
           {
                   s += ", ";
           }
-          head = head->next;
+          head = head->Next;
   }*/
   s += ")";
   return s;
 }
 
 std::string IRFunction::rename() {
-  // // _ + return type + name + arg
+  // // _ + return type + Name + arg
   // std::string s = "_";
   // if (retTy == ReturnTypeKind::RTY_INT)
   //   s += "Z";
-  // s += functionName;
+  // s += FunctionName;
 
   // for (auto arg_iter : args) {
   //   if (arg_iter->type == VaribleKind::VAR_32)
   //     s += "i";
   // }
-  return functionName;
+  return FunctionName;
 }
 void IRFunction::AddArgs() {
-  // when enter function, need push varibale into symbol table
+  // when enter function, need push varibale into symbol Table
   // but when leave, destory it
 }

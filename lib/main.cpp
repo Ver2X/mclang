@@ -79,8 +79,8 @@ int main(int argc, char **argv) {
   parse_args(argc, argv);
   std::string file_name(input_path);
   file_name = removeExtension(file_name);
-  TokenPtr tok = tokenize_file(input_path);
-  Obj *prog = parse(tok);
+  TokenPtr Tok = tokenize_file(input_path);
+  Obj *prog = parse(Tok);
   if (opt_o) {
     file_name = opt_o;
   } else {

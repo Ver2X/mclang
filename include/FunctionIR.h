@@ -28,14 +28,14 @@ class IRFunction {
   int varNameNum;
   int blockLabelNum;
   int controlFlowNum;
-  std::shared_ptr<IRBuilder> body;
-  SymbolTablePtr table;
+  std::shared_ptr<IRBuilder> Body;
+  SymbolTablePtr Table;
 
 public:
   IRFunction();
-  IRFunction(std::string name);
+  IRFunction(std::string Name);
 
-  std::string functionName;
+  std::string FunctionName;
   // VariablePtr args;
   std::vector<VariablePtr> args;
   int argsNum;
@@ -43,14 +43,14 @@ public:
   ReturnTypeKind retTy;
 
   std::string rename();
-  std::string GetName() { return functionName; };
-  SymbolTablePtr GeTable() { return table; };
-  int NextVarNameNum();
-  int NextBlockLabelNum();
-  int NextControlFlowNum();
+  std::string getName() { return FunctionName; };
+  SymbolTablePtr GeTable() { return Table; };
+  int nextVarNameNum();
+  int nextBlockLabelNum();
+  int nextControlFlowNum();
   void AddArgs();
   std::string CodeGen();
-  void setBody(std::shared_ptr<IRBuilder> body);
-  void setTable(SymbolTablePtr local_table) { table = local_table; };
+  void setBody(std::shared_ptr<IRBuilder> Body);
+  void setTable(SymbolTablePtr local_table) { Table = local_table; };
 };
 using IRFunctionPtr = std::shared_ptr<IRFunction>;

@@ -53,10 +53,10 @@ class Instruction;
 class Instruction {
 protected:
   IROpKind Op;
-  // VariablePtr left;
-  // VariablePtr right;
-  // VariablePtr result;
-  int getAlign(VariablePtr left, VariablePtr right, VariablePtr result);
+  // VariablePtr Left;
+  // VariablePtr Right;
+  // VariablePtr Result;
+  int getAlign(VariablePtr Left, VariablePtr Right, VariablePtr Result);
   friend class BinaryOperator;
 
 public:
@@ -67,32 +67,32 @@ public:
   virtual std::string CodeGen() = 0;
 };
 using InstructionPtr = std::shared_ptr<Instruction>;
-class Block;
-using BlockPtr = std::shared_ptr<Block>;
+class BasicBlock;
+using BasicBlockPtr = std::shared_ptr<BasicBlock>;
 
 class BinaryOperator : public Instruction {
 public:
-  BinaryOperator(VariablePtr left, VariablePtr right, VariablePtr result,
+  BinaryOperator(VariablePtr Left, VariablePtr Right, VariablePtr Result,
                  IROpKind Op)
-      : left(left), right(right), result(result) {
+      : Left(Left), Right(Right), Result(Result) {
     this->Op = Op;
   }
   std::string CodeGen();
 
 private:
-  VariablePtr left;
-  VariablePtr right;
-  VariablePtr result;
+  VariablePtr Left;
+  VariablePtr Right;
+  VariablePtr Result;
 };
 
 class UnaryOperator : public Instruction {
 public:
-  UnaryOperator(VariablePtr l, VariablePtr r) : left(l), result(r) {}
+  UnaryOperator(VariablePtr l, VariablePtr r) : Left(l), Result(r) {}
   std::string CodeGen();
 
 private:
-  VariablePtr left;
-  VariablePtr result;
+  VariablePtr Left;
+  VariablePtr Result;
 };
 
 class ReturnInst : public Instruction {
@@ -107,17 +107,19 @@ private:
 
 class BranchInst : public Instruction {
 public:
-  BranchInst(VariablePtr iV, BlockPtr tg1, BlockPtr tg2, IROpKind Op)
+  BranchInst(VariablePtr iV, BasicBlockPtr tg1, BasicBlockPtr tg2, IROpKind Op)
       : indicateVariable(iV), targetFirst(tg1), targetSecond(tg2) {
     this->Op = Op;
   }
-  BranchInst(BlockPtr tg1, IROpKind Op) : targetFirst(tg1) { this->Op = Op; }
+  BranchInst(BasicBlockPtr tg1, IROpKind Op) : targetFirst(tg1) {
+    this->Op = Op;
+  }
   std::string CodeGen();
 
 private:
   VariablePtr indicateVariable;
-  BlockPtr targetFirst;
-  BlockPtr targetSecond;
+  BasicBlockPtr targetFirst;
+  BasicBlockPtr targetSecond;
 };
 
 class AllocaInst : public Instruction {
@@ -178,7 +180,7 @@ class SExtInst : Instruction {};
   {                                                                            \
     if (Op != IROpKind::Op_Alloca && Op != IROpKind::Op_Store &&               \
         Op != IROpKind::Op_Load)                                               \
-      s += ";     left:" + std::to_string(left->Ival) +                        \
-           " right:" + std::to_string(right->Ival) +                           \
-           " result:" + std::to_string(result->Ival) + "\n";                   \
+      s += ";     Left:" + std::to_string(Left->Ival) +                        \
+           " Right:" + std::to_string(Right->Ival) +                           \
+           " Result:" + std::to_string(Result->Ival) + "\n";                   \
   }

@@ -3,10 +3,10 @@
 static void gen_expr(Node *node);
 static void gen_stmt(Node *node);
 
-std::fstream file_out;
+std::fstream FileOut;
 
 static FILE *output_file;
-int depth;
+int Depth;
 static const char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
 static const char *argreg16[] = {"%di", "%si", "%dx", "%cx", "%r8w", "%r9w"};
 static const char *argreg32[] = {"%edi", "%esi", "%edx",
@@ -29,67 +29,67 @@ static int count() { return count_diff_if++; }
 
 static void push(void) {
   println("  push %%rax");
-  depth++;
+  Depth++;
 }
 
 static void pop(const char *arg) {
   println("  pop %s", arg);
-  depth--;
+  Depth--;
 }
 
 // round up
-int align_to(int n, int align) { return (n + align - 1) / align * align; }
+int alignTo(int n, int Align) { return (n + Align - 1) / Align * Align; }
 
 // stack machine
 
 // assign offsets to local variables.
 static void assign_lvar_offsets(Obj *prog) {
 
-  for (Obj *fn = prog; fn; fn = fn->next) {
-    if (!fn->is_function)
+  for (Obj *fn = prog; fn; fn = fn->Next) {
+    if (!fn->IsFunction)
       continue;
 
-    int offset = 0;
-    for (Obj *var = fn->locals; var; var = var->next) {
-      offset += var->ty->size;
-      offset = align_to(offset, var->ty->align);
-      var->offset = -offset;
+    int Offset = 0;
+    for (Obj *Var = fn->Locals; Var; Var = Var->Next) {
+      Offset += Var->Ty->Size;
+      Offset = alignTo(Offset, Var->Ty->Align);
+      Var->Offset = -Offset;
     }
 
-    fn->stack_size = align_to(offset, 16);
+    fn->StackSize = alignTo(Offset, 16);
   }
 }
 
 // emit global data
 static void emit_data(Obj *prog) {
-  for (Obj *var = prog; var; var = var->next) {
-    if (var->is_function)
+  for (Obj *Var = prog; Var; Var = Var->Next) {
+    if (Var->IsFunction)
       continue;
     println("  .data");
-    println("  .globl %s", var->name);
-    println("%s:", var->name);
-    if (var->init_data) {
-      for (int i = 0; i < var->ty->size; i++)
-        println("  .byte %d", var->init_data[i]);
+    println("  .globl %s", Var->Name);
+    println("%s:", Var->Name);
+    if (Var->InitData) {
+      for (int i = 0; i < Var->Ty->Size; i++)
+        println("  .byte %d", Var->InitData[i]);
     } else {
-      println("  .zero %d", var->ty->size);
+      println("  .zero %d", Var->Ty->Size);
     }
   }
 }
 
-static void store_gp(int r, int offset, int sz) {
+static void store_gp(int r, int Offset, int sz) {
   switch (sz) {
   case 1:
-    println("  mov %s, %d(%%rbp)", argreg8[r], offset);
+    println("  mov %s, %d(%%rbp)", argreg8[r], Offset);
     return;
   case 2:
-    println("  mov %s, %d(%%rbp)", argreg16[r], offset);
+    println("  mov %s, %d(%%rbp)", argreg16[r], Offset);
     return;
   case 4:
-    println("  mov %s, %d(%%rbp)", argreg32[r], offset);
+    println("  mov %s, %d(%%rbp)", argreg32[r], Offset);
     return;
   case 8:
-    println("  mov %s, %d(%%rbp)", argreg64[r], offset);
+    println("  mov %s, %d(%%rbp)", argreg64[r], Offset);
     return;
   }
 
@@ -97,17 +97,17 @@ static void store_gp(int r, int offset, int sz) {
 }
 
 void codegen(Obj *prog, FILE *out, std::string file) {
-  file_out.open(file, std::ios_base::out);
+  FileOut.open(file, std::ios_base::out);
   output_file = out;
-  // file_out.open(output_file, out);
-  // first setup offset
+  // FileOut.open(output_file, out);
+  // first setup Offset
   assign_lvar_offsets(prog);
   // emit_data(prog);
   // emit_text(prog);
-  // printf("before emit_global_data_ir:\n");
+  // printf("before emitGlobalDataIR:\n");
 
-  emit_ir(prog, file);
+  emitIR(prog, file);
 
-  file_out.flush();
-  file_out.close();
+  FileOut.flush();
+  FileOut.close();
 }

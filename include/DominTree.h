@@ -1,10 +1,11 @@
+#pragma once
 #include "Block.h"
 #include "Instruction.h"
 #include <vector>
 
 class DominTree {
   int num;
-  std::map<BlockPtr, std::vector<BlockPtr>> domins;
+  std::map<BasicBlockPtr, std::vector<BasicBlockPtr>> domins;
 
 public:
   DominTree(int num) : num(num) {}

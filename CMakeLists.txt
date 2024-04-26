@@ -16,7 +16,7 @@ set(CMAKE_BUILD_TYPE Debug CACHE STRING "Set Build Type to Debug")
 include_directories(include)
 add_library(libs SHARED 
     lib/Rope.cpp
-    lib/Block.cpp 
+    lib/BasicBlock.cpp 
     lib/FunctionIR.cpp 
     lib/IR.cpp 
     lib/IRGen.cpp 
@@ -30,6 +30,9 @@ add_library(libs SHARED
     lib/type.cpp
     lib/IRBuilder.cpp
     lib/Module.cpp
+    lib/IRGenStatement.cpp
+    lib/IRGenVariable.cpp
+    lib/IRGenExpression.cpp
 )
 
 # include_directories(include)

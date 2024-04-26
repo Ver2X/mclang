@@ -1,0 +1,116 @@
+[
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/Rope.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/Rope.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/Rope.cpp",
+  "output": "CMakeFiles/libs.dir/lib/Rope.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/Block.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/Block.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/Block.cpp",
+  "output": "CMakeFiles/libs.dir/lib/Block.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/FunctionIR.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/FunctionIR.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/FunctionIR.cpp",
+  "output": "CMakeFiles/libs.dir/lib/FunctionIR.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/IR.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/IR.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/IR.cpp",
+  "output": "CMakeFiles/libs.dir/lib/IR.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/IRGen.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/IRGen.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/IRGen.cpp",
+  "output": "CMakeFiles/libs.dir/lib/IRGen.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/Instruction.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/Instruction.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/Instruction.cpp",
+  "output": "CMakeFiles/libs.dir/lib/Instruction.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/SymbolTable.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/SymbolTable.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/SymbolTable.cpp",
+  "output": "CMakeFiles/libs.dir/lib/SymbolTable.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/Variable.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/Variable.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/Variable.cpp",
+  "output": "CMakeFiles/libs.dir/lib/Variable.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/codegen.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/codegen.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/codegen.cpp",
+  "output": "CMakeFiles/libs.dir/lib/codegen.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/parse.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/parse.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/parse.cpp",
+  "output": "CMakeFiles/libs.dir/lib/parse.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/strings.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/strings.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/strings.cpp",
+  "output": "CMakeFiles/libs.dir/lib/strings.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/tokenize.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/tokenize.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/tokenize.cpp",
+  "output": "CMakeFiles/libs.dir/lib/tokenize.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/type.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/type.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/type.cpp",
+  "output": "CMakeFiles/libs.dir/lib/type.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/IRBuilder.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/IRBuilder.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/IRBuilder.cpp",
+  "output": "CMakeFiles/libs.dir/lib/IRBuilder.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/Module.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/Module.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/Module.cpp",
+  "output": "CMakeFiles/libs.dir/lib/Module.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/IRGenStatement.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/IRGenStatement.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/IRGenStatement.cpp",
+  "output": "CMakeFiles/libs.dir/lib/IRGenStatement.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/IRGenVariable.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/IRGenVariable.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/IRGenVariable.cpp",
+  "output": "CMakeFiles/libs.dir/lib/IRGenVariable.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -Dlibs_EXPORTS -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -fPIC -o CMakeFiles/libs.dir/lib/IRGenExpression.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/IRGenExpression.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/IRGenExpression.cpp",
+  "output": "CMakeFiles/libs.dir/lib/IRGenExpression.cpp.o"
+},
+{
+  "directory": "/Users/zyy/WorkSpace/GitHub/mclang/build",
+  "command": "clang++ -I/Users/zyy/WorkSpace/GitHub/mclang/include -fno-common -g -std=gnu++2b -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.2.sdk -o CMakeFiles/mclang.dir/lib/main.cpp.o -c /Users/zyy/WorkSpace/GitHub/mclang/lib/main.cpp",
+  "file": "/Users/zyy/WorkSpace/GitHub/mclang/lib/main.cpp",
+  "output": "CMakeFiles/mclang.dir/lib/main.cpp.o"
+}
+]

@@ -1,80 +1,80 @@
 #include "mclang.h"
 
-TypePtr ty_char = std::make_shared<Type>(TY_CHAR, 1, 1);
+TypePtr TyChar = std::make_shared<Type>(TY_CHAR, 1, 1);
 
-TypePtr ty_short = std::make_shared<Type>(TY_SHORT, 2, 2);
+TypePtr TyShort = std::make_shared<Type>(TY_SHORT, 2, 2);
 
-TypePtr ty_int = std::make_shared<Type>(TY_INT, 4, 4);
+TypePtr TyInt = std::make_shared<Type>(TY_INT, 4, 4);
 
-TypePtr ty_long = std::make_shared<Type>(TY_LONG, 8, 8);
+TypePtr TyLong = std::make_shared<Type>(TY_LONG, 8, 8);
 
-TypePtr ty_void = std::make_shared<Type>(TY_VOID, 1, 1);
+TypePtr TyVoid = std::make_shared<Type>(TY_VOID, 1, 1);
 
-static TypePtr new_type(TypeKind kind, int size, int align) {
-  TypePtr ty = std::make_shared<Type>();
-  ty->kind = kind;
-  ty->size = size;
-  ty->align = align;
-  return ty;
+static TypePtr newType(TypeKind Kind, int Size, int Align) {
+  TypePtr Ty = std::make_shared<Type>();
+  Ty->Kind = Kind;
+  Ty->Size = Size;
+  Ty->Align = Align;
+  return Ty;
 }
 
 /*! judge type
  */
-bool is_integer(TypePtr ty) {
-  return ty->kind == TY_CHAR || ty->kind == TY_SHORT || ty->kind == TY_INT ||
-         ty->kind == TY_LONG;
+bool isInteger(TypePtr Ty) {
+  return Ty->Kind == TY_CHAR || Ty->Kind == TY_SHORT || Ty->Kind == TY_INT ||
+         Ty->Kind == TY_LONG;
 }
 
-/*! create a pointer of type, with base type
+/*! create a pointer of type, with Base type
  * */
-TypePtr pointer_to(TypePtr base) {
-  TypePtr ty = new_type(TY_PTR, 8, 8);
-  ty->base = base;
-  return ty;
+TypePtr pointerTo(TypePtr Base) {
+  TypePtr Ty = newType(TY_PTR, 8, 8);
+  Ty->Base = Base;
+  return Ty;
 }
 
-TypePtr func_type(TypePtr return_ty) {
-  TypePtr ty = std::make_shared<Type>();
-  ty->kind = TY_FUNC;
-  ty->return_ty = return_ty;
-  return ty;
+TypePtr funcType(TypePtr ReturnTy) {
+  TypePtr Ty = std::make_shared<Type>();
+  Ty->Kind = TY_FUNC;
+  Ty->ReturnTy = ReturnTy;
+  return Ty;
 }
 
-TypePtr copy_type(TypePtr ty) {
+TypePtr copyType(TypePtr Ty) {
   TypePtr ret = std::make_shared<Type>();
-  *ret = *ty;
+  *ret = *Ty;
   return ret;
 }
 
-TypePtr array_of(TypePtr base, int len) {
-  TypePtr ty = new_type(TY_ARRAY, base->size * len, base->align);
-  ty->base = base;
-  ty->array_len = len;
-  return ty;
+TypePtr arrayOf(TypePtr Base, int len) {
+  TypePtr Ty = newType(TY_ARRAY, Base->Size * len, Base->Align);
+  Ty->Base = Base;
+  Ty->ArrayLen = len;
+  return Ty;
 }
 
 /*! recursive setup the type of given AST node
  * */
-void add_type(Node *node) {
-  if (!node || node->ty)
+void addType(Node *node) {
+  if (!node || node->Ty)
     return;
 
-  add_type(node->lhs);
-  add_type(node->rhs);
-  add_type(node->cond);
-  add_type(node->then);
-  add_type(node->els);
-  add_type(node->init);
-  add_type(node->inc);
+  addType(node->Lhs);
+  addType(node->Rhs);
+  addType(node->cond);
+  addType(node->then);
+  addType(node->els);
+  addType(node->init);
+  addType(node->inc);
 
-  for (Node *n = node->body; n; n = n->next) {
-    add_type(n);
+  for (Node *n = node->Body; n; n = n->Next) {
+    addType(n);
   }
-  for (Node *n = node->args; n; n = n->next) {
-    add_type(n);
+  for (Node *n = node->args; n; n = n->Next) {
+    addType(n);
   }
 
-  switch (node->kind) {
+  switch (node->Kind) {
   // arithmetic operations
   case ND_ADD:
   case ND_SUB:
@@ -82,63 +82,63 @@ void add_type(Node *node) {
   case ND_DIV:
   case ND_NEG:
     // may need expand to support implict convert
-    node->ty = node->lhs->ty;
+    node->Ty = node->Lhs->Ty;
     return;
   case ND_ASSIGN:
-    if (node->lhs->ty->kind == TY_ARRAY)
-      error_tok(node->lhs->tok, "not an lvalue");
-    node->ty = node->lhs->ty;
+    if (node->Lhs->Ty->Kind == TY_ARRAY)
+      error_tok(node->Lhs->Tok, "not an lvalue");
+    node->Ty = node->Lhs->Ty;
     return;
 
-  // logic operations and int set as ty_int;
+  // logic operations and int set as TyInt;
   case ND_EQ:
   case ND_NE:
   case ND_LT:
   case ND_LE:
   case ND_NUM:
   case ND_FUNCALL:
-    node->ty = ty_long;
+    node->Ty = TyLong;
     return;
   case ND_VAR:
     // int, int *, int ** ...
-    node->ty = node->var->ty;
+    node->Ty = node->Var->Ty;
     return;
   case ND_COMMA:
-    node->ty = node->rhs->ty;
+    node->Ty = node->Rhs->Ty;
     return;
   case ND_MEMBER:
-    node->ty = node->member->ty;
+    node->Ty = node->member->Ty;
     return;
-  // for '&', create a new type as TY_PTR, setup base type
+  // for '&', create a new type as TY_PTR, setup Base type
   case ND_ADDR:
-    if (node->lhs->ty->kind == TY_ARRAY)
-      node->ty = pointer_to(node->lhs->ty->base);
+    if (node->Lhs->Ty->Kind == TY_ARRAY)
+      node->Ty = pointerTo(node->Lhs->Ty->Base);
     else
-      node->ty = pointer_to(node->lhs->ty);
+      node->Ty = pointerTo(node->Lhs->Ty);
     return;
   case ND_DEREF:
-    if (!node->lhs->ty->base) {
-      error_tok(node->tok,
+    if (!node->Lhs->Ty->Base) {
+      error_tok(node->Tok,
                 "expect dereference a pointer or array pointer, but not");
     }
-    if (node->lhs->ty->base->kind == TY_VOID) {
-      error_tok(node->tok, "dereferencing a void pointer");
+    if (node->Lhs->Ty->Base->Kind == TY_VOID) {
+      error_tok(node->Tok, "dereferencing a void pointer");
     }
 
     // for '*', down a type level
-    node->ty = node->lhs->ty->base;
+    node->Ty = node->Lhs->Ty->Base;
     return;
   case ND_STMT_EXPR:
-    if (node->body) {
-      Node *stmt = node->body;
-      while (stmt->next)
-        stmt = stmt->next;
-      if (stmt->kind == ND_EXPR_STMT) {
-        node->ty = stmt->lhs->ty;
+    if (node->Body) {
+      Node *stmt = node->Body;
+      while (stmt->Next)
+        stmt = stmt->Next;
+      if (stmt->Kind == ND_EXPR_STMT) {
+        node->Ty = stmt->Lhs->Ty;
         return;
       }
     }
-    error_tok(node->tok,
+    error_tok(node->Tok,
               "statement expression returning void is not supported");
     return;
   default:

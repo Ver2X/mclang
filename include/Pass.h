@@ -1,4 +1,5 @@
-#include "Block.h"
+#pragma once
+#include "BasicBlock.h"
 #include "FunctionIR.h"
 #include "LoopInfo.h"
 

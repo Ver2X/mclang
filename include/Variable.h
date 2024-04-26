@@ -17,7 +17,7 @@
 #include <tuple>
 #include <unordered_map>
 #include <vector>
-
+#pragma once
 enum class ReturnTypeKind {
   RTY_INT,
   RTY_SHORT,
@@ -47,17 +47,17 @@ using VarList = std::shared_ptr<std::vector<VariablePtr>>;
 
 class Operand {
 private:
-  std::string name;
+  std::string Name;
 
 public:
-  // void SetName(std::string & name) { this->name = name; }
+  // void setName(std::string & Name) { this->Name = Name; }
   //  SSA?
   int Ival;
   double Fval;
   VaribleKind type;
 
-  int align;
-  Operand *next;
+  int Align;
+  Operand *Next;
   bool isConst;
   bool isInitConst;
   bool isGlobal;
@@ -68,16 +68,16 @@ public:
   Operand(int v);
   Operand(double v);
 
-  std::string &GetName() { return name; }
-  void SetName(std::string name) { this->name = name; }
+  std::string &getName() { return Name; }
+  void setName(std::string Name) { this->Name = Name; }
 
   void SetConst(double v);
   void SetConst(int v);
   void SetConst(int64_t v);
-  void SetGlobal();
+  void setGlobal();
   void SetArg();
   void SetAddr(VariablePtr _Addr);
-  VariablePtr GetAddr();
+  VariablePtr getAddr();
   bool isArg();
 
   std::string CodeGen();
