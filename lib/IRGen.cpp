@@ -3,6 +3,7 @@
 #include "Module.h"
 #include "SymbolTable.h"
 #include "Variable.h"
+#include "analysis/Dominance.h"
 #include "mclang.h"
 // #include <bits/types/FILE.h>
 #include <algorithm>
@@ -222,6 +223,10 @@ void emitIR(Obj *Prog, std::string FileName) {
                             ".png";
     std::cout << "do cmd:\n" << GenPNGCmd << "\n";
     system(GenPNGCmd.c_str());
+
+    // getDominanceOfFunction(Func);
+    // getIDomOfFunction(Func);
+    getDomFrontierOfFunction(Func);
   }
 }
 

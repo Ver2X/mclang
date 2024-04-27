@@ -62,6 +62,8 @@ public:
               BasicBlockPtr targetTwo, IROpKind Op, IRBuilder *buider);
   void SetPred(BasicBlockPtr);
   void SetSucc(BasicBlockPtr);
+  const std::list<BasicBlockPtr> &GetPred() { return preds; };
+  const std::list<BasicBlockPtr> &GetSucc() { return succes; };
   std::string CodeGen();
   std::string CodeGenCFG();
   std::string AllocaCodeGen();

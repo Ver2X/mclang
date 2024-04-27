@@ -396,10 +396,10 @@ std::string IRBuilder::DumpCFG() {
   for (int i = 0; i < function->numofblock; i++) {
     s += "\n";
     if (i != 0)
-      s += "  " + std::to_string(i) + " [shape = polygon, Label = \" " +
+      s += "  " + std::to_string(i) + " [shape = polygon, label = \" " +
            PreNumToBlock[i]->CodeGenCFG() + "\" ];";
     else
-      s += "  " + std::to_string(i) + " [shape = polygon, Label = \" " +
+      s += "  " + std::to_string(i) + " [shape = polygon, label = \" " +
            PreNumToBlock[i]->EntryCodeGenCFG() + "\" ];";
   }
   s += "\n}\n";

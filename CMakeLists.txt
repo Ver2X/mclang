@@ -34,6 +34,7 @@ add_library(libs SHARED
     lib/IRGenAddr.cpp
     lib/IRGenExpression.cpp
     lib/StructTypeTag.cpp
+    lib/analysis/Dominance.cpp
 )
 
 # include_directories(include)

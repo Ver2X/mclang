@@ -92,6 +92,9 @@ DCE
 
 CodeGen?:
 
+Slot Index
+name is a slot, gen serial in codegen
+
 ## The syntax of C in Backus-Naur Form
 
 ```c
