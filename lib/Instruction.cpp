@@ -95,35 +95,41 @@ std::string BinaryOperator::CodeGen() {
 
 std::string StoreInst::CodeGen() {
 
-  if (source == nullptr)
+  if (Source == nullptr)
     return "  store i32 " + std::to_string(this->Ival) + ", i32* " +
-           dest->getName() + ", align " +
-           std::to_string(dest->Align); // + "\n";
+           Dest->getName() + ", align " +
+           std::to_string(Dest->Align); // + "\n";
   else
-    return "  store i32 " + source->getName() + ", i32* " + dest->getName() +
-           ", align " + std::to_string(dest->Align); // + "\n";
+    return "  store i32 " + Source->getName() + ", i32* " + Dest->getName() +
+           ", align " + std::to_string(Dest->Align); // + "\n";
 }
 
 std::string LoadInst::CodeGen() {
-  return "  " + dest->getName() + " = load i32, " + "i32* " +
-         source->getName() + ", align " +
-         std::to_string(source->Align); // + "\n";
+  return "  " + Dest->getName() + " = load i32, " + "i32* " +
+         Source->getName() + ", align " +
+         std::to_string(Source->Align); // + "\n";
 }
 
 std::string AllocaInst::CodeGen() {
-  return "  " + dest->getName() + " = " + "alloca i32 " + ", align " +
-         std::to_string(dest->Align); // + "\n";
+  if (ArraySize) {
+    return "  " + Dest->getName() + " = " + "alloca [" +
+           std::to_string(ArraySize->Ival) + " x i32] " + ", align " +
+           std::to_string(Dest->Align); // + "\n";
+  } else {
+    return "  " + Dest->getName() + " = " + "alloca i32 " + ", align " +
+           std::to_string(Dest->Align); // + "\n";
+  }
 }
 
 std::string CallInst::CodeGen() {
   std::string Res;
-  // if (func->retTy == ReturnTypeKind::RTY_VOID) {
+  // if (func->RetTy == ReturnTypePtr::RTY_VOID) {
   //   Res += "  call void @";
   // } else {
-  Res += "  " + dest->getName() + " =";
+  Res += "  " + Dest->getName() + " =";
   Res += "  call i32 @";
   // }
-  Res += func->FunctionName + "("; // + "\n";
+  Res += func->getName() + "("; // + "\n";
   for (auto x : args) {
     Res += "i32 ";
     Res += x->getName();
@@ -154,4 +160,16 @@ std::string ReturnInst::CodeGen() {
     return "  ret i32 " + returnValue->getName(); // + "\n";
   else
     return "  ret void\n";
+}
+
+std::string GetElementPtrInst::CodeGen() {
+  // %arrayidx? = getelementptr inbounds [2 x i32], [2 x i32]* %a, i64 0, i64 0
+  std::string s = "  " + Result->getName() + " = getelementptr inbounds ";
+  s += baseTo(PtrTy)->CodeGen() + ", ";
+  s += BasePtr->CodeGen();
+  for (auto Idx : IdxList) {
+    s += ", ";
+    s += Idx->CodeGen();
+  }
+  return s;
 }

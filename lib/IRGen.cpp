@@ -28,23 +28,25 @@ std::string Twine(std::string L, int R) {
 
 std::string getPreName(std::string Name) { return Twine("%", Name); }
 
-VaribleKind nodeTypeToVarType(TypeKind Ty) {
-  if (Ty == TY_CHAR) {
-    return VaribleKind::VAR_8;
-  } else if (Ty == TY_SHORT) {
-    return VaribleKind::VAR_16;
-  } else if (Ty == TY_INT) {
-    return VaribleKind::VAR_32;
-  } else if (Ty == TY_LONG) {
-    return VaribleKind::VAR_64;
-  } else if (Ty == TY_VOID) {
-    return VaribleKind::VAR_Void;
-  } else {
-    // TODO: make assert do
-    assert(false && "not support now");
-    return VaribleKind::VAR_Undefined;
-  }
-}
+// VariablePtr nodeTypeToVarType(TypeKind Ty) {
+//   if (Ty == TY_CHAR) {
+//     return VariablePtr::VAR_8;
+//   } else if (Ty == TY_SHORT) {
+//     return VariablePtr::VAR_16;
+//   } else if (Ty == TY_INT) {
+//     return VariablePtr::VAR_32;
+//   } else if (Ty == TY_LONG) {
+//     return VariablePtr::VAR_64;
+//   } else if (Ty == TY_VOID) {
+//     return VariablePtr::VAR_Void;
+//   } else if (Ty == TY_ARRAY) {
+//     return VariablePtr::Var_Array;
+//   } else {
+//     // TODO: make assert do
+//     assert(false && "not support now");
+//     return VariablePtr::VAR_Undefined;
+//   }
+// }
 
 std::string NodeKindStrings[] = {
     "ND_ADD",       // +
@@ -103,71 +105,89 @@ void emitIR(Obj *Prog, std::string FileName) {
     IRFunctionPtr Func = GlobalSymTable->findFunc(FuncNode->Name);
     if (!Func) {
       Func = std::make_shared<IRFunction>();
-      Func->FunctionName = FuncNode->Name;
+      Func->setName(FuncNode->Name);
     }
 
     auto LocalTable = std::make_shared<SymbolTable>(GlobalSymTable);
     Func->setTable(LocalTable);
     InMemoryIR = std::make_shared<IRBuilder>(Func);
+    InMemoryIR->SetInsertPoint(InMemoryIR->nextBlockLabelNum(), "entry");
 
-    switch (FuncNode->Ty->ReturnTy->Kind) {
-    case TY_INT:
-      Func->retTy = ReturnTypeKind::RTY_INT;
-      break;
-    case TY_CHAR:
-      Func->retTy = ReturnTypeKind::RTY_CHAR;
-      break;
-    default:
-      Func->retTy = ReturnTypeKind::RTY_PTR;
-      break;
-    }
+    // switch (FuncNode->Ty->ReturnTy->Kind) {
+    // case TY_INT:
+    //   Func->RetTy = ReturnTypePtr::RTY_INT;
+    //   break;
+    // case TY_CHAR:
+    //   Func->RetTy = ReturnTypePtr::RTY_CHAR;
+    //   break;
+    // default:
+    //   Func->RetTy = ReturnTypePtr::RTY_PTR;
+    //   break;
+    // }
+    Func->RetTy = FuncNode->Ty->ReturnTy;
     // save passed-by-register arguments to the stack
-    VariablePtr ArgVar;
-    VariablePtr ArgVarAddr;
+    // VariablePtr ArgVar;
+    // VariablePtr ArgVarAddr;
     // arg, addr of arg
-    std::vector<std::tuple<VariablePtr, VariablePtr>> ArgVarPair;
+    // std::vector<std::pair<VariablePtr, VariablePtr>> ArgVarPair;
 
     /// Cache and release variable
     for (Obj *Var = FuncNode->Params; Var; Var = Var->Next) {
+
       // FileOut << "Func args increase 1" << std::endl;
-      ArgVar = std::make_shared<Variable>();
-      std::cout << "meet type: " << Var->Ty->Kind << "\n";
-      ArgVar->type = nodeTypeToVarType(Var->Ty->Kind);
+      auto ArgVar = std::make_shared<Variable>();
+      // std::cout << "meet type: " << Var->Ty->Kind << "\n";
+      // assert(Var->Ty);
+      // Var->Ty->Kind;
+      // assert(Var->Ty == TyInt);
+      if (Var->Ty->Kind == TypeKind::TY_INT) {
+        ArgVar->VarType = TyInt;
+      } else {
+        assert(false);
+      }
+      // ArgVar->VarType = Var->Ty;
       ArgVar->setName(getPreName(Var->Name));
       ArgVar->SetArg();
+      Func->addParamTy(ArgVar->VarType);
       LocalTable->insert(Var, ArgVar);
-      ArgVarAddr = std::make_shared<Variable>();
-      ArgVarAddr->setName(Twine(getPreName(Var->Name), ".addr"));
-      ArgVarPair.push_back(
-          std::tuple<VariablePtr, VariablePtr>(ArgVar, ArgVarAddr));
-      ArgVar->SetAddr(ArgVarAddr);
-      Func->args.push_back(ArgVar);
+      // ArgVarAddr = std::make_shared<Variable>();
+      // ArgVarAddr->setName(Twine(getPreName(Var->Name), ".addr"));
+      // ArgVarPair.push_back(
+      //     std::tuple<VariablePtr, VariablePtr>(ArgVar, ArgVarAddr));
+
+      // Func->Args.push_back(ArgVar);
+      Func->addArg(ArgVar);
       ArgVariableCached.push_back(ArgVar);
       (Func->argsNum)++;
+      auto ArgVarAddr = InMemoryIR->CreateAlloca(
+          ArgVar->VarType, nullptr, Twine(getPreName(Var->Name), ".addr"));
+      ArgVar->SetAddr(ArgVarAddr);
+      InMemoryIR->CreateStore(ArgVar, ArgVarAddr);
     }
 
-    InMemoryIR->SetFunc(Func);
-
+    // InMemoryIR->SetFunc(Func);
     Func->setBody(InMemoryIR);
-
-    // emit code
-    InMemoryIR->SetInsertPoint(InMemoryIR->nextBlockLabelNum(), "entry");
-
-    for (auto p : ArgVarPair) {
-      InMemoryIR->CreateAlloca(std::get<1>(p));
-      InMemoryIR->CreateStore(std::get<0>(p), std::get<1>(p));
-    }
 
     int NumOfLocal = 0;
     for (Obj *Var = FuncNode->Locals; Var; Var = Var->Next) {
-      VariablePtr LocalVar = std::make_shared<Variable>();
       std::string InitName = getPreName(Var->Name);
       while (LocalTable->nameHaveUsed(InitName)) {
         InitName += ".1";
       }
-      LocalVar->setName(InitName);
-      LocalVar->type = nodeTypeToVarType(Var->Ty->Kind);
-      InMemoryIR->CreateAlloca(LocalVar);
+      auto LocalVarTy = Var->Ty;
+      VariablePtr ArraySize = nullptr;
+      if (LocalVarTy->Kind == TypeKind::TY_ARRAY) {
+        std::cout << "array len is: " << Var->Ty->ArrayLen << "\n";
+        ArraySize = std::make_shared<Variable>(Var->Ty->ArrayLen);
+      }
+      std::cout << "local var " << InitName
+                << " Ty is: " << LocalVarTy->CodeGen() << "\n";
+
+      auto LocalVar = InMemoryIR->CreateAlloca(LocalVarTy, ArraySize, InitName);
+
+      std::cout << "local var " << InitName
+                << " ptr Ty is: " << LocalVar->getType()->CodeGen() << "\n";
+      std::cout << "Table insert: " << Var << " to: " << LocalVar << "\n";
       LocalTable->insert(Var, LocalVar);
 
       NumOfLocal++;

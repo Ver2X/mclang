@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <fstream>
 #include <iostream>
+#include <list>
 #include <map>
 #include <memory>
 #include <stack>
@@ -33,16 +34,16 @@ enum class EdgeKind {
 
 class BasicBlock {
 
-  std::vector<BasicBlockPtr> preds;
-  std::vector<BasicBlockPtr> succes;
+  std::list<BasicBlockPtr> preds;
+  std::list<BasicBlockPtr> succes;
   int Label;
   std::string Name;
   // entry blck is a special BasicBlock
-  std::vector<InstructionPtr> allocas;
+  std::list<InstructionPtr> allocas;
   friend class IRBuilder;
-  // std::vector<InstructionPtr> instructinos;
+
 public:
-  std::vector<InstructionPtr> instructinos;
+  std::list<InstructionPtr> InstInBB;
   BasicBlock() { Label = 0; }
   BasicBlock(int Label, std::string Name) : Label(Label), Name(Name) {}
   void setName(std::string Name) { this->Name = Name; }
@@ -51,6 +52,10 @@ public:
   int GetLabel() { return Label; }
   void Insert(VariablePtr Left, VariablePtr Right, VariablePtr Result,
               IROpKind Op, IRBuilder *buider);
+  void Insert(VarTypePtr VTy, VariablePtr ArraySize, VariablePtr Result,
+              IROpKind Op, IRBuilder *Buider);
+  void Insert(VarTypePtr VTy, VariablePtr Ptr, std::vector<VariablePtr> IdxList,
+              VariablePtr Res, IROpKind Op, IRBuilder *Buider);
   void Insert(IRFunctionPtr func, std::vector<VariablePtr> args,
               VariablePtr Result, IROpKind Op, IRBuilder *buider);
   void Insert(VariablePtr indicateVariable, BasicBlockPtr targetOne,

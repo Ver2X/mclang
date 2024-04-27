@@ -22,33 +22,57 @@
 
 // do include "IRBuilder.h" incase cycle include
 class SymbolTable;
+class BasicBlock;
 using SymbolTablePtr = std::shared_ptr<SymbolTable>;
+using BasicBlockPtr = std::shared_ptr<BasicBlock>;
+using Edge = std::pair<BasicBlockPtr, BasicBlockPtr>;
+enum class EdgeKind;
 class IRBuilder;
+
 class IRFunction {
+  friend class IRBuilder;
   int varNameNum;
   int blockLabelNum;
   int controlFlowNum;
   std::shared_ptr<IRBuilder> Body;
   SymbolTablePtr Table;
+  int CacheLabel;
+  int EntryLabel;
+  std::string CacheName;
+  int CountSuffix;
+  int numofblock;
+  std::map<int, BasicBlockPtr> Blocks;
+  std::map<Edge, EdgeKind> EdgeKinds;
+  std::map<BasicBlockPtr, int> PreNum;
+  std::map<BasicBlockPtr, int> PostNum;
+  std::map<int, BasicBlockPtr> PreNumToBlock;
+  std::map<int, BasicBlockPtr> PostNumToBlock;
+  std::string FunctionName;
+  std::vector<TypePtr> ParamTys;
+  std::vector<VariablePtr> Args;
 
 public:
   IRFunction();
   IRFunction(std::string Name);
 
-  std::string FunctionName;
   // VariablePtr args;
-  std::vector<VariablePtr> args;
   int argsNum;
   VariablePtr ret;
-  ReturnTypeKind retTy;
+  ReturnTypePtr RetTy;
+  std::map<std::string, int> CachedVarNames;
 
   std::string rename();
   std::string getName() { return FunctionName; };
+  std::string createName(std::string Name);
+  void setName(std::string Name) { FunctionName = Name; };
   SymbolTablePtr GeTable() { return Table; };
   int nextVarNameNum();
   int nextBlockLabelNum();
   int nextControlFlowNum();
   void AddArgs();
+  void setParamTys(std::vector<TypePtr> &Tys);
+  void addParamTy(TypePtr Ty);
+  void addArg(VariablePtr Arg);
   std::string CodeGen();
   void setBody(std::shared_ptr<IRBuilder> Body);
   void setTable(SymbolTablePtr local_table) { Table = local_table; };

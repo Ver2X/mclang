@@ -2,19 +2,25 @@
 
 IRFunction::IRFunction() {
   argsNum = 0;
-  retTy = ReturnTypeKind::RTY_VOID;
+  RetTy = TyVoid;
   varNameNum = 0;
   blockLabelNum = 0;
   controlFlowNum = 0;
+  CacheLabel = -1;
+  EntryLabel = -1;
+  CountSuffix = 1;
 }
 
 IRFunction::IRFunction(std::string Name) {
   argsNum = 0;
-  retTy = ReturnTypeKind::RTY_VOID;
+  RetTy = TyVoid;
   FunctionName = Name;
   varNameNum = 0;
   blockLabelNum = 0;
   controlFlowNum = 0;
+  CacheLabel = -1;
+  EntryLabel = -1;
+  CountSuffix = 1;
 }
 
 int IRFunction::nextVarNameNum() { return varNameNum++; }
@@ -25,29 +31,38 @@ int IRFunction::nextControlFlowNum() { return controlFlowNum++; }
 
 void IRFunction::setBody(std::shared_ptr<IRBuilder> _body) { Body = _body; }
 
+std::string IRFunction::createName(std::string Name) {
+  if (CachedVarNames.count(Name)) {
+    return Name + std::to_string(CachedVarNames[Name]++);
+  } else {
+    CachedVarNames[Name] = 1;
+    return Name;
+  }
+}
+void IRFunction::addParamTy(TypePtr Ty) { ParamTys.push_back(Ty); }
+
+void IRFunction::setParamTys(std::vector<TypePtr> &Tys) { ParamTys = Tys; }
+
+void IRFunction::addArg(VariablePtr Arg) { Args.push_back(Arg); }
+
 std::string IRFunction::CodeGen() {
   // if Body non-null
   std::string s;
   s += "define dso_local ";
-  switch (retTy) {
-  case ReturnTypeKind::RTY_VOID:
+  if (RetTy == TyVoid) {
     s += "void ";
-    break;
-  case ReturnTypeKind::RTY_INT:
+  } else if (RetTy == TyInt) {
     s += "i32 ";
-    break;
-  case ReturnTypeKind::RTY_CHAR:
-    s += "signext i8 ";
-    break;
-  case ReturnTypeKind::RTY_PTR:
-    // dump de type
-    s += "i32";
-    s += "* ";
-    break;
-  default:
-    s += "void ";
-    break;
+  } else if (RetTy == TyLong) {
+    s += "i64 ";
+  } else if (RetTy == TyDouble) {
+    s += "f64 ";
+  } else if (RetTy == TyChar) {
+    s += "i8 ";
+  } else if (RetTy == TyShort) {
+    s += "i16 ";
   }
+
   s += "@";
   s += rename();
   s += "(";
@@ -55,22 +70,13 @@ std::string IRFunction::CodeGen() {
   // s += "argsNum is :";
   // s += std::to_string(argsNum);
   // s += "\n";
-  for (auto Begin = args.begin(), End = args.end(); Begin != End; Begin++) {
+  for (auto Begin = Args.begin(), End = Args.end(); Begin != End; Begin++) {
     s += (*Begin)->CodeGen();
     if (Begin != End - 1) {
       s += ", ";
     }
   }
-  /*for(int i = 0; i < argsNum; i++)
-  {
-          assert(head != nullptr);
-          s += head->CodeGen();
-          if(i != argsNum - 1)
-          {
-                  s += ", ";
-          }
-          head = head->Next;
-  }*/
+
   s += ")";
   return s;
 }
@@ -78,12 +84,12 @@ std::string IRFunction::CodeGen() {
 std::string IRFunction::rename() {
   // // _ + return type + Name + arg
   // std::string s = "_";
-  // if (retTy == ReturnTypeKind::RTY_INT)
+  // if (RetTy == ReturnTypePtr::RTY_INT)
   //   s += "Z";
   // s += FunctionName;
 
   // for (auto arg_iter : args) {
-  //   if (arg_iter->type == VaribleKind::VAR_32)
+  //   if (arg_iter->type == VariablePtr::VAR_32)
   //     s += "i";
   // }
   return FunctionName;

@@ -15,7 +15,7 @@ extern std::shared_ptr<IRBuilder> InMemoryIR;
 extern SymbolTablePtr GlobalSymTable;
 extern std::shared_ptr<Module> ProgramModule;
 
-VariablePtr genVariableIR(Node *ExpNode, SymbolTablePtr Table) {
+VariablePtr genAddrIR(Node *ExpNode, SymbolTablePtr Table) {
   switch (ExpNode->Kind) {
   case ND_VAR: {
     if (ExpNode->Var->IsLocal) {
@@ -25,6 +25,10 @@ VariablePtr genVariableIR(Node *ExpNode, SymbolTablePtr Table) {
       if (Var->isArg()) {
         Var = Var->getAddr();
       }
+      std::cout << "find local var pair: " << ExpNode->Var << " to: " << Var
+                << "\n";
+      std::cout << "find local var: " << Var->CodeGen() << "\n";
+      assert(Var->getType()->Kind == TypeKind::TY_PTR);
       return Var;
     } else {
       // Global variable find in global symbol Table
@@ -35,18 +39,22 @@ VariablePtr genVariableIR(Node *ExpNode, SymbolTablePtr Table) {
     return nullptr;
   }
   case ND_DEREF: {
+    // array also is dereference
+    std::cout << "start handle defref \n";
     VariablePtr Res;
+    assert(ExpNode->Lhs->Kind == ND_POINTER_OFFSET);
     genExprIR(ExpNode->Lhs, &Res, Table);
-    return nullptr;
+    std::cout << "meet deref at: " << Res->CodeGen() << "\n";
+    return Res;
   }
   case ND_COMMA: {
     VariablePtr Res;
     genExprIR(ExpNode->Lhs, &Res, Table);
-    genVariableIR(ExpNode->Rhs, Table);
+    genAddrIR(ExpNode->Rhs, Table);
     return nullptr;
   }
   case ND_MEMBER:
-    genVariableIR(ExpNode->Lhs, Table);
+    genAddrIR(ExpNode->Lhs, Table);
     // println("  add $%d, %%rax", ExpNode->member->Offset);
     return nullptr;
   default:

@@ -1,16 +1,31 @@
 #include "mclang.h"
 
-TypePtr TyChar = std::make_shared<Type>(TY_CHAR, 1, 1);
+TypePtr TyBit = std::make_shared<Type>(TypeKind::TY_BIT, 0, 1);
 
-TypePtr TyShort = std::make_shared<Type>(TY_SHORT, 2, 2);
+TypePtr TyChar = std::make_shared<Type>(TypeKind::TY_CHAR, 1, 1);
 
-TypePtr TyInt = std::make_shared<Type>(TY_INT, 4, 4);
+TypePtr TyShort = std::make_shared<Type>(TypeKind::TY_SHORT, 2, 2);
 
-TypePtr TyLong = std::make_shared<Type>(TY_LONG, 8, 8);
+TypePtr TyInt = std::make_shared<Type>(TypeKind::TY_INT, 4, 4);
 
-TypePtr TyVoid = std::make_shared<Type>(TY_VOID, 1, 1);
+TypePtr TyLong = std::make_shared<Type>(TypeKind::TY_LONG, 8, 8);
 
-static TypePtr newType(TypeKind Kind, int Size, int Align) {
+TypePtr TyDouble = std::make_shared<Type>(TypeKind::TY_DOUBLE, 8, 8);
+
+TypePtr TyVoid = std::make_shared<Type>(TypeKind::TY_VOID, 1, 1);
+
+std::string Type::CodeGen() {
+  if (Kind == TypeKind::TY_INT) {
+    return "i32";
+  } else if (Kind == TypeKind::TY_PTR) {
+    return Base->CodeGen() + "*";
+  } else if (Kind == TypeKind::TY_ARRAY) {
+    return "[" + std::to_string(ArrayLen) + " x " + Base->CodeGen() + "]";
+  } else {
+    return "???";
+  }
+}
+TypePtr newType(TypeKind Kind, int Size, int Align) {
   TypePtr Ty = std::make_shared<Type>();
   Ty->Kind = Kind;
   Ty->Size = Size;
@@ -21,21 +36,26 @@ static TypePtr newType(TypeKind Kind, int Size, int Align) {
 /*! judge type
  */
 bool isInteger(TypePtr Ty) {
-  return Ty->Kind == TY_CHAR || Ty->Kind == TY_SHORT || Ty->Kind == TY_INT ||
-         Ty->Kind == TY_LONG;
+  return Ty->Kind == TypeKind::TY_CHAR || Ty->Kind == TypeKind::TY_SHORT ||
+         Ty->Kind == TypeKind::TY_INT || Ty->Kind == TypeKind::TY_LONG;
 }
 
 /*! create a pointer of type, with Base type
  * */
 TypePtr pointerTo(TypePtr Base) {
-  TypePtr Ty = newType(TY_PTR, 8, 8);
+  TypePtr Ty = newType(TypeKind::TY_PTR, 8, 8);
   Ty->Base = Base;
+  return Ty;
+}
+
+TypePtr baseTo(TypePtr Ptr) {
+  TypePtr Ty = Ptr->Base;
   return Ty;
 }
 
 TypePtr funcType(TypePtr ReturnTy) {
   TypePtr Ty = std::make_shared<Type>();
-  Ty->Kind = TY_FUNC;
+  Ty->Kind = TypeKind::TY_FUNC;
   Ty->ReturnTy = ReturnTy;
   return Ty;
 }
@@ -47,7 +67,7 @@ TypePtr copyType(TypePtr Ty) {
 }
 
 TypePtr arrayOf(TypePtr Base, int len) {
-  TypePtr Ty = newType(TY_ARRAY, Base->Size * len, Base->Align);
+  TypePtr Ty = newType(TypeKind::TY_ARRAY, Base->Size * len, Base->Align);
   Ty->Base = Base;
   Ty->ArrayLen = len;
   return Ty;
@@ -81,11 +101,12 @@ void addType(Node *node) {
   case ND_MUL:
   case ND_DIV:
   case ND_NEG:
+  case ND_POINTER_OFFSET:
     // may need expand to support implict convert
     node->Ty = node->Lhs->Ty;
     return;
   case ND_ASSIGN:
-    if (node->Lhs->Ty->Kind == TY_ARRAY)
+    if (node->Lhs->Ty->Kind == TypeKind::TY_ARRAY)
       error_tok(node->Lhs->Tok, "not an lvalue");
     node->Ty = node->Lhs->Ty;
     return;
@@ -97,7 +118,7 @@ void addType(Node *node) {
   case ND_LE:
   case ND_NUM:
   case ND_FUNCALL:
-    node->Ty = TyLong;
+    node->Ty = TyInt;
     return;
   case ND_VAR:
     // int, int *, int ** ...
@@ -111,7 +132,7 @@ void addType(Node *node) {
     return;
   // for '&', create a new type as TY_PTR, setup Base type
   case ND_ADDR:
-    if (node->Lhs->Ty->Kind == TY_ARRAY)
+    if (node->Lhs->Ty->Kind == TypeKind::TY_ARRAY)
       node->Ty = pointerTo(node->Lhs->Ty->Base);
     else
       node->Ty = pointerTo(node->Lhs->Ty);
@@ -121,7 +142,7 @@ void addType(Node *node) {
       error_tok(node->Tok,
                 "expect dereference a pointer or array pointer, but not");
     }
-    if (node->Lhs->Ty->Base->Kind == TY_VOID) {
+    if (node->Lhs->Ty->Base->Kind == TypeKind::TY_VOID) {
       error_tok(node->Tok, "dereferencing a void pointer");
     }
 

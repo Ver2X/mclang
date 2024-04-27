@@ -7,37 +7,73 @@
 
 void BasicBlock::Insert(VariablePtr indicateVariable, BasicBlockPtr targetOne,
                         BasicBlockPtr targetTwo, IROpKind Op,
-                        IRBuilder *buider) {
+                        IRBuilder *Buider) {
   if (Op == IROpKind::Op_Branch) {
-    buider->lastResVar = indicateVariable;
+    Buider->lastResVar = indicateVariable;
     assert(indicateVariable != nullptr);
     auto branchInst = std::make_shared<BranchInst>(indicateVariable, targetOne,
                                                    targetTwo, Op);
-    instructinos.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
+    InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
+    if (indicateVariable)
+      indicateVariable->User.push_back(
+          std::dynamic_pointer_cast<Instruction>(branchInst));
     return;
   } else {
     assert(Op == IROpKind::Op_UnConBranch);
-    // buider->lastResVar = indicateVariable;
+    // Buider->lastResVar = indicateVariable;
     assert(indicateVariable == nullptr);
     assert(targetOne != nullptr);
     assert(targetTwo == nullptr);
     auto branchInst = std::make_shared<BranchInst>(targetOne, Op);
-    instructinos.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
+    InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
     return;
   }
 }
 
-void BasicBlock::Insert(IRFunctionPtr func, std::vector<VariablePtr> args,
-                        VariablePtr Result, IROpKind Op, IRBuilder *buider) {
-  assert(Op == IROpKind::Op_FUNCALL);
-  auto callInst = std::make_shared<CallInst>(func, args, Result);
-  buider->lastResVar = Result;
-  instructinos.push_back(std::dynamic_pointer_cast<Instruction>(callInst));
+void BasicBlock::Insert(VarTypePtr VTy, VariablePtr Ptr,
+                        std::vector<VariablePtr> IdxList, VariablePtr Res,
+                        IROpKind Op, IRBuilder *Buider) {
+  assert(Op == IROpKind::Op_GetElementPtr);
+  Buider->lastResVar = Res;
+  if (Res->getName() == "")
+    Res->setName(Buider->getParent()->createName("%arrayidx"));
+  auto GepInst = std::make_shared<GetElementPtrInst>(VTy, Ptr, IdxList, Res);
+  InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(GepInst));
+  Res->Use = GepInst;
+  for (auto &Id : IdxList) {
+    Id->User.push_back(GepInst);
+  }
+  Ptr->User.push_back(GepInst);
   return;
 }
 
+void BasicBlock::Insert(IRFunctionPtr Func, std::vector<VariablePtr> Args,
+                        VariablePtr Result, IROpKind Op, IRBuilder *Buider) {
+  assert(Op == IROpKind::Op_FUNCALL);
+  auto callInst = std::make_shared<CallInst>(Func, Args, Result);
+  Buider->lastResVar = Result;
+  InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(callInst));
+  Result->Use = callInst;
+  for (auto Arg : Args) {
+    if (Arg)
+      Arg->User.push_back(std::dynamic_pointer_cast<Instruction>(callInst));
+  }
+  return;
+}
+
+void BasicBlock::Insert(VarTypePtr VTy, VariablePtr ArraySize,
+                        VariablePtr Result, IROpKind Op, IRBuilder *Buider) {
+  assert(Op == IROpKind::Op_Alloca);
+  auto allocaInst = std::make_shared<AllocaInst>(VTy, Result, ArraySize);
+  // InstructionPtr inst = std::make_shared<Instruction>(Left, Right, Result,
+  // Op);
+  Buider->lastResVar = Result;
+  allocas.push_back(std::dynamic_pointer_cast<Instruction>(allocaInst));
+  Result->Use = allocaInst;
+}
+
 void BasicBlock::Insert(VariablePtr Left, VariablePtr Right, VariablePtr Result,
-                        IROpKind Op, IRBuilder *buider) {
+                        IROpKind Op, IRBuilder *Buider) {
 #if DEBUG
   FileOut << "we going insert insert to blcok with Name :" << this->getName()
           << " Label :" << this->GetLabel() << std::endl;
@@ -45,12 +81,14 @@ void BasicBlock::Insert(VariablePtr Left, VariablePtr Right, VariablePtr Result,
   switch (Op) {
   // shouldn't change order
   case IROpKind::Op_Alloca: {
-    assert(Left == nullptr && Right == nullptr);
-    auto allocaInst = std::make_shared<AllocaInst>(Result);
-    // InstructionPtr inst = std::make_shared<Instruction>(Left, Right, Result,
-    // Op);
-    buider->lastResVar = Result;
-    allocas.push_back(std::dynamic_pointer_cast<Instruction>(allocaInst));
+    assert(false);
+    // auto allocaInst = std::make_shared<AllocaInst>(Result);
+    // // InstructionPtr inst = std::make_shared<Instruction>(Left, Right,
+    // Result,
+    // // Op);
+    // Buider->lastResVar = Result;
+    // allocas.push_back(std::dynamic_pointer_cast<Instruction>(allocaInst));
+    // Result->Use = allocaInst;
     return;
   }
   case IROpKind::Op_Store: {
@@ -59,29 +97,40 @@ void BasicBlock::Insert(VariablePtr Left, VariablePtr Right, VariablePtr Result,
     if (Left == nullptr && Right == nullptr) {
       storeInst->Ival = Result->Ival;
     }
-    buider->lastResVar = Result;
-    instructinos.push_back(std::dynamic_pointer_cast<Instruction>(storeInst));
+    Buider->lastResVar = Result;
+    InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(storeInst));
+    Result->Use = storeInst;
+    if (Left)
+      Left->User.push_back(std::dynamic_pointer_cast<Instruction>(storeInst));
+    if (Result)
+      Result->User.push_back(std::dynamic_pointer_cast<Instruction>(storeInst));
     return;
   }
   case IROpKind::Op_Load: {
     auto loadInst = std::make_shared<LoadInst>(Left, Result);
-    buider->lastResVar = Result;
+    Buider->lastResVar = Result;
     assert(Right == nullptr);
-    instructinos.push_back(std::dynamic_pointer_cast<Instruction>(loadInst));
+    InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(loadInst));
+    Result->Use = loadInst;
+    if (Left)
+      Left->User.push_back(std::dynamic_pointer_cast<Instruction>(loadInst));
     return;
   }
   case IROpKind::Op_Return: {
-    // buider->lastResVar = Result;
+    // Buider->lastResVar = Result;
 
     // fix me: should not generate temp variable
     // assert(Left == nullptr);
     // assert(Right == nullptr);
     // std::shared_ptr<ReturnInst> returnInst;
     // if(Result == nullptr)
-    //	returnInst = std::make_shared<ReturnInst>(buider->lastResVar);
+    //	returnInst = std::make_shared<ReturnInst>(Buider->lastResVar);
     // else
     auto returnInst = std::make_shared<ReturnInst>(Result);
-    instructinos.push_back(std::dynamic_pointer_cast<Instruction>(returnInst));
+    InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(returnInst));
+    if (Result)
+      Result->User.push_back(
+          std::dynamic_pointer_cast<Instruction>(returnInst));
     return;
   }
   case IROpKind::Op_ADD:
@@ -117,20 +166,20 @@ void BasicBlock::Insert(VariablePtr Left, VariablePtr Right, VariablePtr Result,
     default:
       break;
     }
-    VariablePtr arithRes = std::make_shared<Variable>();
-    int nextcf = buider->GetNextCountSuffix();
-    if (nextcf != 0)
-      s += std::to_string(nextcf);
-    arithRes->setName(s);
-
-    auto instArith =
-        std::make_shared<BinaryOperator>(Left, Right, arithRes, Op);
-    instructinos.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
-
-    buider->lastResVar = arithRes;
-
-    Result->setName(std::move(s));
-
+    // VariablePtr arithRes = std::make_shared<Variable>();
+    // int nextcf = Buider->GetNextCountSuffix();
+    // if (nextcf != 0)
+    //   s += std::to_string(nextcf);
+    Result->setName(Buider->getParent()->createName(s));
+    auto instArith = std::make_shared<BinaryOperator>(Left, Right, Result, Op);
+    InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
+    Buider->lastResVar = Result;
+    // Result->setName(std::move(s));
+    Result->Use = instArith;
+    if (Left)
+      Left->User.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
+    if (Right)
+      Right->User.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
     return;
   }
   default: {
@@ -152,7 +201,7 @@ std::string BasicBlock::CodeGen() {
     s += "\n";
   if (this->allocas.empty())
     s += LabelName + ":\n";
-  for (const auto &ins : instructinos) {
+  for (const auto &ins : InstInBB) {
     s += ins->CodeGen() + "\n";
   }
   return s;
@@ -173,7 +222,7 @@ std::string BasicBlock::EntryCodeGenCFG() {
   for (const auto &ins : allocas) {
     s += ins->CodeGen() + "\\l";
   }
-  for (const auto &ins : instructinos) {
+  for (const auto &ins : InstInBB) {
     s += ins->CodeGen() + "\\l";
   }
   return s;
@@ -182,7 +231,7 @@ std::string BasicBlock::EntryCodeGenCFG() {
 std::string BasicBlock::CodeGenCFG() {
   std::string s;
   s += Name + ":\\l";
-  for (const auto &ins : instructinos) {
+  for (const auto &ins : InstInBB) {
     s += ins->CodeGen() + "\\l";
   }
   return s;

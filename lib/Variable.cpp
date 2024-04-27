@@ -1,5 +1,6 @@
 #include "Variable.h"
 #include <string>
+
 Operand::Operand() {
   Ival = INT_MIN;
   Next = nullptr;
@@ -7,7 +8,7 @@ Operand::Operand() {
   isConst = false;
   isGlobal = false;
   varIsArg = false;
-  type = VaribleKind::VAR_32;
+  VarType = TyInt;
 }
 Operand::Operand(int64_t v) {
   Ival = v;
@@ -17,7 +18,7 @@ Operand::Operand(int64_t v) {
   isGlobal = false;
   varIsArg = false;
   Name = std::to_string(Ival);
-  type = VaribleKind::VAR_64;
+  VarType = TyInt;
 }
 
 Operand::Operand(int v) {
@@ -28,7 +29,7 @@ Operand::Operand(int v) {
   isGlobal = false;
   varIsArg = false;
   Name = std::to_string(Ival);
-  type = VaribleKind::VAR_32;
+  VarType = TyInt;
 }
 
 Operand::Operand(double v) {
@@ -39,9 +40,9 @@ Operand::Operand(double v) {
   isGlobal = false;
   varIsArg = false;
   Name = std::to_string(Fval);
-  type = VaribleKind::VAR_64;
+  VarType = TyDouble;
 }
-
+void Operand::setName(std::string InitName) { Name = InitName; }
 bool Operand::isArg() { return varIsArg; }
 
 void Operand::SetAddr(VariablePtr _Addr) { Addr = _Addr; }
@@ -56,7 +57,7 @@ void Operand::SetConst(double v) {
   isGlobal = false;
   varIsArg = false;
   Name = std::to_string(Fval);
-  type = VaribleKind::VAR_64;
+  VarType = TyDouble;
 }
 
 void Operand::SetConst(int v) {
@@ -67,7 +68,7 @@ void Operand::SetConst(int v) {
   isGlobal = false;
   varIsArg = false;
   Name = std::to_string(Ival);
-  type = VaribleKind::VAR_32;
+  VarType = TyInt;
 }
 
 void Operand::SetConst(int64_t v) {
@@ -78,7 +79,7 @@ void Operand::SetConst(int64_t v) {
   isGlobal = false;
   varIsArg = false;
   Name = std::to_string(Ival);
-  type = VaribleKind::VAR_64;
+  VarType = TyLong;
 }
 
 void Operand::setGlobal() { isGlobal = true; }
@@ -88,55 +89,43 @@ void Operand::SetArg() { varIsArg = true; }
 std::string Operand::CodeGen() {
   std::string s;
   if (isGlobal) {
-    switch (type) {
-
-    case VaribleKind::VAR_8:
+    if (VarType == TyChar) {
       s += "@" + this->Name + " = dso_local global " + "i8 " +
-           std::to_string(Ival) + ", Align 4\n";
-      break;
-    case VaribleKind::VAR_16:
+           std::to_string(Ival) + ", align 4\n";
+    } else if (VarType == TyShort) {
       s += "@" + this->Name + " = dso_local global " + "i16 " +
-           std::to_string(Ival) + ", Align 4\n";
-      break;
-    case VaribleKind::VAR_32:
+           std::to_string(Ival) + ", align 4\n";
+    } else if (VarType == TyInt) {
       s += "@" + this->Name + " = dso_local global " + "i32 " +
-           std::to_string(Ival) + ", Align 4\n";
-      break;
-    case VaribleKind::VAR_64:
+           std::to_string(Ival) + ", align 4\n";
+    } else if (VarType == TyLong) {
       s += "@" + this->Name + " = dso_local global " + "i64 " +
-           std::to_string(Ival) + ", Align 4\n";
-      break;
-    case VaribleKind::VAR_PRT:
-      s += "@" + this->Name + " = dso_local global " + "i32* " +
-           std::to_string(Ival) + ", Align 4\n";
-      break;
-    default:
-      break;
+           std::to_string(Ival) + ", align 4\n";
+    } else if (VarType == TyDouble) {
+      s += "@" + this->Name + " = dso_local global " + "f64 " +
+           std::to_string(Fval) + ", align 4\n";
+    } else {
+      assert(false);
     }
-    return s;
   } else {
-    switch (type) {
-    case VaribleKind::VAR_8:
+    if (VarType == TyChar) {
       s += "i8 ";
-      break;
-    case VaribleKind::VAR_16:
+    } else if (VarType == TyShort) {
       s += "i16 ";
-      break;
-    case VaribleKind::VAR_32:
+    } else if (VarType == TyInt) {
       s += "i32 ";
-      break;
-    case VaribleKind::VAR_64:
+    } else if (VarType == TyLong) {
       s += "i64 ";
-      break;
-    case VaribleKind::VAR_PRT:
-      s += "i32* ";
-      break;
-    default:
-      break;
+    } else if (VarType == TyDouble) {
+      s += "f64 ";
+    } else if (VarType->Kind == TypeKind::TY_PTR) {
+      s += VarType->Base->CodeGen() + "* ";
+    } else {
+      s += "??? ";
+      assert(false);
     }
   }
 
-  // s += "%";
   s += Name;
   return s;
 }

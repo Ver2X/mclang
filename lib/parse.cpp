@@ -443,7 +443,7 @@ static Node *declaration(TokenPtr *rest, TokenPtr Tok, TypePtr basety) {
 
     // define but not used, add it to variable list
     TypePtr Ty = declarator(&Tok, Tok, basety);
-    if (Ty->Kind == TY_VOID)
+    if (Ty->Kind == TypeKind::TY_VOID)
       error_tok(Tok, "varibale declared as void type");
     Obj *Var = new_lvar(get_ident(Ty->Name), Ty);
 
@@ -673,8 +673,7 @@ static Node *new_add(Node *Lhs, Node *Rhs, TokenPtr Tok) {
   }
 
   // ptr + num
-  Rhs = new_binary(ND_MUL, Rhs, new_num(Lhs->Ty->Base->Size, Tok), Tok);
-  return new_binary(ND_ADD, Lhs, Rhs, Tok);
+  return new_binary(ND_POINTER_OFFSET, Lhs, Rhs, Tok);
 }
 
 // Like `+`, `-` is overloaded for the pointer type
@@ -814,7 +813,7 @@ static TypePtr struct_union_decl(TokenPtr *rest, TokenPtr Tok) {
 
   // construct a struct object
   TypePtr Ty = std::make_shared<Type>();
-  Ty->Kind = TY_STRUCT;
+  Ty->Kind = TypeKind::TY_STRUCT;
   struct_members(rest, Tok->Next, Ty); // skip "}"
   Ty->Align = 1;
 
@@ -827,7 +826,7 @@ static TypePtr struct_union_decl(TokenPtr *rest, TokenPtr Tok) {
 // struct-decl = struct-union-decl
 static TypePtr structDecl(TokenPtr *rest, TokenPtr Tok) {
   TypePtr Ty = struct_union_decl(rest, Tok);
-  Ty->Kind = TY_STRUCT;
+  Ty->Kind = TypeKind::TY_STRUCT;
 
   // assgin offsets
   int Offset = 0;
@@ -848,7 +847,7 @@ static TypePtr structDecl(TokenPtr *rest, TokenPtr Tok) {
 // union-decl = struct-union-decl
 static TypePtr unionDecl(TokenPtr *rest, TokenPtr Tok) {
   TypePtr Ty = struct_union_decl(rest, Tok);
-  Ty->Kind = TY_UNION;
+  Ty->Kind = TypeKind::TY_UNION;
 
   // for union, all Offset is 0, but we need to compute the alignment
   // and Size
@@ -881,7 +880,8 @@ static Member *get_struct_member(TypePtr Ty, TokenPtr Tok) {
 
 static Node *struct_ref(Node *Lhs, TokenPtr Tok) {
   addType(Lhs);
-  if (Lhs->Ty->Kind != TY_STRUCT && Lhs->Ty->Kind != TY_UNION)
+  if (Lhs->Ty->Kind != TypeKind::TY_STRUCT &&
+      Lhs->Ty->Kind != TypeKind::TY_UNION)
     error_tok(Lhs->Tok, "not a struct nor union");
 
   Node *node = new_unary(ND_MEMBER, Lhs, Tok);
@@ -899,7 +899,9 @@ static Node *postfix(TokenPtr *rest, TokenPtr Tok) {
       TokenPtr start = Tok;
       Node *idx = expr(&Tok, Tok->Next);
       Tok = skip(Tok, "]");
+      // node->Lhs->Ty->Base
       node = new_unary(ND_DEREF, new_add(node, idx, start), start);
+      // node = new_unary(ND_DEREF, idx, start);
       continue;
     }
 
@@ -1084,7 +1086,7 @@ static bool IsFunction(TokenPtr Tok) {
 
   TypePtr dummy = std::make_shared<Type>();
   TypePtr Ty = declarator(&Tok, Tok, dummy);
-  return Ty->Kind == TY_FUNC;
+  return Ty->Kind == TypeKind::TY_FUNC;
 }
 
 // program = (typedef | function-definition | global-variable)*

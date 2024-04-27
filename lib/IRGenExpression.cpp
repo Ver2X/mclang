@@ -7,7 +7,7 @@
 
 void genExprIR(Node *ExprNode, VariablePtr *, SymbolTablePtr);
 void genFuncArgIR(Obj *Var, int r, int Offset, int sz);
-VariablePtr genVariableIR(Node *ExprNode, SymbolTablePtr Table);
+VariablePtr genAddrIR(Node *ExprNode, SymbolTablePtr Table);
 void genStmtIR(Node *ExprNode, SymbolTablePtr Table);
 
 std::string Twine(std::string &l, std::string &r);
@@ -132,23 +132,31 @@ void genExprIR(Node *ExprNode, VariablePtr *Res, SymbolTablePtr Table) {
     return;
   case ND_VAR:
   case ND_MEMBER:
-    *Res = genVariableIR(ExprNode, Table);
+    *Res = genAddrIR(ExprNode, Table);
     // load(ExprNode->Ty);
     return;
   case ND_DEREF:
     genExprIR(ExprNode->Lhs, Res, Table);
+    *Res = InMemoryIR->CreateLoad(*Res);
     // load(ExprNode->Ty);
     return;
   case ND_ADDR:
-    genVariableIR(ExprNode->Lhs, Table);
+    genAddrIR(ExprNode->Lhs, Table);
     return;
   case ND_ASSIGN: {
 
-    VariablePtr Left = genVariableIR(ExprNode->Lhs, Table);
+    VariablePtr Left = genAddrIR(ExprNode->Lhs, Table);
     // push();
-    std::cout << "meet assign : " << "Right is: " << ExprNode->Rhs->Kind
+    std::cout << "meet assign : " << "Right Kind is: " << ExprNode->Rhs->Kind
               << "\n";
+    assert(Left);
+    std::cout << "assign Left is " << Left->CodeGen() << "\n";
+    std::cout << " Ty is " << Left->getType()->CodeGen() << "\n";
     genExprIR(ExprNode->Rhs, Res, Table);
+    std::cout << "assign Right is " << (*Res)->CodeGen() << "\n";
+    if ((*Res)->getType()) {
+      std::cout << "Right Ty is " << (*Res)->getType()->CodeGen() << "\n";
+    }
     VariablePtr LocalVar;
     if (Left != nullptr) {
       if (!(*Res)->isConst) {
@@ -182,7 +190,7 @@ void genExprIR(Node *ExprNode, VariablePtr *Res, SymbolTablePtr Table) {
         Left->isInitConst = true;
         Left->Fval = (*Res)->Fval;
         Left->Ival = (*Res)->Ival;
-        Left->type = (*Res)->type;
+        // Left->VarType = (*Res)->VarType;
 
         // fix me
         InMemoryIR->CreateStore(Left);
@@ -204,7 +212,9 @@ void genExprIR(Node *ExprNode, VariablePtr *Res, SymbolTablePtr Table) {
   case ND_FUNCALL: {
     int Nargs = 0;
     std::vector<VariablePtr> Args;
+    std::vector<TypePtr> ArgTys;
     for (Node *Arg = ExprNode->args; Arg; Arg = Arg->Next) {
+      ArgTys.push_back(Arg->Ty);
       std::cout << "meet Arg: " << Nargs << "\n";
       genExprIR(Arg, Res, Table);
       auto NArg = *Res;
@@ -226,16 +236,24 @@ void genExprIR(Node *ExprNode, VariablePtr *Res, SymbolTablePtr Table) {
       // TODO:
       // generate declare?
       Func = std::make_shared<IRFunction>(FunctionName);
+      Func->setParamTys(ArgTys);
       auto insertFuncRes = GlobalSymTable->insertFunc(Func);
       assert(insertFuncRes);
-      if (ExprNode->Ty == TyInt) {
-        Func->retTy = ReturnTypeKind::RTY_INT;
-      } else {
-        Func->retTy = ReturnTypeKind::RTY_VOID;
-      }
+      Func->RetTy = ExprNode->Ty;
       Call = InMemoryIR->CreateCall(Func, Args);
     }
     *Res = Call;
+    return;
+  }
+  case ND_POINTER_OFFSET: {
+    genExprIR(ExprNode->Rhs, Res, Table);
+    auto Offset = *Res;
+    std::cout << "array access offset is " << (*Res)->CodeGen() << "\n";
+    auto BasePointer = genAddrIR(ExprNode->Lhs, Table);
+    std::cout << "base pointer is " << BasePointer->CodeGen() << "\n";
+    assert(baseTo(BasePointer->getType())->Kind == TypeKind::TY_ARRAY);
+    *Res = InMemoryIR->CreateGEP(BasePointer->getType(), BasePointer,
+                                 {std::make_shared<Variable>(0), Offset});
     return;
   }
   default:
@@ -244,20 +262,25 @@ void genExprIR(Node *ExprNode, VariablePtr *Res, SymbolTablePtr Table) {
 
   // there must deal Rhs first
   // FileOut << "arrive three 6" << std::endl;
-  VariablePtr Right = std::make_shared<Variable>();
+  std::cout << "meet binary:\n";
+  VariablePtr Right = nullptr;
   genExprIR(ExprNode->Rhs, &Right, Table);
   std::cout << "Right is: " << Right->getName() << "\n";
   // push();
   // FileOut << "arrive three 5" << std::endl;
-  VariablePtr Left = std::make_shared<Variable>();
+  VariablePtr Left = nullptr;
   genExprIR(ExprNode->Lhs, &Left, Table);
-  std::cout << "Left is: " << Left->getName() << "\n";
   // FileOut << "arrive three 4" << std::endl;
   // pop("%rdi");
 
   assert(Left != nullptr && Right != nullptr);
   assert(ExprNode->Lhs != nullptr && ExprNode->Rhs != nullptr);
   assert(Table != nullptr);
+
+  std::cout << "Left is: " << Left->CodeGen() << "\n";
+
+  std::cout << "Left ty is: " << Left->getType()->CodeGen() << "\n";
+  std::cout << "Right ty is: " << Right->getType()->CodeGen() << "\n";
 
   if (!binaryOperatorExpression(ExprNode, Res, Table, Left, Right,
                                 ExprNode->Kind)) {

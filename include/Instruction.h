@@ -42,10 +42,11 @@ enum class IROpKind {
   Op_Alloca,      // allcoa
   Op_Store,       // store
   // Op_Cmp,    	// icmp
-  Op_Load,     // load
-  Op_Return,   // return
-  Op_MEMBER,   // . (struct member access)
-  Op_RESERVED, // reserve for error
+  Op_Load,          // load
+  Op_GetElementPtr, // gep
+  Op_Return,        // return
+  Op_MEMBER,        // . (struct member access)
+  Op_RESERVED,      // reserve for error
 };
 
 class Instruction;
@@ -124,49 +125,62 @@ private:
 
 class AllocaInst : public Instruction {
 public:
-  AllocaInst(VariablePtr dest) : dest(dest) {}
+  AllocaInst(VarTypePtr VTy, VariablePtr Dest, VariablePtr ArraySize = nullptr)
+      : VTy(VTy), Dest(Dest), ArraySize(ArraySize) {}
   std::string CodeGen();
 
 private:
-  VariablePtr dest;
+  VariablePtr ArraySize;
+  VarTypePtr VTy;
+  VariablePtr Dest;
 };
 
 class LoadInst : public Instruction {
 public:
-  LoadInst(VariablePtr source, VariablePtr dest) : source(source), dest(dest) {}
+  LoadInst(VariablePtr Source, VariablePtr Dest) : Source(Source), Dest(Dest) {}
   std::string CodeGen();
 
 private:
-  VariablePtr source;
-  VariablePtr dest;
+  VariablePtr Source;
+  VariablePtr Dest;
+};
+
+class GetElementPtrInst : public Instruction {
+public:
+  GetElementPtrInst(VarTypePtr PtrTy, VariablePtr BasePtr,
+                    std::vector<VariablePtr> IdxList, VariablePtr Result)
+      : PtrTy(PtrTy), BasePtr(BasePtr), IdxList(IdxList), Result(Result) {}
+  std::string CodeGen();
+
+private:
+  VarTypePtr PtrTy;
+  VariablePtr BasePtr;
+  std::vector<VariablePtr> IdxList;
+  VariablePtr Result;
 };
 
 class StoreInst : public Instruction {
 public:
-  StoreInst(VariablePtr source, VariablePtr dest)
-      : source(source), dest(dest) {}
+  StoreInst(VariablePtr Source, VariablePtr Dest)
+      : Source(Source), Dest(Dest) {}
   std::string CodeGen();
 
 private:
-  VariablePtr source;
-  VariablePtr dest;
+  VariablePtr Source;
+  VariablePtr Dest;
 };
 
 class CallInst : public Instruction {
 public:
-  CallInst(IRFunctionPtr func, std::vector<VariablePtr> args, VariablePtr dest)
-      : func(func), args(args), dest(dest) {}
+  CallInst(IRFunctionPtr func, std::vector<VariablePtr> args, VariablePtr Dest)
+      : func(func), args(args), Dest(Dest) {}
   std::string CodeGen();
 
 private:
   IRFunctionPtr func;
   std::vector<VariablePtr> args;
-  VariablePtr dest;
+  VariablePtr Dest;
 };
-
-class GetElementPtrInst : Instruction {};
-
-class ICmpInst : Instruction {};
 
 class PHINode : Instruction {};
 

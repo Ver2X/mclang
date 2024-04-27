@@ -24,6 +24,7 @@ def process_c_files(directory):
         compile_command = f'./build/mclang {c_file_path}'
         returncode, output = execute_command(compile_command)
         if returncode != 0:
+            print(f'[{red_color}  FAILED  {reset_color}] {c_file_path}')
             print(f'Compilation failed for {c_file_path}')
             compile_command = f'clang {c_file_path}'
             returncode2, output_aout = execute_command(compile_command)

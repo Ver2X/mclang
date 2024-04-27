@@ -128,8 +128,9 @@ void genStmtIR(Node *ExpNode, SymbolTablePtr Table) {
     return;
   }
   case ND_EXPR_STMT: {
-    VariablePtr Res = std::make_shared<Variable>();
+    VariablePtr Res = nullptr;
     genExprIR(ExpNode->Lhs, &Res, Table);
+    assert(Res);
     return;
   }
   default:

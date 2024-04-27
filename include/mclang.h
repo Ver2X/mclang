@@ -1,6 +1,7 @@
 #pragma once
 #define _POSIX_C_SOURCE                                                        \
   200809L // https://xy2401.com/local-docs/gnu/manual.zh/libc/Feature-Test-Macros.html
+#include "Type.h"
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -110,9 +111,10 @@ typedef enum {
   ND_IF,        // "if"
   ND_FOR,       // "for" or "while"
   ND_BLOCK,
-  ND_FUNCALL,   // function call
-  ND_STMT_EXPR, // statement expression
-  ND_MEMBER,    // . (struct member access)
+  ND_FUNCALL,        // function call
+  ND_STMT_EXPR,      // statement expression
+  ND_MEMBER,         // . (struct member access)
+  ND_POINTER_OFFSET, // +
 } NodeKind;
 
 // Node of AST
@@ -146,54 +148,6 @@ struct Node {
 };
 
 Obj *parse(TokenPtr Tok);
-
-typedef enum {
-  TY_INT,
-  TY_SHORT,
-  TY_LONG,
-  TY_PTR,
-  TY_FUNC,
-  TY_ARRAY,
-  TY_CHAR,
-  TY_STRUCT,
-  TY_UNION,
-  TY_VOID,
-} TypeKind;
-
-struct Type {
-  Type(TypeKind _kind, int _size, int _align)
-      : Kind(_kind), Size(_size), Align(_align) {}
-  Type() = default;
-  TypeKind Kind;
-
-  int Size; // sizeof() value
-
-  int Align;
-
-  // Pointer-to or array-of type. We intentionally use the same member
-  // to represent pointer/array duality in C.
-  //
-  // In many contexts in which a pointer is expected, we examine this
-  // member instead of "Kind" member to determine whether a type is a
-  // pointer or not. That means in many contexts "array of T" is
-  // naturally handled as if it were "pointer to T", as required by
-  // the C spec.
-  TypePtr Base;
-
-  // declaration
-  TokenPtr Name;
-
-  // array
-  int ArrayLen;
-
-  // struct
-  Member *Members;
-
-  // Function type
-  TypePtr ReturnTy;
-  TypePtr Params;
-  TypePtr Next;
-};
 
 // struct member
 struct Member {

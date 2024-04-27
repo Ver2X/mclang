@@ -31,7 +31,7 @@ add_library(libs SHARED
     lib/IRBuilder.cpp
     lib/Module.cpp
     lib/IRGenStatement.cpp
-    lib/IRGenVariable.cpp
+    lib/IRGenAddr.cpp
     lib/IRGenExpression.cpp
 )
 
