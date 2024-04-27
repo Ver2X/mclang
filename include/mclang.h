@@ -80,6 +80,8 @@ struct Obj {
   // Global variable
   char *InitData;
 
+  Node *InitScala;
+
   // Function
   Obj *Params;
 

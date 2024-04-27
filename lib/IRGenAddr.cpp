@@ -25,9 +25,9 @@ VariablePtr genAddrIR(Node *ExpNode, SymbolTablePtr Table) {
       if (Var->isArg()) {
         Var = Var->getAddr();
       }
-      std::cout << "find local var pair: " << ExpNode->Var << " to: " << Var
-                << "\n";
-      std::cout << "find local var: " << Var->CodeGen() << "\n";
+      // std::cout << "find local var pair: " << ExpNode->Var << " to: " << Var
+      //           << "\n";
+      // std::cout << "find local var: " << Var->CodeGen() << "\n";
       assert(Var->getType()->Kind == TypeKind::TY_PTR);
       return Var;
     } else {
@@ -40,11 +40,11 @@ VariablePtr genAddrIR(Node *ExpNode, SymbolTablePtr Table) {
   }
   case ND_DEREF: {
     // array also is dereference
-    std::cout << "start handle defref \n";
+    // std::cout << "start handle defref \n";
     VariablePtr Res;
     assert(ExpNode->Lhs->Kind == ND_POINTER_OFFSET);
     genExprIR(ExpNode->Lhs, &Res, Table);
-    std::cout << "meet deref at: " << Res->CodeGen() << "\n";
+    // std::cout << "meet deref at: " << Res->CodeGen() << "\n";
     return Res;
   }
   case ND_COMMA: {

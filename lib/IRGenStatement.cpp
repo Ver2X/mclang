@@ -118,11 +118,11 @@ void genStmtIR(Node *ExpNode, SymbolTablePtr Table) {
     VariablePtr Res;
     genExprIR(ExpNode->Lhs, &Res, Table);
     if (ExpNode->Lhs->Kind == ND_VAR) {
-      std::cout << "return is a Var" << "\n";
+      //   std::cout << "return is a Var" << "\n";
       VariablePtr load = InMemoryIR->CreateLoad(Res);
       InMemoryIR->CreateRet(load);
     } else {
-      std::cout << "return not a Var" << "\n";
+      //   std::cout << "return not a Var" << "\n";
       InMemoryIR->CreateRet(Res);
     }
     return;

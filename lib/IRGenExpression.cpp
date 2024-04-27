@@ -147,16 +147,16 @@ void genExprIR(Node *ExprNode, VariablePtr *Res, SymbolTablePtr Table) {
 
     VariablePtr Left = genAddrIR(ExprNode->Lhs, Table);
     // push();
-    std::cout << "meet assign : " << "Right Kind is: " << ExprNode->Rhs->Kind
-              << "\n";
+    // std::cout << "meet assign : " << "Right Kind is: " << ExprNode->Rhs->Kind
+    //   << "\n";
     assert(Left);
-    std::cout << "assign Left is " << Left->CodeGen() << "\n";
-    std::cout << " Ty is " << Left->getType()->CodeGen() << "\n";
+    // std::cout << "assign Left is " << Left->CodeGen() << "\n";
+    // std::cout << " Ty is " << Left->getType()->CodeGen() << "\n";
     genExprIR(ExprNode->Rhs, Res, Table);
-    std::cout << "assign Right is " << (*Res)->CodeGen() << "\n";
-    if ((*Res)->getType()) {
-      std::cout << "Right Ty is " << (*Res)->getType()->CodeGen() << "\n";
-    }
+    // std::cout << "assign Right is " << (*Res)->CodeGen() << "\n";
+    // if ((*Res)->getType()) {
+    //   std::cout << "Right Ty is " << (*Res)->getType()->CodeGen() << "\n";
+    // }
     VariablePtr LocalVar;
     if (Left != nullptr) {
       if (!(*Res)->isConst) {
@@ -215,11 +215,11 @@ void genExprIR(Node *ExprNode, VariablePtr *Res, SymbolTablePtr Table) {
     std::vector<TypePtr> ArgTys;
     for (Node *Arg = ExprNode->args; Arg; Arg = Arg->Next) {
       ArgTys.push_back(Arg->Ty);
-      std::cout << "meet Arg: " << Nargs << "\n";
+      //   std::cout << "meet Arg: " << Nargs << "\n";
       genExprIR(Arg, Res, Table);
       auto NArg = *Res;
       if (Arg->Kind == ND_VAR) {
-        std::cout << "ND_VAR:\n";
+        // std::cout << "ND_VAR:\n";
         VariablePtr load = InMemoryIR->CreateLoad(NArg);
         NArg = load;
       }
@@ -248,9 +248,9 @@ void genExprIR(Node *ExprNode, VariablePtr *Res, SymbolTablePtr Table) {
   case ND_POINTER_OFFSET: {
     genExprIR(ExprNode->Rhs, Res, Table);
     auto Offset = *Res;
-    std::cout << "array access offset is " << (*Res)->CodeGen() << "\n";
+    // std::cout << "array access offset is " << (*Res)->CodeGen() << "\n";
     auto BasePointer = genAddrIR(ExprNode->Lhs, Table);
-    std::cout << "base pointer is " << BasePointer->CodeGen() << "\n";
+    // std::cout << "base pointer is " << BasePointer->CodeGen() << "\n";
     assert(baseTo(BasePointer->getType())->Kind == TypeKind::TY_ARRAY);
     *Res = InMemoryIR->CreateGEP(BasePointer->getType(), BasePointer,
                                  {std::make_shared<Variable>(0), Offset});
@@ -262,10 +262,10 @@ void genExprIR(Node *ExprNode, VariablePtr *Res, SymbolTablePtr Table) {
 
   // there must deal Rhs first
   // FileOut << "arrive three 6" << std::endl;
-  std::cout << "meet binary:\n";
+  //   std::cout << "meet binary:\n";
   VariablePtr Right = nullptr;
   genExprIR(ExprNode->Rhs, &Right, Table);
-  std::cout << "Right is: " << Right->getName() << "\n";
+  //   std::cout << "Right is: " << Right->getName() << "\n";
   // push();
   // FileOut << "arrive three 5" << std::endl;
   VariablePtr Left = nullptr;
@@ -277,10 +277,10 @@ void genExprIR(Node *ExprNode, VariablePtr *Res, SymbolTablePtr Table) {
   assert(ExprNode->Lhs != nullptr && ExprNode->Rhs != nullptr);
   assert(Table != nullptr);
 
-  std::cout << "Left is: " << Left->CodeGen() << "\n";
+  //   std::cout << "Left is: " << Left->CodeGen() << "\n";
 
-  std::cout << "Left ty is: " << Left->getType()->CodeGen() << "\n";
-  std::cout << "Right ty is: " << Right->getType()->CodeGen() << "\n";
+  //   std::cout << "Left ty is: " << Left->getType()->CodeGen() << "\n";
+  //   std::cout << "Right ty is: " << Right->getType()->CodeGen() << "\n";
 
   if (!binaryOperatorExpression(ExprNode, Res, Table, Left, Right,
                                 ExprNode->Kind)) {

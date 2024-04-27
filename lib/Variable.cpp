@@ -90,23 +90,24 @@ std::string Operand::CodeGen() {
   std::string s;
   if (isGlobal) {
     if (VarType == TyChar) {
-      s += "@" + this->Name + " = dso_local global " + "i8 " +
-           std::to_string(Ival) + ", align 4\n";
+      s += this->Name + " = dso_local global " + "i8 " + std::to_string(Ival) +
+           ", align 4\n";
     } else if (VarType == TyShort) {
-      s += "@" + this->Name + " = dso_local global " + "i16 " +
-           std::to_string(Ival) + ", align 4\n";
+      s += this->Name + " = dso_local global " + "i16 " + std::to_string(Ival) +
+           ", align 4\n";
     } else if (VarType == TyInt) {
-      s += "@" + this->Name + " = dso_local global " + "i32 " +
-           std::to_string(Ival) + ", align 4\n";
+      s += this->Name + " = dso_local global " + "i32 " + std::to_string(Ival) +
+           ", align 4\n";
     } else if (VarType == TyLong) {
-      s += "@" + this->Name + " = dso_local global " + "i64 " +
-           std::to_string(Ival) + ", align 4\n";
+      s += this->Name + " = dso_local global " + "i64 " + std::to_string(Ival) +
+           ", align 4\n";
     } else if (VarType == TyDouble) {
-      s += "@" + this->Name + " = dso_local global " + "f64 " +
-           std::to_string(Fval) + ", align 4\n";
+      s += this->Name + " = dso_local global " + "f64 " + std::to_string(Fval) +
+           ", align 4\n";
     } else {
       assert(false);
     }
+    return s;
   } else {
     if (VarType == TyChar) {
       s += "i8 ";

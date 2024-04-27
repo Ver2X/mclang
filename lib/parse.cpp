@@ -1065,7 +1065,7 @@ static TokenPtr function(TokenPtr Tok, TypePtr basety) {
   return Tok;
 }
 
-static TokenPtr global_varibale(TokenPtr Tok, TypePtr basety) {
+static TokenPtr global_variable(TokenPtr Tok, TypePtr basety) {
   bool first = true;
   while (!consume(&Tok, Tok, ";")) {
     if (!first)
@@ -1073,7 +1073,10 @@ static TokenPtr global_varibale(TokenPtr Tok, TypePtr basety) {
     first = false;
 
     TypePtr Ty = declarator(&Tok, Tok, basety);
-    new_gvar(get_ident(Ty->Name), Ty);
+    Obj *var = new_gvar(get_ident(Ty->Name), Ty);
+    if (equal(Tok, "=")) {
+      var->InitScala = primary(&Tok, Tok->Next);
+    }
   }
   return Tok;
 }
@@ -1109,7 +1112,7 @@ Obj *parse(TokenPtr Tok) {
     }
 
     // global variable
-    Tok = global_varibale(Tok, basety);
+    Tok = global_variable(Tok, basety);
   }
   return globals;
 }

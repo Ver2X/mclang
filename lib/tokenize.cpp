@@ -41,6 +41,7 @@ static void verror_at(int line_no, char *loc, const char *fmt, va_list ap) {
   fprintf(stderr, "^ ");
   vfprintf(stderr, fmt, ap);
   fprintf(stderr, "\n");
+  assert(false);
   exit(1);
 }
 

@@ -177,30 +177,34 @@ void emitIR(Obj *Prog, std::string FileName) {
       auto LocalVarTy = Var->Ty;
       VariablePtr ArraySize = nullptr;
       if (LocalVarTy->Kind == TypeKind::TY_ARRAY) {
-        std::cout << "array len is: " << Var->Ty->ArrayLen << "\n";
+        // std::cout << "array len is: " << Var->Ty->ArrayLen << "\n";
         ArraySize = std::make_shared<Variable>(Var->Ty->ArrayLen);
       }
-      std::cout << "local var " << InitName
-                << " Ty is: " << LocalVarTy->CodeGen() << "\n";
+      // std::cout << "local var " << InitName
+      //           << " Ty is: " << LocalVarTy->CodeGen() << "\n";
 
       auto LocalVar = InMemoryIR->CreateAlloca(LocalVarTy, ArraySize, InitName);
 
-      std::cout << "local var " << InitName
-                << " ptr Ty is: " << LocalVar->getType()->CodeGen() << "\n";
-      std::cout << "Table insert: " << Var << " to: " << LocalVar << "\n";
+      // std::cout << "local var " << InitName
+      //           << " ptr Ty is: " << LocalVar->getType()->CodeGen() << "\n";
+      // std::cout << "Table insert: " << Var << " to: " << LocalVar << "\n";
       LocalTable->insert(Var, LocalVar);
 
       NumOfLocal++;
     }
-    std::cout << "NumOfLocal: " << NumOfLocal << "\n";
+    // std::cout << "NumOfLocal: " << NumOfLocal << "\n";
 
     genStmtIR(FuncNode->Body, LocalTable);
     assert(Depth == 0);
 
     // fix no return statement
     InMemoryIR->fixNonReturn(LocalTable);
-    if (FuncNode == Prog)
+
+    if (FuncNode == Prog) {
+      std::cout << ProgramModule->GlobalVariableCodeGen() << std::endl;
       FileOut << ProgramModule->GlobalVariableCodeGen() << std::endl;
+    }
+
     // FileOut << "end global" << std::endl;
     FileOut << InMemoryIR->CodeGen() << std::endl;
     std::cout << InMemoryIR->CodeGen() << std::endl;
@@ -229,14 +233,19 @@ void emitGlobalDataIR(Obj *Prog) {
     if (Var->InitData) {
       GlobalValue = std::make_shared<Variable>(Var->InitData[0]);
       GlobalValue->setGlobal();
-      GlobalValue->setName(Var->Name);
+      GlobalValue->setName("@" + std::string(Var->Name));
       ProgramModule->insertGlobalVariable(GlobalValue);
       // for(int i = 0; i < Var->Ty->Size;i++)
       //	println("  .byte %d", Var->InitData[i]);
+    } else if (Var->InitScala) {
+      GlobalValue = std::make_shared<Variable>(Var->InitScala->Val);
+      GlobalValue->setGlobal();
+      GlobalValue->setName("@" + std::string(Var->Name));
+      ProgramModule->insertGlobalVariable(GlobalValue);
     } else {
       GlobalValue = std::make_shared<Variable>(0);
       GlobalValue->setGlobal();
-      GlobalValue->setName(Var->Name);
+      GlobalValue->setName("@" + std::string(Var->Name));
       ProgramModule->insertGlobalVariable(GlobalValue);
       // println("  .zero %d", Var->Ty->Size);
     }

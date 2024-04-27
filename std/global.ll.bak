@@ -1,0 +1,15 @@
+@a = dso_local global i32 1, align 4
+
+define dso_local i32 @main() {
+entry:
+  %retval = alloca i32, align 4
+  %c = alloca i32, align 4
+  store i32 0, i32* %retval, align 4
+  store i32 2, i32* %c, align 4
+  %0 = load i32, i32* @a, align 4
+  %1 = load i32, i32* %c, align 4
+  %add = add nsw i32 %0, %1
+  ret i32 %add
+}
+
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
