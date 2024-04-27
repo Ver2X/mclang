@@ -1,3 +1,4 @@
+#include "Module.h"
 #include "mclang.h"
 
 TypePtr TyBit = std::make_shared<Type>(TypeKind::TY_BIT, 0, 1);
@@ -13,6 +14,8 @@ TypePtr TyLong = std::make_shared<Type>(TypeKind::TY_LONG, 8, 8);
 TypePtr TyDouble = std::make_shared<Type>(TypeKind::TY_DOUBLE, 8, 8);
 
 TypePtr TyVoid = std::make_shared<Type>(TypeKind::TY_VOID, 1, 1);
+
+extern std::shared_ptr<Module> ProgramModule;
 
 std::string Type::CodeGen() {
   if (Kind == TypeKind::TY_INT) {

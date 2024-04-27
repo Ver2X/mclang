@@ -53,10 +53,17 @@ VariablePtr genAddrIR(Node *ExpNode, SymbolTablePtr Table) {
     genAddrIR(ExpNode->Rhs, Table);
     return nullptr;
   }
-  case ND_MEMBER:
-    genAddrIR(ExpNode->Lhs, Table);
+  case ND_MEMBER: {
     // println("  add $%d, %%rax", ExpNode->member->Offset);
-    return nullptr;
+    auto BasePointer = genAddrIR(ExpNode->Lhs, Table);
+    std::cout << "BasePointer Ty is: " << BasePointer->CodeGen() << "\n";
+    assert(baseTo(BasePointer->getType())->Kind == TypeKind::TY_STRUCT);
+    auto Res = InMemoryIR->CreateGEP(
+        BasePointer->getType(), BasePointer,
+        {std::make_shared<Variable>(0),
+         std::make_shared<Variable>(ExpNode->member->Idx)});
+    return Res;
+  }
   default:
     return nullptr;
   }

@@ -33,6 +33,7 @@ add_library(libs SHARED
     lib/IRGenStatement.cpp
     lib/IRGenAddr.cpp
     lib/IRGenExpression.cpp
+    lib/StructTypeTag.cpp
 )
 
 # include_directories(include)

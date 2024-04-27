@@ -151,14 +151,6 @@ struct Node {
 
 Obj *parse(TokenPtr Tok);
 
-// struct member
-struct Member {
-  Member *Next;
-  TypePtr Ty;
-  TokenPtr Name;
-  int Offset;
-};
-
 extern TypePtr TyChar;
 extern TypePtr TyShort;
 extern TypePtr TyInt;

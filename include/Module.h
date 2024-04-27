@@ -1,5 +1,6 @@
 #pragma once
 #include "FunctionIR.h"
+#include "StructTypeTag.h"
 #include "Twine.h"
 #include "Variable.h"
 
@@ -12,9 +13,15 @@ public:
   std::string GlobalVariableCodeGen();
   std::string getName() { return Name; }
   void setName(std::string _Name) { Name = _Name; }
+  void CreateType(TypePtr Ty, std::string N);
+  StructTypeTagPtr GetType(TypePtr Ty) { return CompoundTypeTags[Ty]; }
+
   std::vector<VariablePtr> globalVariables;
 
 private:
   std::vector<IRFunctionPtr> Functions;
+  std::map<TypePtr, StructTypeTagPtr> CompoundTypeTags;
   std::string Name;
 };
+
+using ModulePtr = std::shared_ptr<Module>;

@@ -2,6 +2,7 @@ int main()
 {
     struct t
     {
+        int h;
         int x;
     };
     int t = 1;

@@ -1,6 +1,9 @@
 #include "Instruction.h"
 #include "BasicBlock.h"
+#include "Module.h"
 #include <string>
+
+extern std::shared_ptr<Module> ProgramModule;
 
 int Instruction::getAlign(VariablePtr Left, VariablePtr Right,
                           VariablePtr Result) {
@@ -115,6 +118,10 @@ std::string AllocaInst::CodeGen() {
     return "  " + Dest->getName() + " = " + "alloca [" +
            std::to_string(ArraySize->Ival) + " x i32] " + ", align " +
            std::to_string(Dest->Align); // + "\n";
+  } else if (VTy->Kind == TypeKind::TY_STRUCT) {
+    return "  " + Dest->getName() + " = " + "alloca " +
+           ProgramModule->GetType(VTy)->getName() + ", align " +
+           std::to_string(Dest->Align);
   } else {
     return "  " + Dest->getName() + " = " + "alloca i32 " + ", align " +
            std::to_string(Dest->Align); // + "\n";
@@ -165,8 +172,17 @@ std::string ReturnInst::CodeGen() {
 std::string GetElementPtrInst::CodeGen() {
   // %arrayidx? = getelementptr inbounds [2 x i32], [2 x i32]* %a, i64 0, i64 0
   std::string s = "  " + Result->getName() + " = getelementptr inbounds ";
-  s += baseTo(PtrTy)->CodeGen() + ", ";
-  s += BasePtr->CodeGen();
+  // assert(baseTo(PtrTy)->Kind == TypeKind::TY_STRUCT);
+  if (baseTo(PtrTy)->Kind == TypeKind::TY_ARRAY) {
+    s += baseTo(PtrTy)->CodeGen() + ", ";
+    s += BasePtr->CodeGen();
+  } else if (baseTo(PtrTy)->Kind == TypeKind::TY_STRUCT) {
+    s += ProgramModule->GetType(baseTo(PtrTy))->getName() + ", ";
+    // assert(false);
+    s += ProgramModule->GetType(baseTo(PtrTy))->getName() + "* " +
+         BasePtr->getName();
+  }
+
   for (auto Idx : IdxList) {
     s += ", ";
     s += Idx->CodeGen();

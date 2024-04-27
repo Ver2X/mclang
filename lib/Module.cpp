@@ -12,5 +12,12 @@ std::string Module::GlobalVariableCodeGen() {
   for (auto v : globalVariables) {
     s += v->CodeGen();
   }
+  for (auto [_, v] : CompoundTypeTags) {
+    s += v->CodeGen();
+  }
   return s;
+}
+
+void Module::CreateType(TypePtr Ty, std::string N) {
+  CompoundTypeTags[Ty] = std::make_shared<StructTypeTag>(Ty, N);
 }

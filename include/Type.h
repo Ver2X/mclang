@@ -4,6 +4,7 @@
 typedef struct Type Type;
 using TypePtr = std::shared_ptr<Type>;
 struct Member;
+struct TagScope;
 typedef struct Token Token;
 using TokenPtr = std::shared_ptr<Token>;
 extern TypePtr TyChar;
@@ -13,6 +14,15 @@ extern TypePtr TyLong;
 extern TypePtr TyVoid;
 extern TypePtr TyDouble;
 extern TypePtr TyBit;
+
+// struct member
+struct Member {
+  Member *Next;
+  TypePtr Ty;
+  TokenPtr Name;
+  int Offset;
+  int Idx;
+};
 
 enum class TypeKind {
   TY_INT,
@@ -27,6 +37,14 @@ enum class TypeKind {
   TY_STRUCT,
   TY_UNION,
   TY_VOID,
+};
+
+// Scope for struct or union tags
+typedef struct TagScope TagScope;
+struct TagScope {
+  TagScope *Next;
+  char *Name;
+  TypePtr Ty;
 };
 
 class Type {
@@ -60,6 +78,7 @@ public:
 
   // struct
   Member *Members;
+  TagScope *Tag;
 
   // Function type
   TypePtr ReturnTy;

@@ -82,7 +82,8 @@ bool binaryOperatorExpression(Node *ExprNode, VariablePtr *&Res,
     }
   } else if (ExprNode->Lhs->Kind == ND_NUM) {
     VariablePtr R = Right;
-    if (ExprNode->Rhs->Var != nullptr) {
+    if (ExprNode->Rhs->Var != nullptr ||
+        ExprNode->Rhs->Kind == NodeKind::ND_MEMBER) {
       R = InMemoryIR->CreateLoad(Right);
     }
 
@@ -90,7 +91,8 @@ bool binaryOperatorExpression(Node *ExprNode, VariablePtr *&Res,
     *Res = InMemoryIR->CreateBinary(L, R, InstructionOp);
   } else if (ExprNode->Rhs->Kind == ND_NUM) {
     VariablePtr L = Left;
-    if (ExprNode->Lhs->Var != nullptr) {
+    if (ExprNode->Lhs->Var != nullptr ||
+        ExprNode->Lhs->Kind == NodeKind::ND_MEMBER) {
       L = InMemoryIR->CreateLoad(Left);
     }
 
@@ -98,11 +100,13 @@ bool binaryOperatorExpression(Node *ExprNode, VariablePtr *&Res,
     *Res = InMemoryIR->CreateBinary(L, R, InstructionOp);
   } else {
     VariablePtr L = Left;
-    if (ExprNode->Lhs->Var != nullptr) {
+    if (ExprNode->Lhs->Var != nullptr ||
+        ExprNode->Lhs->Kind == NodeKind::ND_MEMBER) {
       L = InMemoryIR->CreateLoad(Left);
     }
     VariablePtr R = Right;
-    if (ExprNode->Rhs->Var != nullptr) {
+    if (ExprNode->Rhs->Var != nullptr ||
+        ExprNode->Rhs->Kind == NodeKind::ND_MEMBER) {
       R = InMemoryIR->CreateLoad(Right);
     }
     *Res = InMemoryIR->CreateBinary(L, R, InstructionOp);
@@ -131,10 +135,19 @@ void genExprIR(Node *ExprNode, VariablePtr *Res, SymbolTablePtr Table) {
     // println("  neg %%rax");
     return;
   case ND_VAR:
-  case ND_MEMBER:
     *Res = genAddrIR(ExprNode, Table);
-    // load(ExprNode->Ty);
     return;
+  case ND_MEMBER: {
+    // auto Addr = genAddrIR(ExprNode, Table);
+    // *Res = InMemoryIR->CreateLoad(Addr);
+    // *Res = InMemoryIR->CreateGEP(BasePointer->getType(), BasePointer,
+    //                             {std::make_shared<Variable>(0),
+    //                             std::make_shared<Variable>(0)});
+    // // load(ExprNode->Ty);
+    // return;
+    *Res = genAddrIR(ExprNode, Table);
+    return;
+  }
   case ND_DEREF:
     genExprIR(ExprNode->Lhs, Res, Table);
     *Res = InMemoryIR->CreateLoad(*Res);
@@ -149,6 +162,7 @@ void genExprIR(Node *ExprNode, VariablePtr *Res, SymbolTablePtr Table) {
     // push();
     // std::cout << "meet assign : " << "Right Kind is: " << ExprNode->Rhs->Kind
     //   << "\n";
+    // std::cout << "cur is:\n" << InMemoryIR->CodeGen() << "\n";
     assert(Left);
     // std::cout << "assign Left is " << Left->CodeGen() << "\n";
     // std::cout << " Ty is " << Left->getType()->CodeGen() << "\n";
@@ -265,7 +279,7 @@ void genExprIR(Node *ExprNode, VariablePtr *Res, SymbolTablePtr Table) {
   //   std::cout << "meet binary:\n";
   VariablePtr Right = nullptr;
   genExprIR(ExprNode->Rhs, &Right, Table);
-  //   std::cout << "Right is: " << Right->getName() << "\n";
+  std::cout << "Right is: " << Right->getName() << "\n";
   // push();
   // FileOut << "arrive three 5" << std::endl;
   VariablePtr Left = nullptr;
@@ -277,10 +291,10 @@ void genExprIR(Node *ExprNode, VariablePtr *Res, SymbolTablePtr Table) {
   assert(ExprNode->Lhs != nullptr && ExprNode->Rhs != nullptr);
   assert(Table != nullptr);
 
-  //   std::cout << "Left is: " << Left->CodeGen() << "\n";
+  std::cout << "Left is: " << Left->CodeGen() << "\n";
 
-  //   std::cout << "Left ty is: " << Left->getType()->CodeGen() << "\n";
-  //   std::cout << "Right ty is: " << Right->getType()->CodeGen() << "\n";
+  std::cout << "Left ty is: " << Left->getType()->CodeGen() << "\n";
+  std::cout << "Right ty is: " << Right->getType()->CodeGen() << "\n";
 
   if (!binaryOperatorExpression(ExprNode, Res, Table, Left, Right,
                                 ExprNode->Kind)) {

@@ -167,6 +167,7 @@ void emitIR(Obj *Prog, std::string FileName) {
 
     // InMemoryIR->SetFunc(Func);
     Func->setBody(InMemoryIR);
+    Func->setModule(ProgramModule);
 
     int NumOfLocal = 0;
     for (Obj *Var = FuncNode->Locals; Var; Var = Var->Next) {
@@ -179,6 +180,10 @@ void emitIR(Obj *Prog, std::string FileName) {
       if (LocalVarTy->Kind == TypeKind::TY_ARRAY) {
         // std::cout << "array len is: " << Var->Ty->ArrayLen << "\n";
         ArraySize = std::make_shared<Variable>(Var->Ty->ArrayLen);
+      } else if (LocalVarTy->Kind == TypeKind::TY_STRUCT) {
+        auto StructName = "%struct." + std::string(LocalVarTy->Tag->Name);
+        std::cout << "StructName: " << StructName << "\n";
+        ProgramModule->CreateType(LocalVarTy, StructName);
       }
       // std::cout << "local var " << InitName
       //           << " Ty is: " << LocalVarTy->CodeGen() << "\n";

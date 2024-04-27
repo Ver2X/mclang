@@ -1,6 +1,5 @@
 #pragma once
 #include "Variable.h"
-
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -28,6 +27,8 @@ using BasicBlockPtr = std::shared_ptr<BasicBlock>;
 using Edge = std::pair<BasicBlockPtr, BasicBlockPtr>;
 enum class EdgeKind;
 class IRBuilder;
+class Module;
+using ModulePtr = std::shared_ptr<Module>;
 
 class IRFunction {
   friend class IRBuilder;
@@ -50,6 +51,7 @@ class IRFunction {
   std::string FunctionName;
   std::vector<TypePtr> ParamTys;
   std::vector<VariablePtr> Args;
+  ModulePtr ParentMod;
 
 public:
   IRFunction();
@@ -63,6 +65,8 @@ public:
 
   std::string rename();
   std::string getName() { return FunctionName; };
+  void setModule(ModulePtr Mod) { ParentMod = Mod; }
+  ModulePtr getParent() { return ParentMod; }
   std::string createName(std::string Name);
   void setName(std::string Name) { FunctionName = Name; };
   SymbolTablePtr GeTable() { return Table; };

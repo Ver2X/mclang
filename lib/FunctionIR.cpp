@@ -9,6 +9,7 @@ IRFunction::IRFunction() {
   CacheLabel = -1;
   EntryLabel = -1;
   CountSuffix = 1;
+  ParentMod = nullptr;
 }
 
 IRFunction::IRFunction(std::string Name) {
@@ -21,6 +22,7 @@ IRFunction::IRFunction(std::string Name) {
   CacheLabel = -1;
   EntryLabel = -1;
   CountSuffix = 1;
+  ParentMod = nullptr;
 }
 
 int IRFunction::nextVarNameNum() { return varNameNum++; }

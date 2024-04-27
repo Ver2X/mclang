@@ -28,14 +28,6 @@ struct VarScope {
   TypePtr type_def;
 };
 
-// Scope for struct or union tags
-typedef struct TagScope TagScope;
-struct TagScope {
-  TagScope *Next;
-  char *Name;
-  TypePtr Ty;
-};
-
 // represent a Block Scope
 typedef struct BlockScope BlockScope;
 struct BlockScope {
@@ -124,6 +116,7 @@ static void push_tag_scope(TokenPtr Tok, TypePtr Ty) {
   sc->Ty = Ty;
   sc->Next = Scope->tags;
   Scope->tags = sc;
+  Ty->Tag = sc;
 }
 
 // head insert
@@ -830,9 +823,12 @@ static TypePtr structDecl(TokenPtr *rest, TokenPtr Tok) {
 
   // assgin offsets
   int Offset = 0;
+  int Idx = 0;
   for (Member *mem = Ty->Members; mem; mem = mem->Next) {
     Offset = alignTo(Offset, mem->Ty->Align);
     mem->Offset = Offset;
+    mem->Idx = Idx;
+    ++Idx;
     Offset += mem->Ty->Size;
 
     if (Ty->Align < mem->Ty->Align) {

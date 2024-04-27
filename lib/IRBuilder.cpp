@@ -167,9 +167,21 @@ VariablePtr IRBuilder::CreateGEP(VarTypePtr VTy, VariablePtr Ptr,
   auto Res = std::make_shared<Variable>();
   Res->setName(Name);
   auto ElementTy = baseTo(VTy);
-  assert(ElementTy->Kind == TypeKind::TY_ARRAY);
+  assert(ElementTy->Kind == TypeKind::TY_ARRAY ||
+         ElementTy->Kind == TypeKind::TY_STRUCT);
   assert(VTy == Ptr->getType());
-  Res->setType(pointerTo(baseTo(ElementTy)));
+  if (ElementTy->Kind == TypeKind::TY_ARRAY)
+    Res->setType(pointerTo(baseTo(ElementTy)));
+  else {
+    // it is decide by witch member
+    auto Idx = IdxList[1]->Ival;
+    auto Head = ElementTy->Members;
+    while (Idx--) {
+      Head = Head->Next;
+    }
+    auto ResTy = Head->Ty;
+    Res->setType(ResTy);
+  }
 
   if (function->EntryLabel < 0)
     function->EntryLabel = function->CacheLabel;
