@@ -73,6 +73,11 @@ void genStmtIR(Node *ExpNode, SymbolTablePtr Table) {
         InMemoryIR->nextBlockLabelNum(), Twine(PreName + "cond", LoopID));
     BasicBlockPtr Body = std::make_shared<BasicBlock>(
         InMemoryIR->nextBlockLabelNum(), Twine(PreName + "body", LoopID));
+    BasicBlockPtr Latch = nullptr;
+    if (ExpNode->inc) {
+      Latch = std::make_shared<BasicBlock>(InMemoryIR->nextBlockLabelNum(),
+                                           Twine(PreName + "latch", LoopID));
+    }
     BasicBlockPtr Exit = std::make_shared<BasicBlock>(
         InMemoryIR->nextBlockLabelNum(), Twine(PreName + "exit", LoopID));
 
@@ -93,8 +98,9 @@ void genStmtIR(Node *ExpNode, SymbolTablePtr Table) {
     genStmtIR(ExpNode->then, Table);
 
     if (ExpNode->inc) {
-      BasicBlockPtr Latch = std::make_shared<BasicBlock>(
-          InMemoryIR->nextBlockLabelNum(), Twine(PreName + "latch", LoopID));
+      //   BasicBlockPtr Latch = std::make_shared<BasicBlock>(
+      //       InMemoryIR->nextBlockLabelNum(), Twine(PreName + "latch",
+      //       LoopID));
 
       InMemoryIR->CreateBr(Latch);
       InMemoryIR->SetInsertPoint(Latch);

@@ -1,6 +1,7 @@
 #include "IRBuilder.h"
 #include "Instruction.h"
 #include "Variable.h"
+#include <algorithm>
 #include <cassert>
 #include <memory>
 #include <string>
@@ -303,17 +304,24 @@ std::string IRBuilder::CodeGen() {
     s += function->CodeGen();
   }
   s += "{\n";
+
+  std::vector<int> Idxs;
+  for (auto [Idx, _] : Blocks) {
+    Idxs.push_back(Idx);
+  }
+  sort(Idxs.begin(), Idxs.end());
   BasicBlockPtr lastBlock;
-  for (const auto &blk : Blocks) {
+  for (auto Idx : Idxs) {
+    auto blk = Blocks[Idx];
 #if DEBUG
-    FileOut << "dump InstInBB in BasicBlock , Name: " << blk.second->getName()
-            << "Label: " << blk.second->GetLabel()
-            << " Size :" << blk.second->InstInBB.Size() << std::endl;
+    FileOut << "dump InstInBB in BasicBlock , Name: " << blk->getName()
+            << "Label: " << blk->GetLabel() << " Size :" << blk->InstInBB.Size()
+            << std::endl;
 #endif
-    if (blk.first == function->EntryLabel && !blk.second->allocas.empty())
-      s += blk.second->AllocaCodeGen();
-    s += blk.second->CodeGen();
-    lastBlock = blk.second;
+    if (Idx == function->EntryLabel && !blk->allocas.empty())
+      s += blk->AllocaCodeGen();
+    s += blk->CodeGen();
+    lastBlock = blk;
   }
   s += "}\n";
   return s;
