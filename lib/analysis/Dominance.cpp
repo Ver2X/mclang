@@ -133,3 +133,28 @@ std::map<int, std::set<int>> getDomFrontierOfFunction(IRFunctionPtr Func) {
   dump(DF, Func, "DF");
   return DF;
 }
+
+std::map<int, std::set<int>>
+getIteratedDomFrontierOfFunction(IRFunctionPtr Func) {
+  auto IDF = getDomFrontierOfFunction(Func);
+  for (auto &[BB, BBs] : IDF) {
+    auto Changed = true;
+    while (Changed) {
+      Changed = false;
+      auto In = Union({BB}, BBs);
+      for (auto InBB : In) {
+        auto Increase = IDF[InBB];
+        for (auto X : Increase) {
+          if (!BBs.count(X)) {
+            BBs.insert(X);
+            Changed = true;
+          }
+        }
+      }
+    }
+  }
+
+  std::cout << "\n\n dump IDF:\n";
+  dump(IDF, Func, "IDF");
+  return IDF;
+}

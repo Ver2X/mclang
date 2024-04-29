@@ -24,10 +24,11 @@
 #include <tuple>
 #include <unordered_map>
 #include <vector>
-class IRBuilder {
+class IRBuilder : std::enable_shared_from_this<IRBuilder> {
 
   VariablePtr globalVariable;
   IRFunctionPtr function;
+  bool InOrderInsert;
   // order by Label
   std::map<int, BasicBlockPtr> &Blocks;
   std::map<Edge, EdgeKind> &EdgeKinds;
@@ -52,18 +53,21 @@ public:
       : function(func), globalVariable(nullptr), Blocks(func->Blocks),
         EdgeKinds(func->EdgeKinds), PreNum(func->PreNum),
         PostNum(func->PostNum), PreNumToBlock(func->PreNumToBlock),
-        PostNumToBlock(func->PostNumToBlock) {}
+        PostNumToBlock(func->PostNumToBlock), InOrderInsert(true) {}
   VariablePtr lastResVar;
+  std::list<InstructionPtr>::iterator CurrentInsertBefore;
+  bool isOrdered() { return InOrderInsert; }
   int GetNextCountSuffix() { return function->CountSuffix++; }
   void SetInsertPoint(int Label, std::string Name);
   void SetInsertPoint(BasicBlockPtr insertPoint);
+  void SetInsertPoint(InstructionPtr InsertBefore);
   void SetFunc(IRFunctionPtr func) { function = func; }
-  std::string CodeGen();
+  // std::string CodeGen();
   // void CreateAlloca(VariablePtr addr);
   // VariablePtr CreateAlloca(VariablePtr VTy, VariablePtr ArraySize,
   // std::string Name);
   void CreateStore(VariablePtr value, VariablePtr addr);
-  void CreateStore(VariablePtr addr);
+  // void CreateStore(VariablePtr addr);
   VariablePtr CreateCall(IRFunctionPtr func, std::vector<VariablePtr> args);
   VariablePtr CreateBinary(VariablePtr Left, VariablePtr Right, IROpKind Op);
   VariablePtr CreateLoad(VariablePtr addr);
@@ -72,6 +76,8 @@ public:
   VariablePtr CreateGEP(VarTypePtr VTy, VariablePtr Ptr,
                         std::vector<VariablePtr> IdxList,
                         std::string Name = "");
+  VariablePtr CreatePHI(VarTypePtr VTy, unsigned NumReservedValues,
+                        const std::string &Name = "");
   int nextBlockLabelNum();
   int nextControlFlowNum();
   void CreateRet(VariablePtr value);

@@ -199,15 +199,15 @@ void genExprIR(Node *ExprNode, VariablePtr *Res, SymbolTablePtr Table) {
           InMemoryIR->CreateStore(*Res, Left);
         }
       } else {
-        Left->isConst = false;
-        // here need const propagation
-        Left->isInitConst = true;
-        Left->Fval = (*Res)->Fval;
-        Left->Ival = (*Res)->Ival;
+        // Left->isConst = false;
+        // // here need const propagation
+        // Left->isInitConst = true;
+        // Left->Fval = (*Res)->Fval;
+        // Left->Ival = (*Res)->Ival;
         // Left->VarType = (*Res)->VarType;
-
+        auto Value = std::make_shared<Variable>((*Res)->Ival);
         // fix me
-        InMemoryIR->CreateStore(Left);
+        InMemoryIR->CreateStore(Value, Left);
       }
     }
     // need bind varibale at here

@@ -13,6 +13,8 @@ public:
   std::string GlobalVariableCodeGen();
   std::string getName() { return Name; }
   void setName(std::string _Name) { Name = _Name; }
+  void insertFunction(IRFunctionPtr Func) { Functions.push_back(Func); }
+  std::vector<IRFunctionPtr> getFunctions() { return Functions; }
   void CreateType(TypePtr Ty, std::string N);
   StructTypeTagPtr GetType(TypePtr Ty) { return CompoundTypeTags[Ty]; }
 

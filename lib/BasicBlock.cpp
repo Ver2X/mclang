@@ -11,9 +11,14 @@ void BasicBlock::Insert(VariablePtr indicateVariable, BasicBlockPtr targetOne,
   if (Op == IROpKind::Op_Branch) {
     Buider->lastResVar = indicateVariable;
     assert(indicateVariable != nullptr);
-    auto branchInst = std::make_shared<BranchInst>(indicateVariable, targetOne,
-                                                   targetTwo, Op);
-    InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
+    auto branchInst = std::make_shared<BranchInst>(
+        shared_from_this(), indicateVariable, targetOne, targetTwo, Op);
+    if (Buider->isOrdered()) {
+      InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
+    } else {
+      InstInBB.insert(Buider->CurrentInsertBefore,
+                      std::dynamic_pointer_cast<Instruction>(branchInst));
+    }
     if (indicateVariable)
       indicateVariable->User.push_back(
           std::dynamic_pointer_cast<Instruction>(branchInst));
@@ -24,8 +29,14 @@ void BasicBlock::Insert(VariablePtr indicateVariable, BasicBlockPtr targetOne,
     assert(indicateVariable == nullptr);
     assert(targetOne != nullptr);
     assert(targetTwo == nullptr);
-    auto branchInst = std::make_shared<BranchInst>(targetOne, Op);
-    InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
+    auto branchInst =
+        std::make_shared<BranchInst>(shared_from_this(), targetOne, Op);
+    if (Buider->isOrdered()) {
+      InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(branchInst));
+    } else {
+      InstInBB.insert(Buider->CurrentInsertBefore,
+                      std::dynamic_pointer_cast<Instruction>(branchInst));
+    }
     return;
   }
 }
@@ -37,8 +48,14 @@ void BasicBlock::Insert(VarTypePtr VTy, VariablePtr Ptr,
   Buider->lastResVar = Res;
   if (Res->getName() == "")
     Res->setName(Buider->getParent()->createName("%arrayidx"));
-  auto GepInst = std::make_shared<GetElementPtrInst>(VTy, Ptr, IdxList, Res);
-  InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(GepInst));
+  auto GepInst = std::make_shared<GetElementPtrInst>(shared_from_this(), VTy,
+                                                     Ptr, IdxList, Res);
+  if (Buider->isOrdered()) {
+    InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(GepInst));
+  } else {
+    InstInBB.insert(Buider->CurrentInsertBefore,
+                    std::dynamic_pointer_cast<Instruction>(GepInst));
+  }
   Res->Use = GepInst;
   for (auto &Id : IdxList) {
     Id->User.push_back(GepInst);
@@ -47,12 +64,37 @@ void BasicBlock::Insert(VarTypePtr VTy, VariablePtr Ptr,
   return;
 }
 
+void BasicBlock::Insert(VarTypePtr VTy, unsigned NumReservedValues,
+                        VariablePtr Res, IROpKind Op, IRBuilder *Buider) {
+  assert(Op == IROpKind::Op_PhiNode);
+  Buider->lastResVar = Res;
+  if (Res->getName() == "")
+    Res->setName(Buider->getParent()->createName("%phi"));
+  auto PHIInst = std::make_shared<PHINode>(shared_from_this(), VTy,
+                                           NumReservedValues, Res);
+  if (Buider->isOrdered()) {
+    InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(PHIInst));
+  } else {
+    InstInBB.insert(Buider->CurrentInsertBefore,
+                    std::dynamic_pointer_cast<Instruction>(PHIInst));
+  }
+  Res->Use = PHIInst;
+  PHINodes.push_back(PHIInst);
+  return;
+}
+
 void BasicBlock::Insert(IRFunctionPtr Func, std::vector<VariablePtr> Args,
                         VariablePtr Result, IROpKind Op, IRBuilder *Buider) {
   assert(Op == IROpKind::Op_FUNCALL);
-  auto callInst = std::make_shared<CallInst>(Func, Args, Result);
+  auto callInst =
+      std::make_shared<CallInst>(shared_from_this(), Func, Args, Result);
   Buider->lastResVar = Result;
-  InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(callInst));
+  if (Buider->isOrdered()) {
+    InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(callInst));
+  } else {
+    InstInBB.insert(Buider->CurrentInsertBefore,
+                    std::dynamic_pointer_cast<Instruction>(callInst));
+  }
   Result->Use = callInst;
   for (auto Arg : Args) {
     if (Arg)
@@ -64,12 +106,21 @@ void BasicBlock::Insert(IRFunctionPtr Func, std::vector<VariablePtr> Args,
 void BasicBlock::Insert(VarTypePtr VTy, VariablePtr ArraySize,
                         VariablePtr Result, IROpKind Op, IRBuilder *Buider) {
   assert(Op == IROpKind::Op_Alloca);
-  auto allocaInst = std::make_shared<AllocaInst>(VTy, Result, ArraySize);
-  // InstructionPtr inst = std::make_shared<Instruction>(Left, Right, Result,
-  // Op);
+  auto allocaInst =
+      std::make_shared<AllocaInst>(shared_from_this(), VTy, Result, ArraySize);
   Buider->lastResVar = Result;
-  allocas.push_back(std::dynamic_pointer_cast<Instruction>(allocaInst));
+  Allocas.push_back(allocaInst);
   Result->Use = allocaInst;
+}
+
+void BasicBlock::eraseFromParent(InstructionPtr Inst) {
+  // delete
+  if (auto Alloca = std::dynamic_pointer_cast<AllocaInst>(Inst)) {
+    Allocas.erase(std::remove(Allocas.begin(), Allocas.end(), Alloca),
+                  Allocas.end());
+  } else {
+    InstInBB.remove(Inst);
+  }
 }
 
 void BasicBlock::Insert(VariablePtr Left, VariablePtr Right, VariablePtr Result,
@@ -82,38 +133,36 @@ void BasicBlock::Insert(VariablePtr Left, VariablePtr Right, VariablePtr Result,
   // shouldn't change order
   case IROpKind::Op_Alloca: {
     assert(false);
-    // auto allocaInst = std::make_shared<AllocaInst>(Result);
-    // // InstructionPtr inst = std::make_shared<Instruction>(Left, Right,
-    // Result,
-    // // Op);
-    // Buider->lastResVar = Result;
-    // allocas.push_back(std::dynamic_pointer_cast<Instruction>(allocaInst));
-    // Result->Use = allocaInst;
     return;
   }
   case IROpKind::Op_Store: {
-    auto storeInst = std::make_shared<StoreInst>(Left, Result);
-
-    if (Left == nullptr && Right == nullptr) {
-      storeInst->Ival = Result->Ival;
-    }
+    auto storeInst =
+        std::make_shared<StoreInst>(shared_from_this(), Left, Result);
     Buider->lastResVar = Result;
-    InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(storeInst));
-    Result->Use = storeInst;
-    if (Left)
-      Left->User.push_back(std::dynamic_pointer_cast<Instruction>(storeInst));
-    if (Result)
-      Result->User.push_back(std::dynamic_pointer_cast<Instruction>(storeInst));
+    if (Buider->isOrdered()) {
+      InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(storeInst));
+    } else {
+      InstInBB.insert(Buider->CurrentInsertBefore,
+                      std::dynamic_pointer_cast<Instruction>(storeInst));
+    }
+    // Store don't have Result it is Dest
+    Left->User.push_back(std::dynamic_pointer_cast<Instruction>(storeInst));
+    Result->User.push_back(std::dynamic_pointer_cast<Instruction>(storeInst));
     return;
   }
   case IROpKind::Op_Load: {
-    auto loadInst = std::make_shared<LoadInst>(Left, Result);
+    auto loadInst =
+        std::make_shared<LoadInst>(shared_from_this(), Left, Result);
     Buider->lastResVar = Result;
     assert(Right == nullptr);
-    InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(loadInst));
+    if (Buider->isOrdered()) {
+      InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(loadInst));
+    } else {
+      InstInBB.insert(Buider->CurrentInsertBefore,
+                      std::dynamic_pointer_cast<Instruction>(loadInst));
+    }
     Result->Use = loadInst;
-    if (Left)
-      Left->User.push_back(std::dynamic_pointer_cast<Instruction>(loadInst));
+    Left->User.push_back(std::dynamic_pointer_cast<Instruction>(loadInst));
     return;
   }
   case IROpKind::Op_Return: {
@@ -126,8 +175,13 @@ void BasicBlock::Insert(VariablePtr Left, VariablePtr Right, VariablePtr Result,
     // if(Result == nullptr)
     //	returnInst = std::make_shared<ReturnInst>(Buider->lastResVar);
     // else
-    auto returnInst = std::make_shared<ReturnInst>(Result);
-    InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(returnInst));
+    auto returnInst = std::make_shared<ReturnInst>(shared_from_this(), Result);
+    if (Buider->isOrdered()) {
+      InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(returnInst));
+    } else {
+      InstInBB.insert(Buider->CurrentInsertBefore,
+                      std::dynamic_pointer_cast<Instruction>(returnInst));
+    }
     if (Result)
       Result->User.push_back(
           std::dynamic_pointer_cast<Instruction>(returnInst));
@@ -171,15 +225,19 @@ void BasicBlock::Insert(VariablePtr Left, VariablePtr Right, VariablePtr Result,
     // if (nextcf != 0)
     //   s += std::to_string(nextcf);
     Result->setName(Buider->getParent()->createName(s));
-    auto instArith = std::make_shared<BinaryOperator>(Left, Right, Result, Op);
-    InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
+    auto instArith = std::make_shared<BinaryOperator>(shared_from_this(), Left,
+                                                      Right, Result, Op);
+    if (Buider->isOrdered()) {
+      InstInBB.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
+    } else {
+      InstInBB.insert(Buider->CurrentInsertBefore,
+                      std::dynamic_pointer_cast<Instruction>(instArith));
+    }
     Buider->lastResVar = Result;
     // Result->setName(std::move(s));
     Result->Use = instArith;
-    if (Left)
-      Left->User.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
-    if (Right)
-      Right->User.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
+    Left->User.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
+    Right->User.push_back(std::dynamic_pointer_cast<Instruction>(instArith));
     return;
   }
   default: {
@@ -199,7 +257,7 @@ std::string BasicBlock::CodeGen() {
   }
   if (LabelName != "entry")
     s += "\n";
-  if (this->allocas.empty())
+  if (this->Allocas.empty())
     s += LabelName + ":\n";
   for (const auto &ins : InstInBB) {
     s += ins->CodeGen() + "\n";
@@ -210,7 +268,7 @@ std::string BasicBlock::CodeGen() {
 std::string BasicBlock::AllocaCodeGen() {
   std::string s;
   s += Name + ":\n";
-  for (const auto &ins : allocas) {
+  for (const auto &ins : Allocas) {
     s += ins->CodeGen() + "\n";
   }
   return s;
@@ -219,7 +277,7 @@ std::string BasicBlock::AllocaCodeGen() {
 std::string BasicBlock::EntryCodeGenCFG() {
   std::string s;
   s += Name + ":\\l";
-  for (const auto &ins : allocas) {
+  for (const auto &ins : Allocas) {
     s += ins->CodeGen() + "\\l";
   }
   for (const auto &ins : InstInBB) {

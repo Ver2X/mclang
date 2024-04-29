@@ -65,7 +65,7 @@ public:
 
   std::string rename();
   std::string getName() { return FunctionName; };
-  const std::map<int, BasicBlockPtr> &getBlocks() { return Blocks; }
+  std::map<int, BasicBlockPtr> getBlocks() { return Blocks; }
   void setModule(ModulePtr Mod) { ParentMod = Mod; }
   ModulePtr getParent() { return ParentMod; }
   std::string createName(std::string Name);

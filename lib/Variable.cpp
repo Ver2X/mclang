@@ -31,6 +31,17 @@ Operand::Operand(int v) {
   Name = std::to_string(Ival);
   VarType = TyInt;
 }
+Operand::Operand(int *v) {
+  assert(v == nullptr);
+  Pval = v;
+  Next = nullptr;
+  Align = 4;
+  isConst = true;
+  isGlobal = false;
+  varIsArg = false;
+  Name = "nullptr";
+  VarType = TyInt;
+}
 
 Operand::Operand(double v) {
   Fval = v;

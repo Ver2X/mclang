@@ -5,6 +5,10 @@
 
 extern std::shared_ptr<Module> ProgramModule;
 
+void Instruction::eraseFromParent() {
+  this->getParent()->eraseFromParent(shared_from_this());
+}
+
 int Instruction::getAlign(VariablePtr Left, VariablePtr Right,
                           VariablePtr Result) {
   if (Left != nullptr && Right != nullptr)
@@ -12,12 +16,18 @@ int Instruction::getAlign(VariablePtr Left, VariablePtr Right,
   return Result->Align;
 }
 
+void PHINode::addIncoming(VariablePtr InComingValue, BasicBlockPtr InComingBB) {
+  InComingValues.push_back(InComingValue);
+  InComingBlocks.push_back(InComingBB);
+  CurNumOfIncomingValues++;
+}
 std::string BinaryOperator::CodeGen() {
   std::string s;
 
   switch (Op) {
   case IROpKind::Op_ADD:
     s += "  " + Result->getName() + " = " + "add nsw i32 ";
+    assert(Left);
     s += Left->getName();
     s += ", ";
     s += Right->getName();
@@ -146,6 +156,25 @@ std::string CallInst::CodeGen() {
   }
   Res += ")";
   return Res;
+}
+
+std::string PHINode::CodeGen() {
+  std::string s = "  " + Result->getName() + " = phi ";
+  s += ValueTy->CodeGen();
+  for (int i = 0; i < CurNumOfIncomingValues; ++i) {
+    s += "[ ";
+    s += InComingValues[i]->CodeGen() + ", ";
+    if (InComingBlocks[i]->getName() == "entry") {
+      s += "%entry ]";
+    } else {
+      s += InComingBlocks[i]->getName() + " ]";
+    }
+
+    if (i != CurNumOfIncomingValues - 1) {
+      s += ", ";
+    }
+  }
+  return s;
 }
 
 std::string BranchInst::CodeGen() {

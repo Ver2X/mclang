@@ -1,6 +1,7 @@
 #include <set>
 
-template <typename T> std::set<T> Union(std::set<T> &A, std::set<T> &B) {
+template <typename T>
+std::set<T> Union(const std::set<T> &A, const std::set<T> &B) {
   std::set<T> Res;
   for (auto E : A) {
     Res.insert(E);
@@ -12,7 +13,8 @@ template <typename T> std::set<T> Union(std::set<T> &A, std::set<T> &B) {
   return Res;
 }
 
-template <typename T> std::set<T> Intersection(std::set<T> &A, std::set<T> &B) {
+template <typename T>
+std::set<T> Intersection(const std::set<T> &A, const std::set<T> &B) {
   std::set<T> Res;
   for (auto E : A) {
     if (B.count(E))
@@ -21,7 +23,7 @@ template <typename T> std::set<T> Intersection(std::set<T> &A, std::set<T> &B) {
   return Res;
 }
 
-template <typename T> bool EQ(std::set<T> &A, std::set<T> &B) {
+template <typename T> bool EQ(const std::set<T> &A, const std::set<T> &B) {
   for (auto E : A) {
     if (!B.count(E)) {
       return false;
@@ -35,7 +37,7 @@ template <typename T> bool EQ(std::set<T> &A, std::set<T> &B) {
   return true;
 }
 
-template <typename T> bool NEQ(std::set<T> &A, std::set<T> &B) {
+template <typename T> bool NEQ(const std::set<T> &A, const std::set<T> &B) {
   for (auto E : A) {
     if (!B.count(E)) {
       return true;

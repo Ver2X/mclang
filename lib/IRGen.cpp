@@ -3,8 +3,8 @@
 #include "Module.h"
 #include "SymbolTable.h"
 #include "Variable.h"
-#include "analysis/Dominance.h"
 #include "mclang.h"
+#include "transform/Mem2reg.h"
 // #include <bits/types/FILE.h>
 #include <algorithm>
 #include <cassert>
@@ -133,8 +133,9 @@ void emitIR(Obj *Prog, std::string FileName) {
     // std::vector<std::pair<VariablePtr, VariablePtr>> ArgVarPair;
 
     /// Cache and release variable
+    std::set<Obj *> ArgObgs;
     for (Obj *Var = FuncNode->Params; Var; Var = Var->Next) {
-
+      ArgObgs.insert(Var);
       // FileOut << "Func args increase 1" << std::endl;
       auto ArgVar = std::make_shared<Variable>();
       // std::cout << "meet type: " << Var->Ty->Kind << "\n";
@@ -172,6 +173,9 @@ void emitIR(Obj *Prog, std::string FileName) {
 
     int NumOfLocal = 0;
     for (Obj *Var = FuncNode->Locals; Var; Var = Var->Next) {
+      if (ArgObgs.count(Var)) {
+        continue;
+      }
       std::string InitName = getPreName(Var->Name);
       while (LocalTable->nameHaveUsed(InitName)) {
         InitName += ".1";
@@ -211,9 +215,10 @@ void emitIR(Obj *Prog, std::string FileName) {
       FileOut << ProgramModule->GlobalVariableCodeGen() << std::endl;
     }
 
+    ProgramModule->insertFunction(Func);
     // FileOut << "end global" << std::endl;
-    FileOut << InMemoryIR->CodeGen() << std::endl;
-    std::cout << InMemoryIR->CodeGen() << std::endl;
+    FileOut << Func->CodeGen() << std::endl;
+    std::cout << Func->CodeGen() << std::endl;
     InMemoryIR->SetPredAndSuccNum();
     std::fstream CfgOut;
     CfgOut.open(FileName + "_" + FuncNode->Name + ".dot", std::ios_base::out);
@@ -223,10 +228,12 @@ void emitIR(Obj *Prog, std::string FileName) {
                             ".png";
     std::cout << "do cmd:\n" << GenPNGCmd << "\n";
     system(GenPNGCmd.c_str());
+  }
 
-    // getDominanceOfFunction(Func);
-    // getIDomOfFunction(Func);
-    getDomFrontierOfFunction(Func);
+  for (auto Func : ProgramModule->getFunctions()) {
+    class PromoteMemoryToRegister Mem2reg(Func);
+    Mem2reg.promoteMem2Reg();
+    std::cout << Func->CodeGen() << std::endl;
   }
 }
 

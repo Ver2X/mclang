@@ -29,18 +29,26 @@ void genStmtIR(Node *ExpNode, SymbolTablePtr Table) {
     BasicBlockPtr InIf = InMemoryIR->getCurrentBlock();
 
     BasicBlockPtr Then = std::make_shared<BasicBlock>(
-        InMemoryIR->nextBlockLabelNum(), Twine("%if.then", LoopID));
-    BasicBlockPtr Else = std::make_shared<BasicBlock>(
-        InMemoryIR->nextBlockLabelNum(), Twine("%if.else", LoopID));
-
-    InMemoryIR->CreateCondBr(InMemoryIR->lastResVar, Then, Else);
-
+        InMemoryIR->getParent(), InMemoryIR->nextBlockLabelNum(),
+        Twine("%if.then", LoopID));
+    BasicBlockPtr Else = nullptr;
+    if (ExpNode->els) {
+      Else = std::make_shared<BasicBlock>(InMemoryIR->getParent(),
+                                          InMemoryIR->nextBlockLabelNum(),
+                                          Twine("%if.else", LoopID));
+    }
+    BasicBlockPtr End = std::make_shared<BasicBlock>(
+        InMemoryIR->getParent(), InMemoryIR->nextBlockLabelNum(),
+        Twine("%if.end", LoopID));
+    if (ExpNode->els) {
+      InMemoryIR->CreateCondBr(InMemoryIR->lastResVar, Then, Else);
+    } else {
+      InMemoryIR->CreateCondBr(InMemoryIR->lastResVar, Then, End);
+    }
     InMemoryIR->SetInsertPoint(Then);
 
     genStmtIR(ExpNode->then, Table);
 
-    BasicBlockPtr End = std::make_shared<BasicBlock>(
-        InMemoryIR->nextBlockLabelNum(), Twine("%if.end", LoopID));
     InMemoryIR->CreateBr(End);
     if (ExpNode->els) {
       InMemoryIR->SetInsertPoint(Else);
@@ -60,9 +68,9 @@ void genStmtIR(Node *ExpNode, SymbolTablePtr Table) {
     BasicBlockPtr InBB = InMemoryIR->getCurrentBlock();
     // for handle while
     if (ExpNode->init) {
-      BasicBlockPtr PreHeader =
-          std::make_shared<BasicBlock>(InMemoryIR->nextBlockLabelNum(),
-                                       Twine(PreName + "preheader", LoopID));
+      BasicBlockPtr PreHeader = std::make_shared<BasicBlock>(
+          InMemoryIR->getParent(), InMemoryIR->nextBlockLabelNum(),
+          Twine(PreName + "preheader", LoopID));
       InMemoryIR->CreateBr(PreHeader);
       InMemoryIR->SetInsertPoint(PreHeader);
       InBB = PreHeader;
@@ -70,16 +78,20 @@ void genStmtIR(Node *ExpNode, SymbolTablePtr Table) {
     }
 
     BasicBlockPtr CondBB = std::make_shared<BasicBlock>(
-        InMemoryIR->nextBlockLabelNum(), Twine(PreName + "cond", LoopID));
+        InMemoryIR->getParent(), InMemoryIR->nextBlockLabelNum(),
+        Twine(PreName + "cond", LoopID));
     BasicBlockPtr Body = std::make_shared<BasicBlock>(
-        InMemoryIR->nextBlockLabelNum(), Twine(PreName + "body", LoopID));
+        InMemoryIR->getParent(), InMemoryIR->nextBlockLabelNum(),
+        Twine(PreName + "body", LoopID));
     BasicBlockPtr Latch = nullptr;
     if (ExpNode->inc) {
-      Latch = std::make_shared<BasicBlock>(InMemoryIR->nextBlockLabelNum(),
+      Latch = std::make_shared<BasicBlock>(InMemoryIR->getParent(),
+                                           InMemoryIR->nextBlockLabelNum(),
                                            Twine(PreName + "latch", LoopID));
     }
     BasicBlockPtr Exit = std::make_shared<BasicBlock>(
-        InMemoryIR->nextBlockLabelNum(), Twine(PreName + "exit", LoopID));
+        InMemoryIR->getParent(), InMemoryIR->nextBlockLabelNum(),
+        Twine(PreName + "exit", LoopID));
 
     InMemoryIR->CreateBr(CondBB);
 

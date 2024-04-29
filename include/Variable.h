@@ -61,6 +61,7 @@ public:
   //  SSA?
   int Ival;
   double Fval;
+  int *Pval;
   VarTypePtr VarType;
   InstructionPtr Use;
   std::list<InstructionPtr> User;
@@ -75,6 +76,7 @@ public:
   Operand(int64_t v);
   Operand(int v);
   Operand(double v);
+  Operand(int *v);
 
   std::string &getName() { return Name; }
   void setName(std::string InitName);

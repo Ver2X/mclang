@@ -1,4 +1,6 @@
 #include "FunctionIR.h"
+#include "BasicBlock.h"
+#include <algorithm>
 
 IRFunction::IRFunction() {
   argsNum = 0;
@@ -80,6 +82,28 @@ std::string IRFunction::CodeGen() {
   }
 
   s += ")";
+
+  s += "{\n";
+
+  std::vector<int> Idxs;
+  for (auto [Idx, _] : Blocks) {
+    Idxs.push_back(Idx);
+  }
+  sort(Idxs.begin(), Idxs.end());
+  BasicBlockPtr lastBlock;
+  for (auto Idx : Idxs) {
+    auto blk = Blocks[Idx];
+#if DEBUG
+    FileOut << "dump InstInBB in BasicBlock , Name: " << blk->getName()
+            << "Label: " << blk->GetLabel() << " Size :" << blk->InstInBB.Size()
+            << std::endl;
+#endif
+    if (Idx == this->EntryLabel && !blk->getAllocas().empty())
+      s += blk->AllocaCodeGen();
+    s += blk->CodeGen();
+    lastBlock = blk;
+  }
+  s += "}\n";
   return s;
 }
 

@@ -35,6 +35,7 @@ add_library(libs SHARED
     lib/IRGenExpression.cpp
     lib/StructTypeTag.cpp
     lib/analysis/Dominance.cpp
+    lib/transform/Mem2reg.cpp
 )
 
 # include_directories(include)
