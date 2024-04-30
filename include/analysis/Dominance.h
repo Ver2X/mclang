@@ -1,3 +1,4 @@
+#pragma once
 #include "BasicBlock.h"
 #include "FunctionIR.h"
 #include "SetCompute.h"

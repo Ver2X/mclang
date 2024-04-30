@@ -3,6 +3,7 @@
 #include "Module.h"
 #include "SymbolTable.h"
 #include "Variable.h"
+#include "analysis/DominatorTree.h"
 #include "mclang.h"
 #include "transform/Mem2reg.h"
 // #include <bits/types/FILE.h>
@@ -231,6 +232,8 @@ void emitIR(Obj *Prog, std::string FileName) {
   }
 
   for (auto Func : ProgramModule->getFunctions()) {
+    DominatorTree DT(Func);
+    // DT.recalculate(Func);
     class PromoteMemoryToRegister Mem2reg(Func);
     Mem2reg.promoteMem2Reg();
     std::cout << Func->CodeGen() << std::endl;

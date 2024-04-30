@@ -36,6 +36,7 @@ add_library(libs SHARED
     lib/StructTypeTag.cpp
     lib/analysis/Dominance.cpp
     lib/transform/Mem2reg.cpp
+    lib/analysis/DominatorTree.cpp
 )
 
 # include_directories(include)
