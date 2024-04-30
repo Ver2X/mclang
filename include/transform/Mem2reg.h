@@ -38,6 +38,12 @@ private:
   std::set<BasicBlockPtr> Visited;
   std::map<AllocaInstPtr, unsigned> AllocaLookup;
 
+  void RemoveFromAllocasList(unsigned &AllocaIdx) {
+    Allocas[AllocaIdx] = Allocas.back();
+    Allocas.pop_back();
+    --AllocaIdx;
+  }
+
   // std::map<PHINodePtr, VariablePtr> PHIToVar;
   // std::map<VariablePtr, int> Counter;
   // std::map<VariablePtr, std::stack<int>> Stack;

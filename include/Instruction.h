@@ -120,6 +120,7 @@ private:
   VariablePtr Right;
   VariablePtr Result;
 };
+using BinaryOperatorPtr = std::shared_ptr<BinaryOperator>;
 
 // class UnaryOperator : public Instruction {
 // public:
@@ -150,6 +151,7 @@ public:
 private:
   VariablePtr returnValue;
 };
+using ReturnInstPtr = std::shared_ptr<ReturnInst>;
 
 class BranchInst : public Instruction {
 public:
@@ -181,6 +183,7 @@ private:
   BasicBlockPtr targetFirst;
   BasicBlockPtr targetSecond;
 };
+using BranchInstPtr = std::shared_ptr<BranchInst>;
 
 class AllocaInst : public Instruction {
 public:
@@ -224,6 +227,7 @@ private:
   VariablePtr Source;
   VariablePtr Dest;
 };
+using LoadInstPtr = std::shared_ptr<LoadInst>;
 
 class GetElementPtrInst : public Instruction {
 public:
@@ -257,6 +261,7 @@ private:
   std::vector<VariablePtr> IdxList;
   VariablePtr Result;
 };
+using GetElementPtrInstPtr = std::shared_ptr<GetElementPtrInst>;
 
 class StoreInst : public Instruction {
 public:
@@ -276,11 +281,13 @@ public:
   unsigned getNumOperands() { return 2; }
   VariablePtr getResult() { return nullptr; }
   VariablePtr getPointerOperand() { return Dest; }
+  VariablePtr getValueOperand() { return Source; }
 
 private:
   VariablePtr Source;
   VariablePtr Dest;
 };
+using StoreInstPtr = std::shared_ptr<StoreInst>;
 
 class CallInst : public Instruction {
 public:
@@ -307,6 +314,7 @@ private:
   std::vector<VariablePtr> args;
   VariablePtr Dest;
 };
+using CallInstPtr = std::shared_ptr<CallInst>;
 
 class PHINode : public Instruction {
 public:

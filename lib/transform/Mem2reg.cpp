@@ -44,6 +44,12 @@ void PromoteMemoryToRegister::promoteMem2Reg() {
     auto AI = Allocas[AllocaNum];
     assert(AI->getResult()->Use);
 
+    if (AI->getResult()->User.empty()) {
+      AI->eraseFromParent();
+      RemoveFromAllocasList(AllocaNum);
+      continue;
+    }
+
     // If there is only a single store to this value, replace any loads of
     // it that are directly dominated by the definition with the value stored.
     InstructionPtr SingleStore = nullptr;
@@ -66,11 +72,52 @@ void PromoteMemoryToRegister::promoteMem2Reg() {
       }
       SingleStore->eraseFromParent();
       AI->eraseFromParent();
+      RemoveFromAllocasList(AllocaNum);
       continue;
     }
 
     // If the alloca is only read and written in one basic block, just perform a
     // linear sweep over the block to eliminate it.
+    BasicBlockPtr UsedInBB = nullptr;
+    bool IsUsedInOneBB = true;
+    for (auto Inst : AI->getResult()->User) {
+      if (!UsedInBB) {
+        UsedInBB = Inst->getParent();
+      } else {
+        if (Inst->getParent() != UsedInBB) {
+          IsUsedInOneBB = false;
+          break;
+        }
+      }
+    }
+    if (IsUsedInOneBB) {
+      StoreInstPtr BeforeStore = nullptr;
+      bool AllocaCanRemove = true;
+      for (auto Inst : UsedInBB->InstInBB) {
+        if (std::find(AI->getResult()->User.begin(),
+                      AI->getResult()->User.end(),
+                      Inst) != AI->getResult()->User.end()) {
+          if (auto Store = std::dynamic_pointer_cast<StoreInst>(Inst)) {
+            BeforeStore = Store;
+          } else {
+            // assert(BeforeStore != nullptr && "Use alloca must after define
+            // !"); can't assert it because array access is gep + store, not
+            // directly store
+            if (auto Load = std::dynamic_pointer_cast<LoadInst>(Inst)) {
+              Load->replaceAllUsesWith(BeforeStore->getValueOperand());
+            } else if (auto Gep =
+                           std::dynamic_pointer_cast<GetElementPtrInst>(Inst)) {
+              AllocaCanRemove = false;
+            }
+          }
+        }
+      }
+      if (AllocaCanRemove) {
+        AI->eraseFromParent();
+        RemoveFromAllocasList(AllocaNum);
+      }
+      continue;
+    }
 
     AllocaLookup[Allocas[AllocaNum]] = AllocaNum;
 
