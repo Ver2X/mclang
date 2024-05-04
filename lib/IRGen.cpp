@@ -5,6 +5,7 @@
 #include "Variable.h"
 #include "analysis/DominatorTree.h"
 #include "mclang.h"
+#include "transform/DCE.h"
 #include "transform/Mem2reg.h"
 // #include <bits/types/FILE.h>
 #include <algorithm>
@@ -236,6 +237,7 @@ void emitIR(Obj *Prog, std::string FileName) {
     // DT.recalculate(Func);
     class PromoteMemoryToRegister Mem2reg(Func);
     Mem2reg.promoteMem2Reg();
+    eliminateDeadCode(Func);
     std::cout << Func->CodeGen() << std::endl;
   }
 }

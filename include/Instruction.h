@@ -1,7 +1,6 @@
 #pragma once
 #include "FunctionIR.h"
 #include "Variable.h"
-
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -80,6 +79,10 @@ public:
            Op == IROpKind::Op_Return;
   }
   bool isTerminator() { return isTerminator(GetOp()); }
+  bool mayHaveSideEffects() {
+    return Op == IROpKind::Op_FUNCALL || Op == IROpKind::Op_Load ||
+           Op == IROpKind::Op_Store;
+  }
 
   void replaceAllUsesWith(VariablePtr V) {
     auto Res = this->getResult();
@@ -239,7 +242,6 @@ public:
   }
   std::string CodeGen();
   VariablePtr &getOperand(int Idx) {
-    assert(Idx == 0);
     if (Idx == 0) {
       return BasePtr;
     } else {
