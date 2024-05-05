@@ -20,8 +20,8 @@ public:
   void recalculate(IRFunctionPtr F);
   bool dominates(const BasicBlockPtr Def, const BasicBlockPtr BB);
   bool dominates(const InstructionPtr Def, const InstructionPtr Use);
-  bool dominates(const VariablePtr Def, const InstructionPtr Use);
-  bool dominates(const VariablePtr Def, const BasicBlockPtr BB);
+  bool dominates(const InstructionPtr Def, const BasicBlockPtr Use);
+  bool dominates(const BasicBlockPtr Def, const InstructionPtr BB);
 
 private:
   DominatorTreeNodePtr Root;

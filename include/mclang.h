@@ -165,20 +165,10 @@ TypePtr funcType(TypePtr ReturnTy);
 TypePtr copyType(TypePtr Ty);
 TypePtr arrayOf(TypePtr Base, int Size);
 
-void codegen(Obj *prog, FILE *out, std::string file);
+void codegen(Obj *prog, FILE *out, std::string file, std::string file_opt);
 int alignTo(int n, int Align);
 
 void emitIR(Obj *prog, std::string file_name);
 void emitGlobalDataIR(Obj *prog);
 std::string Twine(std::string &l, std::string &r);
 std::string Twine(std::string l, std::string r);
-
-/*
-class IR {
-public:
-        int opcode;
-        Operand * Left;
-        Operand * Right;
-        Operand * Result;
-        int Align;
-};*/

@@ -10,6 +10,8 @@ static bool genIR = false;
 
 static bool genSigle = false;
 
+static bool openOptPipeLine = false;
+
 static void usage(int status) {
   fprintf(stderr, "mclang [ -o <path>] [-c] [-S] [-emit-llvm] <file> \n");
   exit(status);
@@ -29,6 +31,11 @@ static void parse_args(int argc, char **argv) {
 
     if (!strcmp(argv[i], "-S")) {
       genAsm = true;
+      continue;
+    }
+
+    if (!strcmp(argv[i], "-O3")) {
+      openOptPipeLine = true;
       continue;
     }
 
@@ -81,6 +88,7 @@ int main(int argc, char **argv) {
   file_name = removeExtension(file_name);
   TokenPtr Tok = tokenize_file(input_path);
   Obj *prog = parse(Tok);
+  std::string file_name_opt = file_name + ".opt.ll";
   if (opt_o) {
     file_name = opt_o;
   } else {
@@ -88,9 +96,11 @@ int main(int argc, char **argv) {
   }
   FILE *out = open_file(opt_o);
   // fprintf(out, ".file 1 \"%s\"\n", input_path);
-  codegen(prog, out, file_name);
+  codegen(prog, out, file_name, file_name_opt);
 
   int error_code = 0;
+  if (openOptPipeLine)
+    file_name = file_name_opt;
   if (genAsm) {
     std::string Cmd = "clang -S " + file_name;
     error_code = system(Cmd.c_str());

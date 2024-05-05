@@ -38,15 +38,7 @@ class IRBuilder : std::enable_shared_from_this<IRBuilder> {
   std::map<int, BasicBlockPtr> &PostNumToBlock;
   std::shared_ptr<DominTree> Domin;
   std::shared_ptr<DominTree> PostDomin;
-  bool Insert(VariablePtr Left, VariablePtr Right, VariablePtr Result,
-              IROpKind Op, int Label, std::string Name, SymbolTablePtr Table);
-  bool Insert(VariablePtr Left, VariablePtr Right, VariablePtr Result,
-              IROpKind Op, SymbolTablePtr Table);
-  bool Insert(VariablePtr indicateVariable, BasicBlockPtr targetOne,
-              BasicBlockPtr targetTwo, IROpKind Op, SymbolTablePtr Table);
-  bool Insert(VariablePtr Dest, IROpKind Op, SymbolTablePtr Table);
-  bool Insert(VariablePtr Source, VariablePtr Dest, IROpKind Op,
-              SymbolTablePtr Table);
+  void InsertIntoCacheBB(InstructionPtr Inst);
 
 public:
   IRBuilder(IRFunctionPtr func)
@@ -54,7 +46,6 @@ public:
         EdgeKinds(func->EdgeKinds), PreNum(func->PreNum),
         PostNum(func->PostNum), PreNumToBlock(func->PreNumToBlock),
         PostNumToBlock(func->PostNumToBlock), InOrderInsert(true) {}
-  VariablePtr lastResVar;
   std::list<InstructionPtr>::iterator CurrentInsertBefore;
   bool isOrdered() { return InOrderInsert; }
   int GetNextCountSuffix() { return function->CountSuffix++; }
@@ -62,22 +53,18 @@ public:
   void SetInsertPoint(BasicBlockPtr insertPoint);
   void SetInsertPoint(InstructionPtr InsertBefore);
   void SetFunc(IRFunctionPtr func) { function = func; }
-  // std::string CodeGen();
-  // void CreateAlloca(VariablePtr addr);
-  // VariablePtr CreateAlloca(VariablePtr VTy, VariablePtr ArraySize,
-  // std::string Name);
   void CreateStore(VariablePtr value, VariablePtr addr);
-  // void CreateStore(VariablePtr addr);
-  VariablePtr CreateCall(IRFunctionPtr func, std::vector<VariablePtr> args);
-  VariablePtr CreateBinary(VariablePtr Left, VariablePtr Right, IROpKind Op);
-  VariablePtr CreateLoad(VariablePtr addr);
-  VariablePtr CreateAlloca(VarTypePtr VTy, VariablePtr ArraySize,
-                           std::string Name);
-  VariablePtr CreateGEP(VarTypePtr VTy, VariablePtr Ptr,
-                        std::vector<VariablePtr> IdxList,
-                        std::string Name = "");
-  VariablePtr CreatePHI(VarTypePtr VTy, unsigned NumReservedValues,
-                        const std::string &Name = "");
+  CallInstPtr CreateCall(IRFunctionPtr func, std::vector<VariablePtr> args);
+  BinaryOperatorPtr CreateBinary(VariablePtr Left, VariablePtr Right,
+                                 IROpKind Op);
+  LoadInstPtr CreateLoad(VariablePtr addr);
+  AllocaInstPtr CreateAlloca(VarTypePtr VTy, VariablePtr ArraySize,
+                             std::string Name);
+  GetElementPtrInstPtr CreateGEP(VarTypePtr VTy, VariablePtr Ptr,
+                                 std::vector<VariablePtr> IdxList,
+                                 std::string Name = "");
+  PHINodePtr CreatePHI(VarTypePtr VTy, unsigned NumReservedValues,
+                       const std::string &Name = "");
   int nextBlockLabelNum();
   int nextControlFlowNum();
   void CreateRet(VariablePtr value);

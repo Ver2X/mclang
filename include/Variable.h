@@ -1,5 +1,6 @@
 #pragma once
 #include "Type.h"
+#include "Use.h"
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -46,37 +47,48 @@
 using VarTypePtr = TypePtr;
 using ReturnTypePtr = TypePtr;
 
-class Operand;
-using Variable = Operand;
+class Value;
+using Variable = Value;
 using VariablePtr = std::shared_ptr<Variable>;
 using VarList = std::shared_ptr<std::vector<VariablePtr>>;
 class Instruction;
 using InstructionPtr = std::shared_ptr<Instruction>;
-class Operand {
+class Use;
+using UsePtr = std::shared_ptr<Use>;
+class Value {
 private:
   std::string Name;
+  std::list<Use *> UseList;
 
 public:
-  // void setName(std::string & Name) { this->Name = Name; }
-  //  SSA?
   int Ival;
   double Fval;
   int *Pval;
   VarTypePtr VarType;
-  InstructionPtr Use;
-  std::list<InstructionPtr> User;
   int Align;
-  Operand *Next;
+  Value *Next;
   bool isConst;
   bool isInitConst;
   bool isGlobal;
   bool varIsArg;
   VariablePtr Addr;
-  Operand();
-  Operand(int64_t v);
-  Operand(int v);
-  Operand(double v);
-  Operand(int *v);
+  Value();
+  Value(int64_t v);
+  Value(int v);
+  Value(double v);
+  Value(int *v);
+
+  /// This method should only be used by the Use class.
+  void addUse(Use *U) { U->addToList(UseList); }
+
+  std::list<Use *> users() { return UseList; }
+  bool use_empty() { return UseList.empty(); }
+
+  virtual void replaceAllUsesWith(VariablePtr V) {
+    for (auto U : this->users()) {
+      U->set(V);
+    }
+  }
 
   std::string &getName() { return Name; }
   void setName(std::string InitName);

@@ -15,6 +15,7 @@ void genStmtIR(Node *Node, SymbolTablePtr);
 void genExprIR(Node *Node, VariablePtr *, SymbolTablePtr);
 void genFuncArgIR(Obj *Var, int R, int Offset, int Sz);
 extern std::fstream FileOut;
+extern std::fstream FileOptOut;
 extern int Depth;
 
 // for now, define as a fucntion, then change to rope data structure.
@@ -163,6 +164,8 @@ void emitIR(Obj *Prog, std::string FileName) {
       Func->addArg(ArgVar);
       ArgVariableCached.push_back(ArgVar);
       (Func->argsNum)++;
+      std::cout << "Create alloca type is : " << ArgVar->VarType->CodeGen()
+                << "\n";
       auto ArgVarAddr = InMemoryIR->CreateAlloca(
           ArgVar->VarType, nullptr, Twine(getPreName(Var->Name), ".addr"));
       ArgVar->SetAddr(ArgVarAddr);
@@ -194,7 +197,7 @@ void emitIR(Obj *Prog, std::string FileName) {
       }
       // std::cout << "local var " << InitName
       //           << " Ty is: " << LocalVarTy->CodeGen() << "\n";
-
+      std::cout << "Create alloca type2 is : " << LocalVarTy->CodeGen() << "\n";
       auto LocalVar = InMemoryIR->CreateAlloca(LocalVarTy, ArraySize, InitName);
 
       // std::cout << "local var " << InitName
@@ -210,7 +213,7 @@ void emitIR(Obj *Prog, std::string FileName) {
     assert(Depth == 0);
 
     // fix no return statement
-    InMemoryIR->fixNonReturn(LocalTable);
+    // InMemoryIR->fixNonReturn(LocalTable);
 
     if (FuncNode == Prog) {
       std::cout << ProgramModule->GlobalVariableCodeGen() << std::endl;
@@ -219,8 +222,8 @@ void emitIR(Obj *Prog, std::string FileName) {
 
     ProgramModule->insertFunction(Func);
     // FileOut << "end global" << std::endl;
-    FileOut << Func->CodeGen() << std::endl;
     std::cout << Func->CodeGen() << std::endl;
+    FileOut << Func->CodeGen() << std::endl;
     InMemoryIR->SetPredAndSuccNum();
     std::fstream CfgOut;
     CfgOut.open(FileName + "_" + FuncNode->Name + ".dot", std::ios_base::out);
@@ -232,13 +235,14 @@ void emitIR(Obj *Prog, std::string FileName) {
     system(GenPNGCmd.c_str());
   }
 
+  FileOptOut << ProgramModule->GlobalVariableCodeGen() << std::endl;
   for (auto Func : ProgramModule->getFunctions()) {
     DominatorTree DT(Func);
     // DT.recalculate(Func);
     class PromoteMemoryToRegister Mem2reg(Func);
     Mem2reg.promoteMem2Reg();
     eliminateDeadCode(Func);
-    std::cout << Func->CodeGen() << std::endl;
+    FileOptOut << Func->CodeGen() << std::endl;
   }
 }
 
@@ -255,6 +259,7 @@ void emitGlobalDataIR(Obj *Prog) {
     if (Var->InitData) {
       GlobalValue = std::make_shared<Variable>(Var->InitData[0]);
       GlobalValue->setGlobal();
+      GlobalValue->setType(pointerTo(TyInt));
       GlobalValue->setName("@" + std::string(Var->Name));
       ProgramModule->insertGlobalVariable(GlobalValue);
       // for(int i = 0; i < Var->Ty->Size;i++)
@@ -262,11 +267,13 @@ void emitGlobalDataIR(Obj *Prog) {
     } else if (Var->InitScala) {
       GlobalValue = std::make_shared<Variable>(Var->InitScala->Val);
       GlobalValue->setGlobal();
+      GlobalValue->setType(pointerTo(TyInt));
       GlobalValue->setName("@" + std::string(Var->Name));
       ProgramModule->insertGlobalVariable(GlobalValue);
     } else {
       GlobalValue = std::make_shared<Variable>(0);
       GlobalValue->setGlobal();
+      GlobalValue->setType(pointerTo(TyInt));
       GlobalValue->setName("@" + std::string(Var->Name));
       ProgramModule->insertGlobalVariable(GlobalValue);
       // println("  .zero %d", Var->Ty->Size);

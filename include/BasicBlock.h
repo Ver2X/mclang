@@ -49,7 +49,7 @@ class BasicBlock : public std::enable_shared_from_this<BasicBlock> {
 
 public:
   std::list<InstructionPtr> InstInBB;
-  BasicBlock(IRFunctionPtr Parent) { Label = 0; }
+  BasicBlock(IRFunctionPtr Parent) : Parent(Parent) { Label = 0; }
   BasicBlock(IRFunctionPtr Parent, int Label, std::string Name)
       : Parent(Parent), Label(Label), Name(Name) {}
   InstructionPtr getFront() { return InstInBB.front(); }
@@ -59,20 +59,7 @@ public:
   std::string getName() { return Name; }
   void SetLabel(int Label) { this->Label = Label; }
   int GetLabel() { return Label; }
-  void Insert(VariablePtr Left, VariablePtr Right, VariablePtr Result,
-              IROpKind Op, IRBuilder *buider);
-  void Insert(VarTypePtr VTy, VariablePtr ArraySize, VariablePtr Result,
-              IROpKind Op, IRBuilder *Buider);
-  // gep
-  void Insert(VarTypePtr VTy, VariablePtr Ptr, std::vector<VariablePtr> IdxList,
-              VariablePtr Res, IROpKind Op, IRBuilder *Buider);
-  // phi
-  void Insert(VarTypePtr VTy, unsigned NumReservedValues, VariablePtr Res,
-              IROpKind Op, IRBuilder *Buider);
-  void Insert(IRFunctionPtr func, std::vector<VariablePtr> args,
-              VariablePtr Result, IROpKind Op, IRBuilder *buider);
-  void Insert(VariablePtr indicateVariable, BasicBlockPtr targetOne,
-              BasicBlockPtr targetTwo, IROpKind Op, IRBuilder *buider);
+  void Insert(IRBuilder *Buider, InstructionPtr Inst);
   void SetPred(BasicBlockPtr);
   void SetSucc(BasicBlockPtr);
   const std::list<BasicBlockPtr> &GetPred() { return preds; };

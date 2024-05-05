@@ -1,7 +1,7 @@
 #include "Variable.h"
 #include <string>
 
-Operand::Operand() {
+Value::Value() {
   Ival = INT_MIN;
   Next = nullptr;
   Align = 4;
@@ -10,7 +10,7 @@ Operand::Operand() {
   varIsArg = false;
   VarType = TyInt;
 }
-Operand::Operand(int64_t v) {
+Value::Value(int64_t v) {
   Ival = v;
   Next = nullptr;
   Align = 8;
@@ -21,7 +21,7 @@ Operand::Operand(int64_t v) {
   VarType = TyInt;
 }
 
-Operand::Operand(int v) {
+Value::Value(int v) {
   Ival = v;
   Next = nullptr;
   Align = 4;
@@ -31,7 +31,7 @@ Operand::Operand(int v) {
   Name = std::to_string(Ival);
   VarType = TyInt;
 }
-Operand::Operand(int *v) {
+Value::Value(int *v) {
   assert(v == nullptr);
   Pval = v;
   Next = nullptr;
@@ -43,7 +43,7 @@ Operand::Operand(int *v) {
   VarType = TyInt;
 }
 
-Operand::Operand(double v) {
+Value::Value(double v) {
   Fval = v;
   Next = nullptr;
   Align = 8;
@@ -53,14 +53,14 @@ Operand::Operand(double v) {
   Name = std::to_string(Fval);
   VarType = TyDouble;
 }
-void Operand::setName(std::string InitName) { Name = InitName; }
-bool Operand::isArg() { return varIsArg; }
+void Value::setName(std::string InitName) { Name = InitName; }
+bool Value::isArg() { return varIsArg; }
 
-void Operand::SetAddr(VariablePtr _Addr) { Addr = _Addr; }
+void Value::SetAddr(VariablePtr _Addr) { Addr = _Addr; }
 
-VariablePtr Operand::getAddr() { return Addr; }
+VariablePtr Value::getAddr() { return Addr; }
 
-void Operand::SetConst(double v) {
+void Value::SetConst(double v) {
   Fval = v;
   Next = nullptr;
   Align = 8;
@@ -71,7 +71,7 @@ void Operand::SetConst(double v) {
   VarType = TyDouble;
 }
 
-void Operand::SetConst(int v) {
+void Value::SetConst(int v) {
   Ival = v;
   Next = nullptr;
   Align = 4;
@@ -82,7 +82,7 @@ void Operand::SetConst(int v) {
   VarType = TyInt;
 }
 
-void Operand::SetConst(int64_t v) {
+void Value::SetConst(int64_t v) {
   Ival = v;
   Next = nullptr;
   Align = 8;
@@ -93,26 +93,34 @@ void Operand::SetConst(int64_t v) {
   VarType = TyLong;
 }
 
-void Operand::setGlobal() { isGlobal = true; }
+void Value::setGlobal() { isGlobal = true; }
 
-void Operand::SetArg() { varIsArg = true; }
+void Value::SetArg() { varIsArg = true; }
 
-std::string Operand::CodeGen() {
+void Use::set(ValuePtr V) {
+  if (Val)
+    removeFromList();
+  Val = V;
+  if (V)
+    V->addUse(this);
+}
+
+std::string Value::CodeGen() {
   std::string s;
   if (isGlobal) {
-    if (VarType == TyChar) {
+    if (baseTo(VarType) == TyChar) {
       s += this->Name + " = dso_local global " + "i8 " + std::to_string(Ival) +
            ", align 4\n";
-    } else if (VarType == TyShort) {
+    } else if (baseTo(VarType) == TyShort) {
       s += this->Name + " = dso_local global " + "i16 " + std::to_string(Ival) +
            ", align 4\n";
-    } else if (VarType == TyInt) {
+    } else if (baseTo(VarType) == TyInt) {
       s += this->Name + " = dso_local global " + "i32 " + std::to_string(Ival) +
            ", align 4\n";
-    } else if (VarType == TyLong) {
+    } else if (baseTo(VarType) == TyLong) {
       s += this->Name + " = dso_local global " + "i64 " + std::to_string(Ival) +
            ", align 4\n";
-    } else if (VarType == TyDouble) {
+    } else if (baseTo(VarType) == TyDouble) {
       s += this->Name + " = dso_local global " + "f64 " + std::to_string(Fval) +
            ", align 4\n";
     } else {

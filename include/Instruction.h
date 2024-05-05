@@ -1,5 +1,6 @@
 #pragma once
 #include "FunctionIR.h"
+#include "User.h"
 #include "Variable.h"
 #include <assert.h>
 #include <ctype.h>
@@ -52,7 +53,8 @@ enum class IROpKind {
 class Instruction;
 // Other class public inheritance "Instruction" , so than auto
 // cover from "std::shared_ptr<xxx>"" to "std::shared_ptr<Instruction>""
-class Instruction : public std::enable_shared_from_this<Instruction> {
+class Instruction : public User,
+                    public std::enable_shared_from_this<Instruction> {
 protected:
   IROpKind Op;
   // VariablePtr Left;
@@ -64,14 +66,17 @@ protected:
 
 public:
   int Ival;
+
   Instruction(BasicBlockPtr P, int _Ival) : Parent(P), Ival(_Ival) {}
-  Instruction(BasicBlockPtr P) : Parent(P), Ival(INT_MAX) {}
+  Instruction(BasicBlockPtr P, IROpKind Op)
+      : Parent(P), Ival(INT_MAX), Op(Op) {}
   IROpKind GetOp() { return Op; }
   BasicBlockPtr getParent() { return Parent; }
-  virtual VariablePtr getResult() = 0;
-  void setOperand(int Idx, VariablePtr NewOp) { getOperand(Idx) = NewOp; };
-  virtual VariablePtr &getOperand(int Idx) = 0;
-  virtual unsigned getNumOperands() = 0;
+
+  virtual unsigned getNumValues() = 0;
+
+  bool isValidIdx(int Idx) { return Idx >= 0 && Idx < getNumValues(); }
+
   void eraseFromParent();
   virtual std::string CodeGen() = 0;
   bool isTerminator(IROpKind Op) {
@@ -83,17 +88,6 @@ public:
     return Op == IROpKind::Op_FUNCALL || Op == IROpKind::Op_Load ||
            Op == IROpKind::Op_Store;
   }
-
-  void replaceAllUsesWith(VariablePtr V) {
-    auto Res = this->getResult();
-    for (auto Inst : Res->User) {
-      for (unsigned Index = 0; Index < Inst->getNumOperands(); ++Index) {
-        if (Inst->getOperand(Index) == Res) {
-          Inst->setOperand(Index, V);
-        }
-      }
-    }
-  }
 };
 using InstructionPtr = std::shared_ptr<Instruction>;
 class BasicBlock;
@@ -102,26 +96,27 @@ using BasicBlockPtr = std::shared_ptr<BasicBlock>;
 class BinaryOperator : public Instruction {
 public:
   BinaryOperator(BasicBlockPtr BB, VariablePtr Left, VariablePtr Right,
-                 VariablePtr Result, IROpKind Op)
-      : Instruction(BB), Left(Left), Right(Right), Result(Result) {
-    this->Op = Op;
+                 IROpKind Op)
+      : Instruction(BB, Op), Left(this, 0), Right(this, 1) {
+    this->Left = Left;
+    this->Right = Right;
   }
   std::string CodeGen();
-  VariablePtr &getOperand(int Idx) {
+
+  unsigned getNumValues() { return 2; }
+
+  Use &getValue(int Idx) {
+    assert(isValidIdx(Idx));
     if (Idx == 0) {
       return Left;
     } else {
-      assert(Idx == 1);
       return Right;
     }
   }
-  VariablePtr getResult() { return Result; }
-  unsigned getNumOperands() { return 2; }
 
 private:
-  VariablePtr Left;
-  VariablePtr Right;
-  VariablePtr Result;
+  Use Left;
+  Use Right;
 };
 using BinaryOperatorPtr = std::shared_ptr<BinaryOperator>;
 
@@ -129,7 +124,7 @@ using BinaryOperatorPtr = std::shared_ptr<BinaryOperator>;
 // public:
 //   UnaryOperator(BasicBlockPtr BB, VariablePtr l, VariablePtr r) :
 //   Instruction(BB), Left(l), Result(r) {} std::string CodeGen(); unsigned
-//   getNumOperands() { return 1;}
+//   getNumValues() { return 1;}
 
 // private:
 //   VariablePtr Left;
@@ -139,20 +134,20 @@ using BinaryOperatorPtr = std::shared_ptr<BinaryOperator>;
 class ReturnInst : public Instruction {
 public:
   ReturnInst(BasicBlockPtr BB, VariablePtr rv)
-      : Instruction(BB), returnValue(rv) {
-    Op = IROpKind::Op_Return;
+      : Instruction(BB, IROpKind::Op_Return), returnValue(this, 0) {
+    this->returnValue = rv;
   }
-  ReturnInst(BasicBlockPtr BB) : Instruction(BB) { Op = IROpKind::Op_Return; }
+  // ReturnInst(BasicBlockPtr BB) : Instruction(BB, IROpKind::Op_Return) {  }
   std::string CodeGen();
-  VariablePtr &getOperand(int Idx) {
-    assert(Idx == 0);
+  unsigned getNumValues() { return 1; }
+
+  Use &getValue(int Idx) {
+    assert(isValidIdx(Idx));
     return returnValue;
   }
-  unsigned getNumOperands() { return 1; }
-  VariablePtr getResult() { return nullptr; }
 
 private:
-  VariablePtr returnValue;
+  Use returnValue;
 };
 using ReturnInstPtr = std::shared_ptr<ReturnInst>;
 
@@ -160,29 +155,22 @@ class BranchInst : public Instruction {
 public:
   BranchInst(BasicBlockPtr BB, VariablePtr iV, BasicBlockPtr tg1,
              BasicBlockPtr tg2, IROpKind Op)
-      : Instruction(BB), indicateVariable(iV), targetFirst(tg1),
+      : Instruction(BB, Op), indicateVariable(this, 0), targetFirst(tg1),
         targetSecond(tg2) {
-    this->Op = Op;
+    this->indicateVariable = iV;
   }
   BranchInst(BasicBlockPtr BB, BasicBlockPtr tg1, IROpKind Op)
-      : Instruction(BB), targetFirst(tg1) {
-    this->Op = Op;
-  }
+      : Instruction(BB, Op), targetFirst(tg1), indicateVariable(this, 0) {}
   std::string CodeGen();
-  VariablePtr &getOperand(int Idx) {
-    if (Idx == 0) {
-      return indicateVariable;
-    }
-    // TODO: make VariablePtr -> ReturnValuePtr
-    // and make ReturnValuePtr could cast to VariablePtr
-    // and BlockPtr
-    assert(false);
+  Use &getValue(int Idx) {
+    assert(isValidIdx(Idx));
+    return indicateVariable;
   }
-  unsigned getNumOperands() { return 1; }
+  unsigned getNumValues() { return 1; }
   VariablePtr getResult() { return nullptr; }
 
 private:
-  VariablePtr indicateVariable;
+  Use indicateVariable;
   BasicBlockPtr targetFirst;
   BasicBlockPtr targetSecond;
 };
@@ -190,58 +178,56 @@ using BranchInstPtr = std::shared_ptr<BranchInst>;
 
 class AllocaInst : public Instruction {
 public:
-  AllocaInst(BasicBlockPtr BB, VarTypePtr VTy, VariablePtr Dest,
-             VariablePtr ArraySize = nullptr)
-      : Instruction(BB), VTy(VTy), Dest(Dest), ArraySize(ArraySize) {
-    Op = IROpKind::Op_Alloca;
+  AllocaInst(BasicBlockPtr BB, VarTypePtr VTy, VariablePtr ArraySize = nullptr)
+      : Instruction(BB, IROpKind::Op_Alloca), VTy(VTy), ArraySize(this, 0) {
+    this->ArraySize = ArraySize;
   }
   std::string CodeGen();
-  VariablePtr getResult() { return Dest; }
   VarTypePtr getAllocatedType() { return VTy; }
-  VariablePtr &getOperand(int Idx) {
-    assert(false);
-    return Dest;
-  }
-  unsigned getNumOperands() { return 0; }
+  unsigned getNumValues() { return 1; }
+  Use &getValue(int Idx) { return ArraySize; };
 
 private:
-  VariablePtr ArraySize;
+  Use ArraySize;
   VarTypePtr VTy;
-  VariablePtr Dest;
 };
 using AllocaInstPtr = std::shared_ptr<AllocaInst>;
 
 class LoadInst : public Instruction {
 public:
-  LoadInst(BasicBlockPtr BB, VariablePtr Source, VariablePtr Dest)
-      : Instruction(BB), Source(Source), Dest(Dest) {
-    Op = IROpKind::Op_Load;
+  LoadInst(BasicBlockPtr BB, VariablePtr Source)
+      : Instruction(BB, IROpKind::Op_Load), Source(this, 0) {
+    this->Source = Source;
   }
   std::string CodeGen();
-  VariablePtr &getOperand(int Idx) {
-    assert(Idx == 0);
+  unsigned getNumValues() { return 1; }
+
+  Use &getValue(int Idx) {
+    assert(isValidIdx(Idx));
     return Source;
   }
-  VariablePtr getResult() { return Dest; }
-  unsigned getNumOperands() { return 1; }
-  VariablePtr getPointerOperand() { return Source; }
+  VariablePtr getPointerOperand() { return Source.getValPtr(); }
 
 private:
-  VariablePtr Source;
-  VariablePtr Dest;
+  Use Source;
 };
 using LoadInstPtr = std::shared_ptr<LoadInst>;
 
 class GetElementPtrInst : public Instruction {
 public:
   GetElementPtrInst(BasicBlockPtr BB, VarTypePtr PtrTy, VariablePtr BasePtr,
-                    std::vector<VariablePtr> IdxList, VariablePtr Result)
-      : Instruction(BB), PtrTy(PtrTy), BasePtr(BasePtr), IdxList(IdxList),
-        Result(Result) {
-    Op = IROpKind::Op_GetElementPtr;
+                    std::vector<VariablePtr> IdxList)
+      : Instruction(BB, IROpKind::Op_GetElementPtr), PtrTy(PtrTy),
+        BasePtr(this, 0) {
+    this->BasePtr = BasePtr;
+    for (int i = 1; i <= IdxList.size(); ++i) {
+      this->IdxList.emplace_back(this, i);
+      this->IdxList.back() = IdxList[i - 1];
+    }
   }
   std::string CodeGen();
-  VariablePtr &getOperand(int Idx) {
+  Use &getValue(int Idx) {
+    assert(isValidIdx(Idx));
     if (Idx == 0) {
       return BasePtr;
     } else {
@@ -250,29 +236,29 @@ public:
     }
   }
   VariablePtr getIndex(int Idx) {
-    assert(Idx >= 0 && Idx < IdxList.size());
-    return IdxList[Idx];
+    assert(isValidIdx(Idx));
+    return IdxList[Idx].getValPtr();
   }
-  std::vector<VariablePtr> getIndexs() { return IdxList; }
-  unsigned getNumOperands() { return 1 + IdxList.size(); }
-  VariablePtr getResult() { return Result; }
+  std::vector<Use> &getIndexs() { return IdxList; }
+  unsigned getNumValues() { return 1 + IdxList.size(); }
 
 private:
   VarTypePtr PtrTy;
-  VariablePtr BasePtr;
-  std::vector<VariablePtr> IdxList;
-  VariablePtr Result;
+  Use BasePtr;
+  std::vector<Use> IdxList;
 };
 using GetElementPtrInstPtr = std::shared_ptr<GetElementPtrInst>;
 
 class StoreInst : public Instruction {
 public:
   StoreInst(BasicBlockPtr BB, VariablePtr Source, VariablePtr Dest)
-      : Instruction(BB), Source(Source), Dest(Dest) {
-    Op = IROpKind::Op_Store;
+      : Instruction(BB, IROpKind::Op_Store), Source(this, 0), Dest(this, 0) {
+    this->Source = Source;
+    this->Dest = Dest;
   }
   std::string CodeGen();
-  VariablePtr &getOperand(int Idx) {
+  Use &getValue(int Idx) {
+    assert(isValidIdx(Idx));
     if (Idx == 0) {
       return Source;
     } else if (Idx == 1) {
@@ -280,68 +266,62 @@ public:
     }
     assert(false);
   }
-  unsigned getNumOperands() { return 2; }
-  VariablePtr getResult() { return nullptr; }
-  VariablePtr getPointerOperand() { return Dest; }
-  VariablePtr getValueOperand() { return Source; }
+  unsigned getNumValues() { return 2; }
+  VariablePtr getPointerOperand() { return Dest.getValPtr(); }
+  VariablePtr getValueOperand() { return Source.getValPtr(); }
 
 private:
-  VariablePtr Source;
-  VariablePtr Dest;
+  Use Source;
+  Use Dest;
 };
 using StoreInstPtr = std::shared_ptr<StoreInst>;
 
 class CallInst : public Instruction {
 public:
-  CallInst(BasicBlockPtr BB, IRFunctionPtr func, std::vector<VariablePtr> args,
-           VariablePtr Dest)
-      : Instruction(BB), func(func), args(args), Dest(Dest) {
-    Op = IROpKind::Op_FUNCALL;
+  CallInst(BasicBlockPtr BB, IRFunctionPtr func, std::vector<VariablePtr> args)
+      : Instruction(BB, IROpKind::Op_FUNCALL), func(func) {
+    for (int i = 0; i < args.size(); ++i) {
+      this->args.emplace_back(this, i);
+      this->args[i] = args[i];
+    }
   }
   std::string CodeGen();
   VariablePtr getArg(int Idx) {
     assert(Idx >= 0 && Idx < args.size());
+    return args[Idx].getValPtr();
+  }
+  std::vector<Use> &getArgs() { return args; }
+  Use &getValue(int Idx) {
+    assert(isValidIdx(Idx));
     return args[Idx];
   }
-  std::vector<VariablePtr> getArgs() { return args; }
-  VariablePtr getResult() { return Dest; }
-  VariablePtr &getOperand(int Idx) {
-    assert(Idx < args.size());
-    return args[Idx];
-  }
-  unsigned getNumOperands() { return args.size(); }
+  unsigned getNumValues() { return args.size(); }
 
 private:
   IRFunctionPtr func;
-  std::vector<VariablePtr> args;
-  VariablePtr Dest;
+  std::vector<Use> args;
 };
 using CallInstPtr = std::shared_ptr<CallInst>;
 
 class PHINode : public Instruction {
 public:
-  PHINode(BasicBlockPtr BB, VarTypePtr VTy, unsigned int NumOfIncoming,
-          VariablePtr Res)
-      : Instruction(BB), ValueTy(VTy), NumOfIncomingValues(NumOfIncoming),
-        CurNumOfIncomingValues(0), Result(Res) {
-    Op = IROpKind::Op_PhiNode;
-  }
+  PHINode(BasicBlockPtr BB, VarTypePtr VTy, unsigned int NumOfIncoming)
+      : Instruction(BB, IROpKind::Op_PhiNode), ValueTy(VTy),
+        NumOfIncomingValues(NumOfIncoming), CurNumOfIncomingValues(0) {}
   std::string CodeGen();
-  VariablePtr getResult() { return Result; };
-  VariablePtr &getOperand(int Idx) {
-    assert(Idx < InComingValues.size());
+  Use &getValue(int Idx) {
+    assert(isValidIdx(Idx));
     return InComingValues[Idx];
   }
-  unsigned getNumOperands() { return CurNumOfIncomingValues; }
+  unsigned getNumValues() { return CurNumOfIncomingValues; }
   void addIncoming(VariablePtr InComingValue, BasicBlockPtr InComingBB);
 
 private:
   TypePtr ValueTy;
-  std::vector<VariablePtr> InComingValues;
+  std::vector<Use> InComingValues;
   std::vector<BasicBlockPtr> InComingBlocks;
   unsigned int NumOfIncomingValues;
   unsigned int CurNumOfIncomingValues;
-  VariablePtr Result;
 };
 using PHINodePtr = std::shared_ptr<PHINode>;
 

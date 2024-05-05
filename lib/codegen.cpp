@@ -4,6 +4,7 @@ static void gen_expr(Node *node);
 static void gen_stmt(Node *node);
 
 std::fstream FileOut;
+std::fstream FileOptOut;
 
 static FILE *output_file;
 int Depth;
@@ -96,9 +97,10 @@ static void store_gp(int r, int Offset, int sz) {
   unreachable();
 }
 
-void codegen(Obj *prog, FILE *out, std::string file) {
+void codegen(Obj *prog, FILE *out, std::string file, std::string file_opt) {
   FileOut.open(file, std::ios_base::out);
   output_file = out;
+  FileOptOut.open(file_opt, std::ios_base::out);
   // FileOut.open(output_file, out);
   // first setup Offset
   assign_lvar_offsets(prog);

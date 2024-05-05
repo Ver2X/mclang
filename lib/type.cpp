@@ -21,6 +21,7 @@ std::string Type::CodeGen() {
   if (Kind == TypeKind::TY_INT) {
     return "i32";
   } else if (Kind == TypeKind::TY_PTR) {
+    assert(Base);
     return Base->CodeGen() + "*";
   } else if (Kind == TypeKind::TY_ARRAY) {
     return "[" + std::to_string(ArrayLen) + " x " + Base->CodeGen() + "]";

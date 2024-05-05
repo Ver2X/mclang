@@ -254,6 +254,7 @@ void genExprIR(Node *ExprNode, VariablePtr *Res, SymbolTablePtr Table) {
       auto insertFuncRes = GlobalSymTable->insertFunc(Func);
       assert(insertFuncRes);
       Func->RetTy = ExprNode->Ty;
+      assert(Func);
       Call = InMemoryIR->CreateCall(Func, Args);
     }
     *Res = Call;

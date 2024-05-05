@@ -9,7 +9,7 @@ def execute_command(command):
     output, error = process.communicate()
     return process.returncode, output.decode().strip()
 
-def process_c_files(directory):
+def process_c_files(directory, headercmd):
     c_files = [filename for filename in os.listdir(directory) if filename.endswith('.c')]
     failed = 0
     passed = 0
@@ -21,7 +21,7 @@ def process_c_files(directory):
     reset_color = '\033[0m'
     for c_file in c_files:
         c_file_path = os.path.join(directory, c_file)
-        compile_command = f'./build/mclang {c_file_path}'
+        compile_command = f'{headercmd} {c_file_path}'
         returncode, output = execute_command(compile_command)
         if returncode != 0:
             print(f'[{red_color}  FAILED  {reset_color}] {c_file_path}')
@@ -71,4 +71,8 @@ if __name__ == '__main__':
     if not os.path.isdir(directory):
         print('Invalid directory')
         sys.exit(1)
-    process_c_files(directory)
+    headercmd = "./build/mclang"
+    process_c_files(directory, headercmd)
+    print("\n \033[94m===== Open OPT =====\033[0m \n")
+    headercmd = "./build/mclang -O3"
+    process_c_files(directory, headercmd)

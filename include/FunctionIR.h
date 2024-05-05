@@ -52,12 +52,15 @@ class IRFunction {
   std::vector<TypePtr> ParamTys;
   std::vector<VariablePtr> Args;
   ModulePtr ParentMod;
+  unsigned SlotIndex = 0;
 
 public:
   IRFunction();
   IRFunction(std::string Name);
 
-  // VariablePtr args;
+  unsigned getNextSlotIndex() { return SlotIndex++; }
+  void resetSlotIndex() { SlotIndex = 0; }
+
   int argsNum;
   VariablePtr ret;
   ReturnTypePtr RetTy;

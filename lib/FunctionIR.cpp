@@ -50,6 +50,7 @@ void IRFunction::setParamTys(std::vector<TypePtr> &Tys) { ParamTys = Tys; }
 void IRFunction::addArg(VariablePtr Arg) { Args.push_back(Arg); }
 
 std::string IRFunction::CodeGen() {
+  resetSlotIndex();
   // if Body non-null
   std::string s;
   s += "define dso_local ";

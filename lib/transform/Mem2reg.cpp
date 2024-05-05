@@ -20,11 +20,9 @@ bool PromoteMemoryToRegister::QueuePhiNode(BasicBlockPtr BB, unsigned AllocaNo,
   // BasicBlock.
   IRBuilder Buider(Func);
   Buider.SetInsertPoint(BB->getFront());
-  auto NewPHIV = Buider.CreatePHI(Allocas[AllocaNo]->getAllocatedType(),
-                                  BB->GetPred().size(),
-                                  Allocas[AllocaNo]->getResult()->getName() +
-                                      "." + std::to_string(Version++));
-  PN = std::dynamic_pointer_cast<PHINode>(NewPHIV->Use);
+  PN = Buider.CreatePHI(
+      Allocas[AllocaNo]->getAllocatedType(), BB->GetPred().size(),
+      Allocas[AllocaNo]->getName() + "." + std::to_string(Version++));
   PhiToAllocaMap[PN] = AllocaNo;
   return true;
 }
@@ -42,9 +40,8 @@ void PromoteMemoryToRegister::promoteMem2Reg() {
 
   for (unsigned AllocaNum = 0; AllocaNum != Allocas.size(); ++AllocaNum) {
     auto AI = Allocas[AllocaNum];
-    assert(AI->getResult()->Use);
 
-    if (AI->getResult()->User.empty()) {
+    if (AI->users().empty()) {
       AI->eraseFromParent();
       RemoveFromAllocasList(AllocaNum);
       continue;
@@ -52,9 +49,10 @@ void PromoteMemoryToRegister::promoteMem2Reg() {
 
     // If there is only a single store to this value, replace any loads of
     // it that are directly dominated by the definition with the value stored.
-    InstructionPtr SingleStore = nullptr;
-    for (auto Inst : AI->getResult()->User) {
-      if (auto Store = std::dynamic_pointer_cast<StoreInst>(Inst)) {
+    Instruction *SingleStore = nullptr;
+    for (auto U : AI->users()) {
+      auto Inst = U->getUser();
+      if (auto Store = dynamic_cast<StoreInst *>(Inst)) {
         if (!SingleStore) {
           SingleStore = Store;
         } else {
@@ -64,9 +62,10 @@ void PromoteMemoryToRegister::promoteMem2Reg() {
       }
     }
     if (SingleStore) {
-      for (auto Inst : AI->getResult()->User) {
-        if (auto Load = std::dynamic_pointer_cast<LoadInst>(Inst)) {
-          Load->replaceAllUsesWith(SingleStore->getOperand(0));
+      for (auto U : AI->users()) {
+        auto Inst = U->getUser();
+        if (auto Load = dynamic_cast<LoadInst *>(Inst)) {
+          Load->replaceAllUsesWith(SingleStore->getValue(0).getValPtr());
           Load->eraseFromParent();
         }
       }
@@ -80,7 +79,8 @@ void PromoteMemoryToRegister::promoteMem2Reg() {
     // linear sweep over the block to eliminate it.
     BasicBlockPtr UsedInBB = nullptr;
     bool IsUsedInOneBB = true;
-    for (auto Inst : AI->getResult()->User) {
+    for (auto U : AI->users()) {
+      auto Inst = U->getUser();
       if (!UsedInBB) {
         UsedInBB = Inst->getParent();
       } else {
@@ -93,11 +93,20 @@ void PromoteMemoryToRegister::promoteMem2Reg() {
     if (IsUsedInOneBB) {
       StoreInstPtr BeforeStore = nullptr;
       bool AllocaCanRemove = true;
+      std::vector<InstructionPtr> NeedRemoveInsts;
       for (auto Inst : UsedInBB->InstInBB) {
-        if (std::find(AI->getResult()->User.begin(),
-                      AI->getResult()->User.end(),
-                      Inst) != AI->getResult()->User.end()) {
+        // first check them related to same alloca
+        bool Finded = false;
+        for (auto U : AI->users()) {
+          auto Inst1 = U->getUser();
+          if (Inst1 == Inst.get()) {
+            Finded = true;
+            break;
+          }
+        }
+        if (Finded) {
           if (auto Store = std::dynamic_pointer_cast<StoreInst>(Inst)) {
+            NeedRemoveInsts.push_back(Store);
             BeforeStore = Store;
           } else {
             // assert(BeforeStore != nullptr && "Use alloca must after define
@@ -105,12 +114,16 @@ void PromoteMemoryToRegister::promoteMem2Reg() {
             // directly store
             if (auto Load = std::dynamic_pointer_cast<LoadInst>(Inst)) {
               Load->replaceAllUsesWith(BeforeStore->getValueOperand());
+              NeedRemoveInsts.push_back(Load);
             } else if (auto Gep =
                            std::dynamic_pointer_cast<GetElementPtrInst>(Inst)) {
               AllocaCanRemove = false;
             }
           }
         }
+      }
+      for (auto Inst : NeedRemoveInsts) {
+        Inst->eraseFromParent();
       }
       if (AllocaCanRemove) {
         AI->eraseFromParent();
@@ -124,8 +137,9 @@ void PromoteMemoryToRegister::promoteMem2Reg() {
     // auto PHIBlockNums = IDF[BBNumbers[AI->getParent()]];
     std::set<int> PHIBlockNums;
     std::vector<BasicBlockPtr> PHIBlocks;
-    for (auto Inst : AI->getResult()->User) {
-      if (std::dynamic_pointer_cast<StoreInst>(Inst))
+    for (auto U : AI->users()) {
+      auto Inst = U->getUser();
+      if (dynamic_cast<StoreInst *>(Inst))
         PHIBlockNums = Union(PHIBlockNums, IDF[BBNumbers[Inst->getParent()]]);
     }
     for (auto Num : PHIBlockNums) {
@@ -184,7 +198,7 @@ NextIteration:
       // because it is missing incoming edges.  All other PHI nodes being
       // inserted by this pass of mem2reg will have the same number of incoming
       // operands so far.  Remember this count.
-      unsigned NewPHINumOperands = APN->getNumOperands();
+      unsigned NewPHINumValues = APN->getNumValues();
 
       unsigned NumEdges = Pred->GetSucc().size();
       assert(NumEdges && "Must be at least one edge from Pred to BB!");
@@ -204,14 +218,14 @@ NextIteration:
           APN->addIncoming(IncomingVals[AllocaNo], Pred);
 
         // The currently active variable for this block is now the PHI.
-        IncomingVals[AllocaNo] = APN->getResult();
+        IncomingVals[AllocaNo] = APN;
 
         // Get the next phi node.
         ++PNI;
         APN = std::dynamic_pointer_cast<PHINode>(*PNI);
         if (!APN)
           break;
-      } while (APN->getNumOperands() == NewPHINumOperands);
+      } while (APN->getNumValues() == NewPHINumValues);
     }
   }
 
@@ -223,8 +237,7 @@ NextIteration:
   for (auto II = BB->InstInBB.begin(); !(*II)->isTerminator();) {
     auto I = *II++; // get the instruction, increment iterator
     if (auto LI = std::dynamic_pointer_cast<LoadInst>(I)) {
-      auto Src =
-          std::dynamic_pointer_cast<AllocaInst>(LI->getPointerOperand()->Use);
+      auto Src = std::dynamic_pointer_cast<AllocaInst>(LI->getPointerOperand());
       if (!Src)
         continue;
 
@@ -241,7 +254,7 @@ NextIteration:
       // Delete this instruction and mark the name as the current holder of the
       // value
       auto Dest =
-          std::dynamic_pointer_cast<AllocaInst>(SI->getPointerOperand()->Use);
+          std::dynamic_pointer_cast<AllocaInst>(SI->getPointerOperand());
       if (!Dest) {
         continue;
       }
@@ -254,8 +267,7 @@ NextIteration:
       // store kill了旧值，所以需要更新当前变量的活跃值和低点
       unsigned AllocaNo = ai->second;
       // upate IncomingVals
-      IncomingVals[AllocaNo] = SI->getOperand(0);
-
+      IncomingVals[AllocaNo] = SI->getValue(0).getValPtr();
       SI->eraseFromParent();
     }
   }

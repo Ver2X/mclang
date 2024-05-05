@@ -20,9 +20,9 @@ void genStmtIR(Node *ExpNode, SymbolTablePtr Table) {
   switch (ExpNode->Kind) {
   case ND_IF: {
     int LoopID = InMemoryIR->nextControlFlowNum();
-    VariablePtr Res;
+    VariablePtr Cond;
 
-    genExprIR(ExpNode->cond, &Res, Table);
+    genExprIR(ExpNode->cond, &Cond, Table);
     // insert icmp
 
     // br i1 %cmp, Label %if.then, Label %if.else
@@ -41,9 +41,9 @@ void genStmtIR(Node *ExpNode, SymbolTablePtr Table) {
         InMemoryIR->getParent(), InMemoryIR->nextBlockLabelNum(),
         Twine("%if.end", LoopID));
     if (ExpNode->els) {
-      InMemoryIR->CreateCondBr(InMemoryIR->lastResVar, Then, Else);
+      InMemoryIR->CreateCondBr(Cond, Then, Else);
     } else {
-      InMemoryIR->CreateCondBr(InMemoryIR->lastResVar, Then, End);
+      InMemoryIR->CreateCondBr(Cond, Then, End);
     }
     InMemoryIR->SetInsertPoint(Then);
 
@@ -98,10 +98,9 @@ void genStmtIR(Node *ExpNode, SymbolTablePtr Table) {
     InMemoryIR->SetInsertPoint(CondBB);
 
     if (ExpNode->cond) {
-      VariablePtr Res;
-      genExprIR(ExpNode->cond, &Res, Table);
-      assert(InMemoryIR->lastResVar != nullptr);
-      InMemoryIR->CreateCondBr(InMemoryIR->lastResVar, Body, Exit);
+      VariablePtr Cond;
+      genExprIR(ExpNode->cond, &Cond, Table);
+      InMemoryIR->CreateCondBr(Cond, Body, Exit);
     } else {
       InMemoryIR->CreateBr(Body);
     }

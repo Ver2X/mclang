@@ -75,44 +75,47 @@ void IRBuilder::InsertBasicBlock(int Label, std::string Name, int Pred) {
   function->CacheName = Name;
 }
 
-// extern SymbolTablePtr GlobalSymTable;
-bool IRBuilder::Insert(VariablePtr Left, VariablePtr Right, VariablePtr Result,
-                       IROpKind Op, int Label, std::string Name,
-                       SymbolTablePtr Table) {
-  if (function->EntryLabel < 0)
-    function->EntryLabel = Label;
-  if (Blocks.count(Label) == 0) {
-    BasicBlockPtr Block = std::make_shared<BasicBlock>(function);
-    Block->setName(Name);
-    Block->SetLabel(Label);
-    Blocks.insert(std::make_pair(Label, Block));
-  }
-  Blocks[Label]->Insert(Left, Right, Result, Op, this);
-  return true;
+void IRBuilder::InsertIntoCacheBB(InstructionPtr Inst) {
+  Blocks[function->CacheLabel]->Insert(this, Inst);
 }
 
-VariablePtr IRBuilder::CreateCall(IRFunctionPtr func,
+CallInstPtr IRBuilder::CreateCall(IRFunctionPtr func,
                                   std::vector<VariablePtr> args) {
-  auto Res = std::make_shared<Variable>();
+  auto Res =
+      std::make_shared<CallInst>(Blocks[function->CacheLabel], func, args);
   Res->setName(getNextVarName());
-  Res->setType(func->RetTy);
-  if (function->EntryLabel < 0)
-    function->EntryLabel = function->CacheLabel;
-  Blocks[function->CacheLabel]->Insert(func, args, Res, IROpKind::Op_FUNCALL,
-                                       this);
+  InsertIntoCacheBB(Res);
   return Res;
   // std::cout << "in ssss" << std::endl;
 }
 
-bool IRBuilder::Insert(VariablePtr Left, VariablePtr Right, VariablePtr Result,
-                       IROpKind Op, SymbolTablePtr Table) {
-  return Insert(Left, Right, Result, Op, function->CacheLabel,
-                function->CacheName, Table);
-}
-
-VariablePtr IRBuilder::CreateBinary(VariablePtr Left, VariablePtr Right,
-                                    IROpKind Op) {
-  auto Res = std::make_shared<Variable>();
+BinaryOperatorPtr IRBuilder::CreateBinary(VariablePtr Left, VariablePtr Right,
+                                          IROpKind Op) {
+  std::string s;
+  switch (Op) {
+  case IROpKind::Op_ADD:
+    s = "%add";
+    break;
+  case IROpKind::Op_SUB:
+    s = "%sub";
+    break;
+  case IROpKind::Op_MUL:
+    s = "%mul";
+    break;
+  case IROpKind::Op_DIV:
+    s = "%div";
+    break;
+  case IROpKind::Op_SLE:
+  case IROpKind::Op_SLT:
+  case IROpKind::Op_SGE:
+  case IROpKind::Op_SGT:
+    s = "%cmp";
+    break;
+  default:
+    break;
+  }
+  auto Res = std::make_shared<BinaryOperator>(Blocks[function->CacheLabel],
+                                              Left, Right, Op);
   if (Op == IROpKind::Op_SLE || Op == IROpKind::Op_EQ ||
       Op == IROpKind::Op_SLT || Op == IROpKind::Op_SGE ||
       Op == IROpKind::Op_SGT || Op == IROpKind::Op_NE) {
@@ -120,59 +123,55 @@ VariablePtr IRBuilder::CreateBinary(VariablePtr Left, VariablePtr Right,
   } else {
     Res->setType(Right->getType());
   }
-  auto rt = Insert(Left, Right, Res, Op, function->CacheLabel,
-                   function->CacheName, function->GeTable());
-  assert(rt);
+  Res->setName(this->getParent()->createName(s));
+  InsertIntoCacheBB(Res);
   return Res;
 }
 
-VariablePtr IRBuilder::CreateLoad(VariablePtr Addr) {
-  auto Res = std::make_shared<Variable>();
+LoadInstPtr IRBuilder::CreateLoad(VariablePtr Addr) {
+  auto Res = std::make_shared<LoadInst>(Blocks[function->CacheLabel], Addr);
   Res->setName(getNextVarName());
   // std::cout << "Load Res is " << Res->CodeGen() << "\n";
   // std::cout << "Error Load: " << Addr->CodeGen() << "\n";
   // assert(Addr->getType()->Kind == TypeKind::TY_PTR);
+  assert(baseTo(Addr->getType()));
   Res->setType(baseTo(Addr->getType()));
-  auto rt = Insert(Addr, nullptr, Res, IROpKind::Op_Load, function->CacheLabel,
-                   function->CacheName, function->GeTable());
-  assert(rt);
+
+  InsertIntoCacheBB(Res);
   return Res;
 }
 
 void IRBuilder::CreateRet(VariablePtr value) {
-  Insert(nullptr, nullptr, value, IROpKind::Op_Return, function->CacheLabel,
-         function->CacheName, function->GeTable());
+  auto Res = std::make_shared<ReturnInst>(Blocks[function->CacheLabel], value);
+
+  InsertIntoCacheBB(Res);
 }
 
 // void IRBuilder::CreateAlloca(VariablePtr Addr) {
 //   Insert(nullptr, nullptr, Addr, IROpKind::Op_Alloca, function->GeTable());
 // }
 
-VariablePtr IRBuilder::CreateAlloca(VarTypePtr VTy,
-                                    VariablePtr ArraySize = nullptr,
-                                    std::string Name = "") {
-  auto Res = std::make_shared<Variable>();
+AllocaInstPtr IRBuilder::CreateAlloca(VarTypePtr VTy,
+                                      VariablePtr ArraySize = nullptr,
+                                      std::string Name = "") {
+  auto Res = std::make_shared<AllocaInst>(Blocks[function->CacheLabel], VTy,
+                                          ArraySize);
   Res->setName(Name);
   Res->setType(pointerTo(VTy));
 
-  if (function->EntryLabel < 0)
-    function->EntryLabel = function->CacheLabel;
-  if (Blocks.count(function->CacheLabel) == 0) {
-    BasicBlockPtr Block = std::make_shared<BasicBlock>(function);
-    Block->setName(function->CacheName);
-    Block->SetLabel(function->CacheLabel);
-    Blocks.insert(std::make_pair(function->CacheLabel, Block));
-  }
-  Blocks[function->EntryLabel]->Insert(VTy, ArraySize, Res, IROpKind::Op_Alloca,
-                                       this);
+  // InsertIntoCacheBB(Res);
+  Blocks[function->CacheLabel]->Allocas.push_back(Res);
   return Res;
 }
 
-VariablePtr IRBuilder::CreateGEP(VarTypePtr VTy, VariablePtr Ptr,
-                                 std::vector<VariablePtr> IdxList,
-                                 std::string Name) {
-  auto Res = std::make_shared<Variable>();
+GetElementPtrInstPtr IRBuilder::CreateGEP(VarTypePtr VTy, VariablePtr Ptr,
+                                          std::vector<VariablePtr> IdxList,
+                                          std::string Name) {
+  auto Res = std::make_shared<GetElementPtrInst>(Blocks[function->CacheLabel],
+                                                 VTy, Ptr, IdxList);
   Res->setName(Name);
+  if (Res->getName() == "")
+    Res->setName(this->getParent()->createName("%arrayidx"));
   auto ElementTy = baseTo(VTy);
   assert(ElementTy->Kind == TypeKind::TY_ARRAY ||
          ElementTy->Kind == TypeKind::TY_STRUCT);
@@ -187,141 +186,51 @@ VariablePtr IRBuilder::CreateGEP(VarTypePtr VTy, VariablePtr Ptr,
       Head = Head->Next;
     }
     auto ResTy = Head->Ty;
-    Res->setType(ResTy);
+    Res->setType(pointerTo(ResTy));
   }
 
-  if (function->EntryLabel < 0)
-    function->EntryLabel = function->CacheLabel;
-  if (Blocks.count(function->CacheLabel) == 0) {
-    BasicBlockPtr Block = std::make_shared<BasicBlock>(function);
-    Block->setName(function->CacheName);
-    Block->SetLabel(function->CacheLabel);
-    Blocks.insert(std::make_pair(function->CacheLabel, Block));
-  }
-
-  Blocks[function->CacheLabel]->Insert(VTy, Ptr, IdxList, Res,
-                                       IROpKind::Op_GetElementPtr, this);
+  InsertIntoCacheBB(Res);
   return Res;
 }
 
-VariablePtr IRBuilder::CreatePHI(VarTypePtr VTy, unsigned NumReservedValues,
-                                 const std::string &Name) {
-  auto Res = std::make_shared<Variable>();
+PHINodePtr IRBuilder::CreatePHI(VarTypePtr VTy, unsigned NumReservedValues,
+                                const std::string &Name) {
+  auto Res = std::make_shared<PHINode>(Blocks[function->CacheLabel], VTy,
+                                       NumReservedValues);
   Res->setName(Name);
-  Res->setType(pointerTo(baseTo(VTy)));
+  Res->setType(VTy);
 
-  if (function->EntryLabel < 0)
-    function->EntryLabel = function->CacheLabel;
-  if (Blocks.count(function->CacheLabel) == 0) {
-    BasicBlockPtr Block = std::make_shared<BasicBlock>(function);
-    Block->setName(function->CacheName);
-    Block->SetLabel(function->CacheLabel);
-    Blocks.insert(std::make_pair(function->CacheLabel, Block));
-  }
-
-  Blocks[function->CacheLabel]->Insert(VTy, NumReservedValues, Res,
-                                       IROpKind::Op_PhiNode, this);
+  InsertIntoCacheBB(Res);
   return Res;
 }
 
-void IRBuilder::CreateStore(VariablePtr value, VariablePtr Addr) {
-  Insert(value, nullptr, Addr, IROpKind::Op_Store, function->GeTable());
-}
+void IRBuilder::CreateStore(VariablePtr V, VariablePtr Addr) {
+  auto Res = std::make_shared<StoreInst>(Blocks[function->CacheLabel], V, Addr);
 
-// void IRBuilder::CreateStore(VariablePtr Addr) { CreateStore(nullptr, Addr); }
-
-bool IRBuilder::Insert(VariablePtr Result, IROpKind Op, SymbolTablePtr Table) {
-  // store num
-  return Insert(nullptr, nullptr, Result, Op, function->CacheLabel,
-                function->CacheName, Table);
-}
-
-bool IRBuilder::Insert(VariablePtr Source, VariablePtr Dest, IROpKind Op,
-                       SymbolTablePtr Table) {
-  // store identity
-  return Insert(Source, nullptr, Dest, Op, function->CacheLabel,
-                function->CacheName, Table);
-}
-
-// branch instruction
-bool IRBuilder::Insert(VariablePtr indicateVariable, BasicBlockPtr targetOne,
-                       BasicBlockPtr targetTwo, IROpKind Op,
-                       SymbolTablePtr Table) {
-  if (function->EntryLabel < 0)
-    function->EntryLabel = function->CacheLabel;
-  if (Blocks.count(function->CacheLabel) == 0) {
-    BasicBlockPtr Block = std::make_shared<BasicBlock>(function);
-    Block->setName(function->CacheName);
-    Block->SetLabel(function->CacheLabel);
-    Blocks.insert(std::make_pair(function->CacheLabel, Block));
-  }
-  assert(Op == IROpKind::Op_Branch || Op == IROpKind::Op_UnConBranch);
-  Blocks[function->CacheLabel]->Insert(indicateVariable, targetOne, targetTwo,
-                                       Op, this);
-  return true;
+  InsertIntoCacheBB(Res);
 }
 
 void IRBuilder::CreateCondBr(VariablePtr Cond, BasicBlockPtr True,
                              BasicBlockPtr False) {
+  assert(Cond);
+  auto Res = std::make_shared<BranchInst>(Blocks[function->CacheLabel], Cond,
+                                          True, False, IROpKind::Op_Branch);
   auto Curr = getCurrentBlock();
   Curr->SetSucc(True);
   Curr->SetSucc(False);
   True->SetPred(Curr);
   False->SetPred(Curr);
-  Insert(Cond, True, False, IROpKind::Op_Branch, function->GeTable());
+  InsertIntoCacheBB(Res);
 }
 
 void IRBuilder::CreateBr(BasicBlockPtr Target) {
+  auto Res = std::make_shared<BranchInst>(Blocks[function->CacheLabel], Target,
+                                          IROpKind::Op_UnConBranch);
   auto Curr = getCurrentBlock();
   Curr->SetSucc(Target);
   Target->SetPred(Curr);
-  Insert(nullptr, Target, nullptr, IROpKind::Op_UnConBranch,
-         function->GeTable());
-}
 
-void IRBuilder::fixNonReturn(SymbolTablePtr Table) {
-  BasicBlockPtr lastBlock;
-  for (const auto &blk : Blocks) {
-    lastBlock = blk.second;
-  }
-  // fix no return statement
-  if (lastBlock->InstInBB.empty()) {
-    if (function->RetTy == TyVoid) {
-      // fix me: remove temp variables
-      VariablePtr tempRetVoid = std::make_shared<Variable>();
-      tempRetVoid->setName("void");
-      auto t1 = std::make_shared<Variable>();
-      auto t2 = std::make_shared<Variable>();
-      this->Insert(t1, t2, tempRetVoid, IROpKind::Op_Return, Table);
-      // this->Insert(std::make_shared<Variable>(),
-      // std::make_shared<Variable>(), tempRetVoid, IROpKind::Op_Return, Table);
-    } else {
-      auto t1 = std::make_shared<Variable>();
-      auto t2 = std::make_shared<Variable>();
-      this->Insert(t1, t2, lastResVar, IROpKind::Op_Return, Table);
-      // this->Insert(std::make_shared<Variable>(),
-      // std::make_shared<Variable>(), std::make_shared<Variable>(lastResVar),
-      // IROpKind::Op_Return, Table);
-    }
-
-  } else {
-    InstructionPtr lastInst = lastBlock->InstInBB.back();
-    if (auto d = std::dynamic_pointer_cast<ReturnInst>(lastInst);
-        d == nullptr) {
-      if (function->RetTy == TyVoid) {
-        // fix me: remove temp variable
-        VariablePtr tempRetVoid = std::make_shared<Variable>();
-        tempRetVoid->setName("void");
-        auto t1 = std::make_shared<Variable>();
-        auto t2 = std::make_shared<Variable>();
-        this->Insert(t1, t2, tempRetVoid, IROpKind::Op_Return, Table);
-      } else {
-        auto t1 = std::make_shared<Variable>();
-        auto t2 = std::make_shared<Variable>();
-        this->Insert(t1, t2, lastResVar, IROpKind::Op_Return, Table);
-      }
-    }
-  }
+  InsertIntoCacheBB(Res);
 }
 
 // std::string IRBuilder::CodeGen() {

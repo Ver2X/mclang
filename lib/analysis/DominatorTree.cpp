@@ -34,9 +34,11 @@ bool DominatorTree::dominates(const InstructionPtr Def,
   return dominates(Def->getParent(), Use->getParent());
 }
 
-bool DominatorTree::dominates(const VariablePtr Def, const InstructionPtr Use) {
-  return dominates(Def->Use->getParent(), Use->getParent());
+bool DominatorTree::dominates(const BasicBlockPtr Def,
+                              const InstructionPtr Use) {
+  return dominates(Def, Use->getParent());
 }
-bool DominatorTree::dominates(const VariablePtr Def, const BasicBlockPtr BB) {
-  return dominates(Def->Use->getParent(), BB);
+bool DominatorTree::dominates(const InstructionPtr Def,
+                              const BasicBlockPtr BB) {
+  return dominates(Def->getParent(), BB);
 }
