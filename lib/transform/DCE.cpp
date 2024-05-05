@@ -20,10 +20,10 @@ bool DCEInstruction(InstructionPtr Inst, std::set<InstructionPtr> &WorkList) {
     // Null out all of the instruction's operands to see if any operand becomes
     // dead as we go.
     std::cout << "will remove : " << Inst->CodeGen() << "\n";
-    for (unsigned i = 0, e = Inst->getNumValues(); i != e; ++i) {
-      auto OpV = Inst->getValue(i).getValPtr();
+    for (unsigned i = 0, e = Inst->getNumOperands(); i != e; ++i) {
+      auto OpV = Inst->getOperand(i).getValPtr();
 
-      Inst->setValue(i, nullptr);
+      Inst->setOperand(i, nullptr);
 
       if (!OpV || !OpV->users().empty())
         continue;

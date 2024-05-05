@@ -73,9 +73,9 @@ public:
   IROpKind GetOp() { return Op; }
   BasicBlockPtr getParent() { return Parent; }
 
-  virtual unsigned getNumValues() = 0;
+  virtual unsigned getNumOperands() = 0;
 
-  bool isValidIdx(int Idx) { return Idx >= 0 && Idx < getNumValues(); }
+  bool isValidIdx(int Idx) { return Idx >= 0 && Idx < getNumOperands(); }
 
   void eraseFromParent();
   virtual std::string CodeGen() = 0;
@@ -103,9 +103,9 @@ public:
   }
   std::string CodeGen();
 
-  unsigned getNumValues() { return 2; }
+  unsigned getNumOperands() { return 2; }
 
-  Use &getValue(int Idx) {
+  Use &getOperand(int Idx) {
     assert(isValidIdx(Idx));
     if (Idx == 0) {
       return Left;
@@ -124,7 +124,7 @@ using BinaryOperatorPtr = std::shared_ptr<BinaryOperator>;
 // public:
 //   UnaryOperator(BasicBlockPtr BB, VariablePtr l, VariablePtr r) :
 //   Instruction(BB), Left(l), Result(r) {} std::string CodeGen(); unsigned
-//   getNumValues() { return 1;}
+//   getNumOperands() { return 1;}
 
 // private:
 //   VariablePtr Left;
@@ -139,9 +139,9 @@ public:
   }
   // ReturnInst(BasicBlockPtr BB) : Instruction(BB, IROpKind::Op_Return) {  }
   std::string CodeGen();
-  unsigned getNumValues() { return 1; }
+  unsigned getNumOperands() { return 1; }
 
-  Use &getValue(int Idx) {
+  Use &getOperand(int Idx) {
     assert(isValidIdx(Idx));
     return returnValue;
   }
@@ -162,11 +162,11 @@ public:
   BranchInst(BasicBlockPtr BB, BasicBlockPtr tg1, IROpKind Op)
       : Instruction(BB, Op), targetFirst(tg1), indicateVariable(this, 0) {}
   std::string CodeGen();
-  Use &getValue(int Idx) {
+  Use &getOperand(int Idx) {
     assert(isValidIdx(Idx));
     return indicateVariable;
   }
-  unsigned getNumValues() { return 1; }
+  unsigned getNumOperands() { return 1; }
   VariablePtr getResult() { return nullptr; }
 
 private:
@@ -184,8 +184,8 @@ public:
   }
   std::string CodeGen();
   VarTypePtr getAllocatedType() { return VTy; }
-  unsigned getNumValues() { return 1; }
-  Use &getValue(int Idx) { return ArraySize; };
+  unsigned getNumOperands() { return 1; }
+  Use &getOperand(int Idx) { return ArraySize; };
 
 private:
   Use ArraySize;
@@ -200,9 +200,9 @@ public:
     this->Source = Source;
   }
   std::string CodeGen();
-  unsigned getNumValues() { return 1; }
+  unsigned getNumOperands() { return 1; }
 
-  Use &getValue(int Idx) {
+  Use &getOperand(int Idx) {
     assert(isValidIdx(Idx));
     return Source;
   }
@@ -226,7 +226,7 @@ public:
     }
   }
   std::string CodeGen();
-  Use &getValue(int Idx) {
+  Use &getOperand(int Idx) {
     assert(isValidIdx(Idx));
     if (Idx == 0) {
       return BasePtr;
@@ -240,7 +240,7 @@ public:
     return IdxList[Idx].getValPtr();
   }
   std::vector<Use> &getIndexs() { return IdxList; }
-  unsigned getNumValues() { return 1 + IdxList.size(); }
+  unsigned getNumOperands() { return 1 + IdxList.size(); }
 
 private:
   VarTypePtr PtrTy;
@@ -257,7 +257,7 @@ public:
     this->Dest = Dest;
   }
   std::string CodeGen();
-  Use &getValue(int Idx) {
+  Use &getOperand(int Idx) {
     assert(isValidIdx(Idx));
     if (Idx == 0) {
       return Source;
@@ -266,9 +266,9 @@ public:
     }
     assert(false);
   }
-  unsigned getNumValues() { return 2; }
+  unsigned getNumOperands() { return 2; }
   VariablePtr getPointerOperand() { return Dest.getValPtr(); }
-  VariablePtr getValueOperand() { return Source.getValPtr(); }
+  VariablePtr getOperandOperand() { return Source.getValPtr(); }
 
 private:
   Use Source;
@@ -291,11 +291,11 @@ public:
     return args[Idx].getValPtr();
   }
   std::vector<Use> &getArgs() { return args; }
-  Use &getValue(int Idx) {
+  Use &getOperand(int Idx) {
     assert(isValidIdx(Idx));
     return args[Idx];
   }
-  unsigned getNumValues() { return args.size(); }
+  unsigned getNumOperands() { return args.size(); }
 
 private:
   IRFunctionPtr func;
@@ -309,11 +309,11 @@ public:
       : Instruction(BB, IROpKind::Op_PhiNode), ValueTy(VTy),
         NumOfIncomingValues(NumOfIncoming), CurNumOfIncomingValues(0) {}
   std::string CodeGen();
-  Use &getValue(int Idx) {
+  Use &getOperand(int Idx) {
     assert(isValidIdx(Idx));
     return InComingValues[Idx];
   }
-  unsigned getNumValues() { return CurNumOfIncomingValues; }
+  unsigned getNumOperands() { return CurNumOfIncomingValues; }
   void addIncoming(VariablePtr InComingValue, BasicBlockPtr InComingBB);
 
 private:

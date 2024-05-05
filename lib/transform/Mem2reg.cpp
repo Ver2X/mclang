@@ -65,7 +65,7 @@ void PromoteMemoryToRegister::promoteMem2Reg() {
       for (auto U : AI->users()) {
         auto Inst = U->getUser();
         if (auto Load = dynamic_cast<LoadInst *>(Inst)) {
-          Load->replaceAllUsesWith(SingleStore->getValue(0).getValPtr());
+          Load->replaceAllUsesWith(SingleStore->getOperand(0).getValPtr());
           Load->eraseFromParent();
         }
       }
@@ -113,7 +113,7 @@ void PromoteMemoryToRegister::promoteMem2Reg() {
             // !"); can't assert it because array access is gep + store, not
             // directly store
             if (auto Load = std::dynamic_pointer_cast<LoadInst>(Inst)) {
-              Load->replaceAllUsesWith(BeforeStore->getValueOperand());
+              Load->replaceAllUsesWith(BeforeStore->getOperandOperand());
               NeedRemoveInsts.push_back(Load);
             } else if (auto Gep =
                            std::dynamic_pointer_cast<GetElementPtrInst>(Inst)) {
@@ -198,7 +198,7 @@ NextIteration:
       // because it is missing incoming edges.  All other PHI nodes being
       // inserted by this pass of mem2reg will have the same number of incoming
       // operands so far.  Remember this count.
-      unsigned NewPHINumValues = APN->getNumValues();
+      unsigned NewPHINumValues = APN->getNumOperands();
 
       unsigned NumEdges = Pred->GetSucc().size();
       assert(NumEdges && "Must be at least one edge from Pred to BB!");
@@ -225,7 +225,7 @@ NextIteration:
         APN = std::dynamic_pointer_cast<PHINode>(*PNI);
         if (!APN)
           break;
-      } while (APN->getNumValues() == NewPHINumValues);
+      } while (APN->getNumOperands() == NewPHINumValues);
     }
   }
 
@@ -267,7 +267,7 @@ NextIteration:
       // store kill了旧值，所以需要更新当前变量的活跃值和低点
       unsigned AllocaNo = ai->second;
       // upate IncomingVals
-      IncomingVals[AllocaNo] = SI->getValue(0).getValPtr();
+      IncomingVals[AllocaNo] = SI->getOperand(0).getValPtr();
       SI->eraseFromParent();
     }
   }
