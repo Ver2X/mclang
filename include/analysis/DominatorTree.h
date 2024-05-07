@@ -1,5 +1,5 @@
 #pragma once
-#include "FunctionIR.h"
+#include "ir/FunctionIR.h"
 
 class DominatorTree {
 public:

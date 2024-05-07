@@ -15,61 +15,34 @@ set(CMAKE_BUILD_TYPE Debug CACHE STRING "Set Build Type to Debug")
 
 include_directories(include)
 add_library(libs SHARED 
-    lib/Rope.cpp
-    lib/BasicBlock.cpp 
-    lib/FunctionIR.cpp 
-    lib/IR.cpp 
-    lib/IRGen.cpp 
-    lib/Instruction.cpp
-    lib/SymbolTable.cpp
-    lib/Variable.cpp
-    lib/codegen.cpp
-    lib/parse.cpp
-    lib/strings.cpp
-    lib/tokenize.cpp
-    lib/type.cpp
-    lib/IRBuilder.cpp
-    lib/Module.cpp
-    lib/IRGenStatement.cpp
-    lib/IRGenAddr.cpp
-    lib/IRGenExpression.cpp
-    lib/StructTypeTag.cpp
+    lib/front/parse.cpp
+    lib/front/strings.cpp
+    lib/front/tokenize.cpp
+    lib/front/type.cpp
+
+    lib/ir/BasicBlock.cpp 
+    lib/ir/FunctionIR.cpp 
+    lib/ir/IRGen.cpp 
+    lib/ir/Instruction.cpp
+    lib/ir/SymbolTable.cpp
+    lib/ir/Value.cpp
+    lib/ir/IRBuilder.cpp
+    lib/ir/Module.cpp
+    lib/ir/IRGenStatement.cpp
+    lib/ir/IRGenAddr.cpp
+    lib/ir/IRGenExpression.cpp
+    lib/ir/StructTypeTag.cpp
+
+    lib/utils/Rope.cpp
+
     lib/analysis/Dominance.cpp
-    lib/transform/Mem2reg.cpp
     lib/analysis/DominatorTree.cpp
+
+    lib/transform/Mem2reg.cpp
     lib/transform/DCE.cpp
+
+    lib/driver/codegen.cpp
 )
 
-# include_directories(include)
-# add_library(IRBuilder STATIC lib/IRBuilder.cpp)
-# add_library(Block STATIC lib/Block.cpp)
-# add_library(FunctionIR STATIC lib/FunctionIR.cpp)
-# add_library(IR STATIC lib/IR.cpp)
-# add_library(IRGen STATIC lib/IRGen.cpp)
-# add_library(Instruction STATIC lib/Instruction.cpp)
-# add_library(SymbolTable STATIC lib/SymbolTable.cpp)
-# add_library(Variable STATIC lib/Variable.cpp)
-# add_library(codegen STATIC lib/codegen.cpp)
-# add_library(parse STATIC lib/parse.cpp)
-# add_library(strings STATIC lib/strings.cpp)
-# add_library(tokenize STATIC lib/tokenize.cpp)
-# add_library(type STATIC lib/type.cpp)
-#add_library(myclang STATIC lib/main.cpp)
-
-add_executable(mclang lib/main.cpp)
+add_executable(mclang lib/driver/main.cpp)
 target_link_libraries(mclang libs)
-# target_link_libraries(myclang 
-#     codegen
-#     IRBuilder
-#     Block
-#     FunctionIR
-#     IR
-#     Instruction
-#     SymbolTable
-#     Variable
-    
-#     parse
-#     strings
-#     tokenize
-#     type
-# )
