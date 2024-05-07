@@ -1,6 +1,6 @@
 #include "transform/Mem2reg.h"
-#include "IRBuilder.h"
-#include "Instruction.h"
+#include "ir/IRBuilder.h"
+#include "ir/Instruction.h"
 #include "analysis/Dominance.h"
 #include <stack>
 

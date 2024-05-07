@@ -1,6 +1,6 @@
 #pragma once
-#include "BasicBlock.h"
-#include "FunctionIR.h"
+#include "ir/BasicBlock.h"
+#include "ir/FunctionIR.h"
 #include <algorithm>
 #include <map>
 #include <memory>

@@ -1,5 +1,5 @@
 #include "transform/DCE.h"
-#include "BasicBlock.h"
+#include "ir/BasicBlock.h"
 #include <set>
 
 bool isInstructionTriviallyDead(InstructionPtr I) {

@@ -1,7 +1,7 @@
 #pragma once
-#include "BasicBlock.h"
-#include "FunctionIR.h"
-#include "SetCompute.h"
+#include "ir/BasicBlock.h"
+#include "ir/FunctionIR.h"
+#include "analysis/utils/SetCompute.h"
 #include <algorithm>
 #include <map>
 #include <set>

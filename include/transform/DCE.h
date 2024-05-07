@@ -1,4 +1,4 @@
 #pragma once
-#include "FunctionIR.h"
+#include "ir/FunctionIR.h"
 
 bool eliminateDeadCode(IRFunctionPtr Func);
