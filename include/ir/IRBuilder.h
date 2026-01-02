@@ -1,8 +1,8 @@
 #pragma once
+#include "front/Type.h"
 #include "ir/BasicBlock.h"
 #include "ir/FunctionIR.h"
 #include "ir/SymbolTable.h"
-#include "front/Type.h"
 #include "ir/Value.h"
 
 #include <assert.h>

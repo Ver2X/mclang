@@ -1,5 +1,5 @@
-#include "ir/Module.h"
 #include "front/mclang.h"
+#include "ir/Module.h"
 
 TypePtr TyBit = std::make_shared<Type>(TypeKind::TY_BIT, 0, 1);
 

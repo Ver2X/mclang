@@ -1,7 +1,7 @@
 #include "transform/Mem2reg.h"
+#include "analysis/Dominance.h"
 #include "ir/IRBuilder.h"
 #include "ir/Instruction.h"
-#include "analysis/Dominance.h"
 #include <stack>
 
 /// Queue a phi-node to be added to a basic-block for a specific Alloca.
@@ -23,6 +23,7 @@ bool PromoteMemoryToRegister::QueuePhiNode(BasicBlockPtr BB, unsigned AllocaNo,
   PN = Buider.CreatePHI(
       Allocas[AllocaNo]->getAllocatedType(), BB->GetPred().size(),
       Allocas[AllocaNo]->getName() + "." + std::to_string(Version++));
+  Allocas[AllocaNo]->eraseFromParent();
   PhiToAllocaMap[PN] = AllocaNo;
   return true;
 }

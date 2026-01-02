@@ -1,9 +1,9 @@
+#include "front/mclang.h"
 #include "ir/IRBuilder.h"
 #include "ir/Instruction.h"
 #include "ir/Module.h"
 #include "ir/SymbolTable.h"
 #include "ir/Value.h"
-#include "front/mclang.h"
 
 void genExprIR(Node *ExprNode, VariablePtr *, SymbolTablePtr);
 void genFuncArgIR(Obj *Var, int r, int Offset, int sz);
