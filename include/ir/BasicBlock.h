@@ -56,7 +56,7 @@ public:
   void setName(std::string Name) { this->Name = Name; }
   IRFunctionPtr getParent() { return Parent; }
   std::vector<AllocaInstPtr> getAllocas() { return Allocas; }
-  std::string getName() { return Name; }
+  const std::string getName() { return Name; }
   void SetLabel(int Label) { this->Label = Label; }
   int GetLabel() { return Label; }
   void Insert(IRBuilder *Buider, InstructionPtr Inst);

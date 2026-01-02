@@ -67,7 +67,7 @@ public:
   std::map<std::string, int> CachedVarNames;
 
   std::string rename();
-  std::string getName() { return FunctionName; };
+  const std::string getName() { return FunctionName; };
   std::map<int, BasicBlockPtr> getBlocks() { return Blocks; }
   void setModule(ModulePtr Mod) { ParentMod = Mod; }
   ModulePtr getParent() { return ParentMod; }
