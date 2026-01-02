@@ -1,10 +1,10 @@
+#include "analysis/DominatorTree.h"
+#include "front/mclang.h"
 #include "ir/IRBuilder.h"
 #include "ir/Instruction.h"
 #include "ir/Module.h"
 #include "ir/SymbolTable.h"
 #include "ir/Value.h"
-#include "analysis/DominatorTree.h"
-#include "front/mclang.h"
 #include "transform/DCE.h"
 #include "transform/Mem2reg.h"
 // #include <bits/types/FILE.h>

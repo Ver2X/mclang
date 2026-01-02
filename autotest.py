@@ -65,7 +65,8 @@ def process_c_files(directory, headercmd):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print('Usage: python script.py <directory>')
+        print('Usage: python autotest.py <directory>')
+        print('Such as: python autotest.py test/std')
         sys.exit(1)
     directory = sys.argv[1]
     if not os.path.isdir(directory):

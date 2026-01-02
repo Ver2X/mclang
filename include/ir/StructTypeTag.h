@@ -27,7 +27,7 @@ private:
 public:
   TypePtr StructType;
   StructTypeTag(TypePtr Ty, std::string N) : StructType(Ty), Name(N) {}
-  std::string getName() { return Name; };
+  const std::string getName() { return Name; };
   std::string CodeGen();
 };
 
